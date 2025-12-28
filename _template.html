@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【頁面標題】 - ZKML 技術知識庫</title>
+
+  <!-- Early theme detection (prevents flash) -->
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="【頁面ID】">
+  <!-- Mobile Menu Button -->
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div id="sidebar-overlay"></div>
+
+  <!-- Sidebar (auto-generated) -->
+  <nav id="sidebar"></nav>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Breadcrumb (auto-generated) -->
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>【頁面標題】</h1>
+
+      <!-- ==================== -->
+      <!-- 在這裡撰寫內容       -->
+      <!-- ==================== -->
+
+      <p>內容尚在撰寫中...</p>
+
+      <!-- ==================== -->
+      <!-- 內容結束             -->
+      <!-- ==================== -->
+
+    </article>
+
+    <!-- Prev/Next Navigation (auto-generated) -->
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <!-- Theme Toggle Button -->
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+
+  <!-- Site Scripts -->
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

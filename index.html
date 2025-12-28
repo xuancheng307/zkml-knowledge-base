@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKML 技術知識庫 - AI × 密碼學 的交會點</title>
+  <meta name="description" content="ZKML (Zero-Knowledge Machine Learning) 技術知識庫，涵蓋密碼學、機器學習與零知識證明的整合應用。">
+
+  <!-- Early theme detection -->
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+
+  <style>
+    /* Landing page specific styles */
+    .landing-hero {
+      text-align: center;
+      padding: var(--space-12) 0;
+      margin-bottom: var(--space-8);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .landing-hero h1 {
+      font-size: var(--font-size-4xl);
+      margin-bottom: var(--space-4);
+      border: none;
+      padding: 0;
+    }
+
+    .landing-hero .subtitle {
+      font-size: var(--font-size-xl);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    .landing-hero .description {
+      max-width: 600px;
+      margin: 0 auto;
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .section-title {
+      font-size: var(--font-size-2xl);
+      font-weight: 600;
+      margin-bottom: var(--space-6);
+      color: var(--color-primary);
+    }
+
+    .reading-paths {
+      margin-top: var(--space-12);
+      padding: var(--space-8);
+      background-color: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+    }
+
+    .path-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-6);
+      margin-top: var(--space-6);
+    }
+
+    .path-card {
+      padding: var(--space-5);
+      background-color: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+    }
+
+    .path-card .path-title {
+      font-weight: 600;
+      color: var(--color-accent);
+      margin-bottom: var(--space-2);
+    }
+
+    .path-card .path-desc {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-3);
+    }
+
+    .path-card .path-steps {
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+    }
+
+    .path-card .path-steps ol {
+      margin: 0;
+      padding-left: var(--space-5);
+    }
+
+    .path-card .path-steps li {
+      margin-bottom: var(--space-1);
+    }
+
+    .site-info {
+      margin-top: var(--space-12);
+      padding: var(--space-6);
+      background-color: var(--color-bg-secondary);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .site-info a {
+      color: var(--color-accent);
+    }
+  </style>
+</head>
+<body data-page-id="home">
+  <!-- Mobile Menu Button -->
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <nav id="sidebar"></nav>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Hero Section -->
+    <section class="landing-hero">
+      <h1>ZKML 技術知識庫</h1>
+      <p class="subtitle">AI × 密碼學 的交會點</p>
+      <p class="description">
+        探索 Zero-Knowledge Machine Learning 的核心技術，從密碼學基礎到可驗證推理，
+        建立完整的知識框架。本站作為畢業論文的配套資源，提供系統化的技術文獻整理。
+      </p>
+    </section>
+
+    <!-- Three Pillars -->
+    <section>
+      <h2 class="section-title">三大知識支柱</h2>
+      <div class="card-grid">
+        <a href="/zkml-knowledge-base/crypto/index.html" class="card">
+          <div class="icon">🔐</div>
+          <div class="title">密碼學</div>
+          <div class="description">
+            零知識證明、多項式承諾、算術化與證明系統（PLONK、Halo2、STARK）
+          </div>
+        </a>
+
+        <a href="/zkml-knowledge-base/ml/index.html" class="card">
+          <div class="icon">🧠</div>
+          <div class="title">機器學習</div>
+          <div class="description">
+            神經網路架構、激活函數、Transformer、量化與模型優化
+          </div>
+        </a>
+
+        <a href="/zkml-knowledge-base/zkml/index.html" class="card">
+          <div class="icon">⚡</div>
+          <div class="title">ZKML</div>
+          <div class="description">
+            可驗證推理、隱私推理、模型轉電路、EZKL 等框架實作
+          </div>
+          <span class="badge">核心</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Reading Paths -->
+    <section class="reading-paths">
+      <h2 class="section-title">我該從哪裡開始？</h2>
+      <p>根據你的背景選擇適合的閱讀路徑：</p>
+
+      <div class="path-grid">
+        <div class="path-card">
+          <div class="path-title">🔐 我有密碼學背景</div>
+          <div class="path-desc">已熟悉 ZKP，想了解如何應用在 ML</div>
+          <div class="path-steps">
+            <ol>
+              <li>ML 基礎 → 神經網路、量化</li>
+              <li>ZKML 問題定義</li>
+              <li>模型 → 電路轉換</li>
+              <li>EZKL 框架實作</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="path-card">
+          <div class="path-title">🧠 我有 ML 背景</div>
+          <div class="path-desc">熟悉深度學習，想了解可驗證推理</div>
+          <div class="path-steps">
+            <ol>
+              <li>ZKP 基礎概念</li>
+              <li>多項式承諾（KZG）</li>
+              <li>ZKML 威脅模型</li>
+              <li>定點數與精度問題</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="path-card">
+          <div class="path-title">📚 我是新手</div>
+          <div class="path-desc">從頭開始學習 ZKML 領域</div>
+          <div class="path-steps">
+            <ol>
+              <li>ZKML 總覽：什麼是 ZKML</li>
+              <li>威脅模型與安全目標</li>
+              <li>ZKP 基礎 + ML 基礎</li>
+              <li>逐步深入各主題</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Additional Resources -->
+    <section style="margin-top: var(--space-12);">
+      <h2 class="section-title">相關資源</h2>
+      <div class="card-grid">
+        <a href="/zkml-knowledge-base/foundations/index.html" class="card">
+          <div class="icon">📐</div>
+          <div class="title">基礎概念</div>
+          <div class="description">威脅模型、術語表、整體架構說明</div>
+        </a>
+
+        <a href="/zkml-knowledge-base/thesis/index.html" class="card">
+          <div class="icon">📖</div>
+          <div class="title">論文導讀</div>
+          <div class="description">畢業論文章節對照、研究貢獻說明</div>
+        </a>
+
+        <a href="https://xuancheng307.github.io/PLONK/" class="card" target="_blank" rel="noopener">
+          <div class="icon">📄</div>
+          <div class="title">PLONK 技術報告</div>
+          <div class="description">深入解析 PLONK 協定（外部連結）</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- Site Info -->
+    <div class="site-info">
+      <p><strong>作者：</strong>高璿程</p>
+      <p><strong>用途：</strong>畢業論文配套技術知識庫</p>
+      <p><strong>授權：</strong>CC BY-NC-SA 4.0</p>
+      <p><strong>原始碼：</strong><a href="https://github.com/xuancheng307/zkml-knowledge-base" target="_blank" rel="noopener">GitHub</a></p>
+    </div>
+  </main>
+
+  <!-- Theme Toggle -->
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+
+  <!-- Site Scripts -->
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+{
+  "config": {
+    "siteName": "ZKML 技術知識庫",
+    "siteSubtitle": "AI × 密碼學 的交會點",
+    "baseUrl": "/zkml-knowledge-base",
+    "repo": "https://github.com/xuancheng307/zkml-knowledge-base",
+    "author": "高璿程",
+    "plonkSite": "https://xuancheng307.github.io/PLONK/"
+  },
+
+  "sections": [
+    {
+      "id": "foundations",
+      "title": "基礎概念",
+      "icon": "📐",
+      "items": [
+        { "id": "foundations-index", "title": "總覽：什麼是 ZKML", "path": "/foundations/index.html", "status": "placeholder" },
+        { "id": "threat-model", "title": "威脅模型與安全目標", "path": "/foundations/threat-model.html", "status": "placeholder" },
+        { "id": "glossary", "title": "術語表", "path": "/foundations/glossary.html", "status": "placeholder" },
+        { "id": "reading-paths", "title": "推薦閱讀路徑", "path": "/foundations/reading-paths.html", "status": "placeholder" }
+      ]
+    },
+    {
+      "id": "crypto",
+      "title": "密碼學",
+      "icon": "🔐",
+      "items": [
+        { "id": "crypto-index", "title": "密碼學總覽", "path": "/crypto/index.html", "status": "placeholder" },
+        {
+          "id": "zkp",
+          "title": "零知識證明",
+          "items": [
+            { "id": "zkp-basics", "title": "ZKP 基礎概念", "path": "/crypto/zkp-basics.html", "status": "placeholder" },
+            { "id": "zkp-properties", "title": "完備性、可靠性、零知識", "path": "/crypto/zkp-properties.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "commitments",
+          "title": "承諾方案",
+          "items": [
+            { "id": "kzg", "title": "KZG 多項式承諾", "path": "/crypto/commitments/kzg.html", "status": "placeholder" },
+            { "id": "ipa", "title": "IPA 內積論證", "path": "/crypto/commitments/ipa.html", "status": "placeholder" },
+            { "id": "fri", "title": "FRI（STARK 用）", "path": "/crypto/commitments/fri.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "arithmetization",
+          "title": "算術化",
+          "items": [
+            { "id": "r1cs", "title": "R1CS", "path": "/crypto/arithmetization/r1cs.html", "status": "placeholder" },
+            { "id": "plonkish", "title": "PLONKish / AIR", "path": "/crypto/arithmetization/plonkish.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "proof-systems",
+          "title": "證明系統",
+          "items": [
+            { "id": "plonk", "title": "PLONK", "path": "/crypto/proof-systems/plonk.html", "status": "done", "external": "https://xuancheng307.github.io/PLONK/" },
+            { "id": "groth16", "title": "Groth16", "path": "/crypto/proof-systems/groth16.html", "status": "placeholder" },
+            { "id": "halo2", "title": "Halo2", "path": "/crypto/proof-systems/halo2.html", "status": "placeholder" },
+            { "id": "stark", "title": "STARK", "path": "/crypto/proof-systems/stark.html", "status": "placeholder" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ml",
+      "title": "機器學習",
+      "icon": "🧠",
+      "items": [
+        { "id": "ml-index", "title": "機器學習總覽", "path": "/ml/index.html", "status": "placeholder" },
+        {
+          "id": "fundamentals",
+          "title": "基礎架構",
+          "items": [
+            { "id": "neural-networks", "title": "神經網路基礎", "path": "/ml/neural-networks.html", "status": "placeholder" },
+            { "id": "activations", "title": "激活函數", "path": "/ml/activations.html", "status": "placeholder" },
+            { "id": "transformers", "title": "Transformer 架構", "path": "/ml/transformers.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "optimization",
+          "title": "推理優化",
+          "items": [
+            { "id": "quantization", "title": "量化（Quantization）", "path": "/ml/optimization/quantization.html", "status": "placeholder" },
+            { "id": "pruning", "title": "剪枝（Pruning）", "path": "/ml/optimization/pruning.html", "status": "placeholder" },
+            { "id": "onnx", "title": "ONNX 模型表示", "path": "/ml/optimization/onnx.html", "status": "placeholder" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "zkml",
+      "title": "ZKML",
+      "icon": "⚡",
+      "badge": "核心",
+      "items": [
+        { "id": "zkml-index", "title": "ZKML 總覽", "path": "/zkml/index.html", "status": "placeholder" },
+        { "id": "problem-statement", "title": "問題定義與場景", "path": "/zkml/problem-statement.html", "status": "placeholder" },
+        {
+          "id": "paradigms",
+          "title": "兩大範式",
+          "items": [
+            { "id": "verifiable-inference", "title": "可驗證推理", "path": "/zkml/verifiable-inference.html", "status": "placeholder" },
+            { "id": "private-inference", "title": "隱私推理", "path": "/zkml/private-inference.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "technical",
+          "title": "技術細節",
+          "items": [
+            { "id": "model-to-circuit", "title": "模型 → 電路", "path": "/zkml/model-to-circuit.html", "status": "placeholder" },
+            { "id": "fixed-point", "title": "定點數與精度", "path": "/zkml/fixed-point.html", "status": "placeholder" },
+            { "id": "lookup-tables", "title": "查表優化", "path": "/zkml/lookup-tables.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "frameworks",
+          "title": "框架與工具",
+          "items": [
+            { "id": "ezkl", "title": "EZKL", "path": "/zkml/frameworks/ezkl.html", "status": "placeholder" },
+            { "id": "zkllm", "title": "zkLLM", "path": "/zkml/frameworks/zkllm.html", "status": "placeholder" },
+            { "id": "opml", "title": "OPML", "path": "/zkml/frameworks/opml.html", "status": "placeholder" },
+            { "id": "risc-zero", "title": "RISC Zero", "path": "/zkml/frameworks/risc-zero.html", "status": "placeholder" }
+          ]
+        },
+        { "id": "benchmarks", "title": "效能比較", "path": "/zkml/benchmarks.html", "status": "placeholder" },
+        { "id": "open-problems", "title": "開放問題", "path": "/zkml/open-problems.html", "status": "placeholder" }
+      ]
+    },
+    {
+      "id": "thesis",
+      "title": "論文導讀",
+      "icon": "📖",
+      "items": [
+        { "id": "thesis-index", "title": "論文概覽", "path": "/thesis/index.html", "status": "placeholder" },
+        { "id": "contributions", "title": "研究貢獻", "path": "/thesis/contributions.html", "status": "placeholder" },
+        { "id": "chapter-map", "title": "章節對照表", "path": "/thesis/chapter-map.html", "status": "placeholder" },
+        { "id": "references", "title": "參考文獻", "path": "/thesis/references.html", "status": "placeholder" }
+      ]
+    }
+  ]
+}
