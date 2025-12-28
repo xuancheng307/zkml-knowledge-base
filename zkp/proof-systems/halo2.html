@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Halo2 - ZKML 技術知識庫</title>
+  <title>Halo2 證明系統 - ZKML 技術知識庫</title>
 
   <script>
     (function() {
@@ -30,274 +30,1019 @@
       <h1>Halo2 證明系統</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文來源</div>
-        <p>本頁內容主要基於 Sean Bowe, Jack Grigg, Daira Hopwood 於 2019 年發表的 Halo 論文，以及 Zcash 團隊後續開發的 Halo2 實作。</p>
+        <div class="callout-title">核心概念</div>
+        <p>Halo2 是由 Zcash 基金會開發的先進零知識證明系統，結合了 Halo 論文<sup><a href="#ref-1">[1]</a></sup>的無需可信設置遞迴證明技術與 PLONK<sup><a href="#ref-2">[2]</a></sup>的靈活算術化。Halo2 的核心創新包括：(1) 基於內積論證（IPA）的多項式承諾，消除可信設置需求；(2) 巢狀攤銷（Nested Amortization）策略實現高效遞迴；(3) PLONKish 表格系統支援自定義門和查表。這些特性使 Halo2 成為 ZKML 框架（如 EZKL）的首選後端。</p>
       </div>
 
-      <h2>概述</h2>
+      <h2>歷史背景與定位</h2>
 
-      <p>Halo 是一個創新的零知識證明系統，其核心貢獻是實現了<strong>無需可信設定（trusted setup）的遞迴證明組合</strong><sup><a href="#ref-1">[1]</a></sup>。這項突破解決了傳統 zk-SNARK 系統（如 Groth16）長期面臨的可信設定問題，同時保持了高效的證明和驗證效能。</p>
+      <h3>發展脈絡</h3>
 
-      <p>Halo2 是 Zcash 基金會基於 Halo 論文開發的證明系統實作，結合了 PLONKish 算術化與內積論證（Inner Product Argument, IPA）多項式承諾方案，被廣泛應用於 ZKML 框架（如 EZKL）中<sup><a href="#ref-2">[2]</a></sup>。</p>
+      <pre><code>Halo 發展時間線：
 
-      <h2>核心技術創新</h2>
+2019.09  Halo 論文發布
+         - 首次實現無可信設置的遞迴 SNARK
+         - 巢狀攤銷技術
 
-      <h3>無可信設定的多項式承諾</h3>
+2019.09  PLONK 論文發布
+         - 通用設置 SNARK
+         - PLONKish 算術化
 
-      <p>傳統的 KZG 多項式承諾需要可信設定來生成結構化參考字串（SRS），而 Halo 使用基於<strong>內積論證（IPA）</strong>的多項式承諾方案，完全消除了對可信設定的需求<sup><a href="#ref-1">[1]</a></sup>。</p>
+2020     Halo2 開發啟動
+         - 結合 Halo + PLONK
+         - Zcash 團隊主導
 
-      <p>IPA 多項式承諾的基本流程：</p>
+2021     Halo2 正式發布
+         - 完整 PLONKish 支援
+         - Lookup arguments (Plookup)
+         - 生產就緒
 
-      <ol>
-        <li><strong>承諾（Commit）</strong>：對多項式係數向量進行 Pedersen 向量承諾</li>
-        <li><strong>開啟（Open）</strong>：使用對數大小的內積論證證明評估值的正確性</li>
-        <li><strong>驗證（Verify）</strong>：驗證者透過多次折疊操作驗證證明</li>
-      </ol>
+2022-24  ZKML 整合
+         - EZKL 採用 Halo2 後端
+         - 廣泛的 ML 應用</code></pre>
 
-      <p>承諾計算如下：</p>
-      <p class="math">$$C = \langle \mathbf{a}, \mathbf{G} \rangle + [r]H$$</p>
-      <p>其中 \(\mathbf{a}\) 是多項式係數向量，\(\mathbf{G}\) 是生成器向量，\(r\) 是隨機盲化因子，\(H\) 是獨立生成器。</p>
-
-      <h3>巢狀攤銷（Nested Amortization）</h3>
-
-      <p>Halo 的關鍵創新是<strong>巢狀攤銷策略</strong>，用於降低遞迴驗證電路的複雜度<sup><a href="#ref-1">[1]</a></sup>。</p>
-
-      <div class="callout callout-info">
-        <div class="callout-title">核心洞察</div>
-        <p>內積論證的最終檢查涉及兩個昂貴的多純量乘法（MSM）。巢狀攤銷技術將這些計算推遲到最外層證明，避免在每一層遞迴中重複執行。</p>
-      </div>
-
-      <p>具體而言，IPA 驗證的最終步驟需要計算：</p>
-      <p class="math">$$[a]G + [ab]U \stackrel{?}{=} P$$</p>
-
-      <p>其中 \(G = \langle \mathbf{s}, \mathbf{G} \rangle\) 涉及對 \(n\) 個群元素的多純量乘法。傳統做法需要約 \(n\) 次群運算，在電路中代價極高。</p>
-
-      <p>巢狀攤銷的解決方案：</p>
-      <ol>
-        <li>將 \(G\) 的計算視為新的「累加器」，推遲到外層處理</li>
-        <li>在當前電路中只需驗證隨機線性組合的正確性</li>
-        <li>最外層證明一次性處理所有累積的 MSM 計算</li>
-      </ol>
-
-      <h3>橢圓曲線 2-cycle</h3>
-
-      <p>為支援高效遞迴，Halo 引入了<strong>橢圓曲線 2-cycle</strong> 的概念<sup><a href="#ref-1">[1]</a></sup>：兩條曲線 \(E_1\) 和 \(E_2\)，其中 \(E_1\) 的群階等於 \(E_2\) 的基域大小，反之亦然。</p>
-
-      <p>論文設計的曲線對：</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>曲線名稱</th>
-            <th>類型</th>
-            <th>素數 p</th>
-            <th>安全級別</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Tweedledum</td>
-            <td>短 Weierstrass</td>
-            <td>255-bit</td>
-            <td>126-bit (Pollard rho)</td>
-          </tr>
-          <tr>
-            <td>Tweedledee</td>
-            <td>短 Weierstrass</td>
-            <td>255-bit</td>
-            <td>126-bit (Pollard rho)</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p>這兩條曲線形成完美的循環：Tweedledum 上的證明可以在 Tweedledee 上驗證，而 Tweedledee 上的證明可以在 Tweedledum 上驗證，實現無限深度的遞迴。</p>
-
-      <h2>與 PLONKish 的結合</h2>
-
-      <p>Halo2 採用 PLONKish 算術化方案，結合了 PLONK 的靈活性與 Halo 的無可信設定特性<sup><a href="#ref-2">[2]</a></sup>。</p>
-
-      <h3>PLONKish 電路特性</h3>
-
-      <ul>
-        <li><strong>自定義門（Custom Gates）</strong>：支援任意多項式約束，不限於加法和乘法門</li>
-        <li><strong>查表門（Lookup Gates）</strong>：透過查表實現非算術運算的高效約束</li>
-        <li><strong>複製約束（Copy Constraints）</strong>：使用置換論證連接不同位置的單元格</li>
-      </ul>
-
-      <p>在 ZKML 應用中，PLONKish 的查表功能特別重要，可用於高效實現非線性激活函數（如 ReLU、GELU）的近似<sup><a href="#ref-2">[2]</a></sup>。</p>
-
-      <h2>安全性分析</h2>
-
-      <h3>安全假設</h3>
-
-      <p>Halo 的安全性基於<strong>離散對數困難假設（DLOG）</strong>：</p>
-
-      <p class="math">$$\text{給定 } G \text{ 和 } [x]G \text{，計算 } x \text{ 是計算不可行的}$$</p>
-
-      <p>相較於 KZG 依賴的雙線性配對假設，DLOG 是更保守且被廣泛研究的密碼學假設<sup><a href="#ref-1">[1]</a></sup>。</p>
-
-      <h3>安全性質</h3>
-
-      <table>
-        <thead>
-          <tr>
-            <th>性質</th>
-            <th>保證</th>
-            <th>說明</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>完備性（Completeness）</td>
-            <td>完美</td>
-            <td>誠實證明者總能生成有效證明</td>
-          </tr>
-          <tr>
-            <td>健全性（Soundness）</td>
-            <td>計算性</td>
-            <td>基於 DLOG 假設，惡意證明者無法偽造證明</td>
-          </tr>
-          <tr>
-            <td>零知識（Zero-Knowledge）</td>
-            <td>完美</td>
-            <td>證明不洩漏見證以外的任何資訊</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2>效能特性</h2>
-
-      <h3>證明大小</h3>
-
-      <p>Halo 的證明大小約為 <strong>3.5 KiB</strong>，雖然大於 Groth16 的常數大小證明（約 128 bytes），但遠小於 STARK 的證明大小<sup><a href="#ref-1">[1]</a></sup>。</p>
-
-      <h3>遞迴效率</h3>
-
-      <p>論文分析表明，當電路規模小於 \(2^{17}\) 個乘法門時，遞迴驗證成本可被有效攤銷<sup><a href="#ref-1">[1]</a></sup>。這意味著：</p>
-
-      <ul>
-        <li>可以將大型計算分割成多個較小的證明</li>
-        <li>透過遞迴組合這些證明，最終只需一個簡潔的驗證</li>
-        <li>特別適合需要增量驗證的應用場景</li>
-      </ul>
-
-      <h3>與其他系統的比較</h3>
+      <h3>系統特性總覽</h3>
 
       <table>
         <thead>
           <tr>
             <th>特性</th>
             <th>Halo2 (IPA)</th>
+            <th>Halo2 (KZG)</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>可信設置</strong></td>
+            <td>無需</td>
+            <td>通用設置</td>
+            <td>IPA 完全透明</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>~3-10 KB</td>
+            <td>~1-3 KB</td>
+            <td>KZG 較小</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td>O(log n)</td>
+            <td>O(1)</td>
+            <td>KZG 較快</td>
+          </tr>
+          <tr>
+            <td><strong>證明時間</strong></td>
+            <td>O(n log n)</td>
+            <td>O(n log n)</td>
+            <td>相近</td>
+          </tr>
+          <tr>
+            <td><strong>遞迴效率</strong></td>
+            <td>原生高效</td>
+            <td>需配對電路</td>
+            <td>IPA 更適合遞迴</td>
+          </tr>
+          <tr>
+            <td><strong>查表支援</strong></td>
+            <td>有</td>
+            <td>有</td>
+            <td>Plookup</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>形式化定義</h2>
+
+      <div class="definition">
+        <strong>定義 1（Pedersen 向量承諾）</strong>
+        <p>給定生成元向量 G = (G₁, ..., G_n) ∈ G^n 和獨立生成元 H ∈ G，對向量 a = (a₁, ..., a_n) ∈ F^n 的 Pedersen 承諾定義為：</p>
+        <pre><code>C = ⟨a, G⟩ + r·H = Σᵢ aᵢ·Gᵢ + r·H
+
+其中：
+  ⟨·,·⟩ 表示內積
+  r ∈ F 是隨機遮罩值（提供隱藏性）</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 2（內積關係）</strong>
+        <p>IPA 證明的核心關係：給定承諾 P、生成元 G, H, U 和公開值 c，存在向量 a, b 使得：</p>
+        <pre><code>P = ⟨a, G⟩ + ⟨b, H⟩ + ⟨a, b⟩·U
+⟨a, b⟩ = c
+
+其中 U 是與內積值關聯的特殊生成元。</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 3（多項式承諾與開啟）</strong>
+        <p>多項式承諾將多項式 f(X) 編碼為群元素，開啟證明 f(z) = y：</p>
+        <pre><code>關鍵觀察：
+  f(z) = ⟨coeffs(f), (1, z, z², ..., z^{n-1})⟩
+       = ⟨a, z⟩  (視為內積)
+
+因此：
+  Commit(f) = ⟨coeffs(f), G⟩
+  Open(f, z) = IPA 證明 ⟨a, z⟩ = f(z)</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 4（橢圓曲線 2-cycle）</strong>
+        <p>曲線對 (E₁, E₂) 形成 2-cycle，若：</p>
+        <pre><code>|E₁(F_p)| = q  （E₁ 在 F_p 上的群階）
+|E₂(F_q)| = p  （E₂ 在 F_q 上的群階）
+
+意義：
+  E₁ 上的計算可以表示為 E₂ 上的電路，反之亦然。
+  這使得無限深度的遞迴成為可能。</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 5（PLONKish 約束系統）</strong>
+        <p>PLONKish 電路由以下組成：</p>
+        <pre><code>電路結構 C = (n, m, k, {qᵢ}, σ, {Tⱼ})
+
+其中：
+  n = 行數（2 的冪次）
+  m = advice 列數
+  k = fixed 列數
+  {qᵢ} = 門約束多項式
+  σ = 複製約束排列
+  {Tⱼ} = 查表定義
+
+門約束：
+  對每行 i：qᵢ(a₁[i], ..., aₘ[i], f₁[i], ..., fₖ[i]) = 0
+
+複製約束：
+  σ 定義哪些單元格必須相等</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 6（累積方案）</strong>
+        <p>累積方案 (A, D, V) 允許延遲驗證<sup><a href="#ref-1">[1]</a></sup>：</p>
+        <pre><code>Accumulate(acc, π) → acc'
+  將新證明 π 與累積器 acc 合併
+
+Decide(acc) → {0, 1}
+  最終驗證累積器
+
+性質：
+  若任一 π 無效，則最終 Decide 失敗
+  攤銷：n 個證明的驗證成本 ≈ 1 個證明</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 7（Lookup Argument）</strong>
+        <p>查表論證證明向量 f 的每個元素都在表格 T 中：</p>
+        <pre><code>給定：
+  查詢向量 f = (f₁, ..., fₙ)
+  表格 T = (t₁, ..., tₐ)
+
+證明：
+  ∀i ∈ [n]: fᵢ ∈ T
+
+Plookup 方法：
+  1. 排序 f ∪ T 得到 s
+  2. 證明 s 是有效排序
+  3. 證明相鄰差異合法</code></pre>
+      </div>
+
+      <h2>IPA 多項式承諾詳解</h2>
+
+      <h3>遞迴折疊協議</h3>
+
+      <pre><code>IPA_Prove(G, H, U, P, a, b, c)：
+
+輸入：
+  G, H ∈ G^n：生成元向量
+  U ∈ G：內積生成元
+  P ∈ G：承諾（P = ⟨a,G⟩ + ⟨b,H⟩ + c·U）
+  a, b ∈ F^n：被承諾的向量
+  c = ⟨a, b⟩：宣稱的內積值
+
+協議（log n 輪）：
+
+if n == 1:
+  return (a[0], b[0])  // 基礎情況
+
+// 分割向量為左右兩半
+n' = n / 2
+a_L, a_R = a[0:n'], a[n':n]
+b_L, b_R = b[0:n'], b[n':n]
+G_L, G_R = G[0:n'], G[n':n]
+H_L, H_R = H[0:n'], H[n':n]
+
+// 計算交叉項承諾
+c_L = ⟨a_L, b_R⟩
+c_R = ⟨a_R, b_L⟩
+
+L = ⟨a_L, G_R⟩ + ⟨b_R, H_L⟩ + c_L · U
+R = ⟨a_R, G_L⟩ + ⟨b_L, H_R⟩ + c_R · U
+
+// Fiat-Shamir 挑戰
+x = Hash(transcript, L, R)
+
+// 折疊
+a' = a_L + x · a_R
+b' = x⁻¹ · b_L + b_R
+G' = G_L + x⁻¹ · G_R
+H' = x · H_L + H_R
+P' = x² · L + P + x⁻² · R
+c' = c_L · x² + c + c_R · x⁻²
+
+// 遞迴
+return [(L, R)] ++ IPA_Prove(G', H', U, P', a', b', c')</code></pre>
+
+      <h3>驗證演算法</h3>
+
+      <pre><code>IPA_Verify(G, H, U, P, c, proof)：
+
+輸入：
+  G, H, U：公開參數
+  P：承諾
+  c：宣稱的內積值
+  proof = [(L₁,R₁), ..., (Lₖ,Rₖ), (a,b)]：證明
+
+// 重建挑戰序列
+transcript = []
+x = []
+for i = 1 to k:
+  xᵢ = Hash(transcript, Lᵢ, Rᵢ)
+  x.append(xᵢ)
+  transcript.append(xᵢ)
+
+// 計算折疊後的生成元（關鍵步驟）
+s = compute_s_vector(x)  // O(n) 計算
+G_final = ⟨s, G⟩
+H_final = ⟨s⁻¹, H⟩
+
+// 計算折疊後的承諾
+P_final = P
+for i = 1 to k:
+  P_final = xᵢ² · Lᵢ + P_final + xᵢ⁻² · Rᵢ
+
+// 最終檢查
+return P_final == a · G_final + b · H_final + (a·b) · U
+   AND a · b == c
+
+compute_s_vector(x)：
+  // s_j = ∏_{i: bit(j,i)=1} xᵢ · ∏_{i: bit(j,i)=0} xᵢ⁻¹
+  s = [1] * n
+  for j = 0 to n-1:
+    for i = 0 to k-1:
+      if bit(j, k-1-i) == 1:
+        s[j] *= x[i]
+      else:
+        s[j] *= x[i]⁻¹
+  return s</code></pre>
+
+      <h3>複雜度分析</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>證明者</th>
+            <th>驗證者</th>
+            <th>證明大小</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>時間</strong></td>
+            <td>O(n)</td>
+            <td>O(n)</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>群運算</strong></td>
+            <td>~6n</td>
+            <td>~2n + 2k</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td><strong>通訊</strong></td>
+            <td>-</td>
+            <td>-</td>
+            <td>2k + 2 元素</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>其中 k = log₂(n)。證明大小為 O(log n) 群元素。</p>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">驗證複雜度是主要缺點</div>
+        <p>IPA 的驗證需要 O(n) 時間來計算 G_final = ⟨s, G⟩，這是相比 KZG O(1) 驗證的主要劣勢。Halo 的巢狀攤銷技術正是為了解決這個問題。</p>
+      </div>
+
+      <h2>巢狀攤銷（Nested Amortization）</h2>
+
+      <h3>核心問題</h3>
+
+      <pre><code>遞迴驗證的挑戰：
+
+在電路內驗證 IPA 證明需要計算：
+  G_final = ⟨s, G⟩ = s₁·G₁ + s₂·G₂ + ... + sₙ·Gₙ
+
+這是一個 n 項 MSM（多標量乘法）。
+
+電路成本：
+  每個標量乘法 ≈ 256 個約束（bit-by-bit）
+  n = 2^17 → ≈ 33M 約束
+
+問題：
+  遞迴電路比原始電路還大！
+  無法實際使用</code></pre>
+
+      <h3>巢狀攤銷解決方案</h3>
+
+      <pre><code>Halo 的關鍵洞察：
+
+不在當前電路中完成 MSM，而是：
+  1. 將 MSM 計算「推遲」到外層
+  2. 在當前電路只做「累積」
+  3. 最外層一次性完成所有累積的 MSM
+
+累積器結構：
+  acc = (P, s_acc)
+
+  P = 當前承諾
+  s_acc = 累積的 s 向量信息
+
+累積步驟（電路內）：
+  1. 接收內層證明 πᵢₙₙₑᵣ
+  2. 驗證除 MSM 外的所有檢查
+  3. 將 MSM 信息合併到累積器
+  4. 輸出新累積器
+
+最終驗證（電路外）：
+  一次完成所有累積的 MSM
+  驗證累積的正確性</code></pre>
+
+      <h3>形式化描述</h3>
+
+      <pre><code>累積方案協議：
+
+Accumulate(accₒₗₐ, π_new) → acc_new：
+
+  // 從 π_new 提取
+  (L, R, challenges) = π_new
+  x = challenges
+
+  // 計算部分折疊
+  P_partial = compute_partial_fold(L, R, x)
+  s_partial = compute_s_structure(x)
+
+  // 隨機線性組合合併
+  ρ ← Random()
+  acc_new.P = accₒₗₐ.P + ρ · P_partial
+  acc_new.s = accₒₗₐ.s ⊕ᵨ s_partial
+
+  return acc_new
+
+Decide(acc) → {0, 1}：
+  // 最終執行累積的 MSM
+  G_acc = ⟨acc.s, G⟩
+
+  // 驗證累積器有效性
+  return acc.P == expected_from_G_acc
+
+電路內成本：
+  每次累積 ≈ O(log n) 約束
+  （而非 O(n · 256) 約束）</code></pre>
+
+      <h2>Pasta 曲線（橢圓曲線 2-cycle）</h2>
+
+      <h3>曲線定義</h3>
+
+      <pre><code>Pasta 曲線對（由 Zcash 設計）：
+
+Pallas 曲線：
+  方程式：y² = x³ + 5
+  定義域：F_p，其中 p = 2^254 + 45560315531506369815346746415080538113
+  群階：q = 2^254 + 45560315531419706090280762371685220353
+
+  安全性：~126 bits (Pollard rho)
+
+Vesta 曲線：
+  方程式：y² = x³ + 5
+  定義域：F_q（使用 Pallas 的群階作為基域）
+  群階：p（即 Pallas 的基域大小）
+
+  安全性：~126 bits (Pollard rho)
+
+2-cycle 性質：
+  |Pallas| = q = |F_Vesta|
+  |Vesta| = p = |F_Pallas|
+
+  → Pallas 上的運算可表示為 Vesta 電路
+  → Vesta 上的運算可表示為 Pallas 電路
+  → 無限遞迴成為可能</code></pre>
+
+      <h3>遞迴構造</h3>
+
+      <pre><code>使用 Pasta 的遞迴證明：
+
+層級結構：
+  Level 0：原始計算（在 Pallas 上）
+  Level 1：驗證 Level 0 證明（在 Vesta 上）
+  Level 2：驗證 Level 1 證明（在 Pallas 上）
+  Level 3：驗證 Level 2 證明（在 Vesta 上）
+  ...
+
+交替使用兩條曲線：
+  Pallas → Vesta → Pallas → Vesta → ...
+
+每層的電路：
+  1. 計算新的語句
+  2. 驗證前一層的證明
+  3. 生成當前層的證明
+
+最終證明：
+  - 一個簡潔的累積器
+  - 可在任一曲線上驗證</code></pre>
+
+      <h3>曲線選擇的考量</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Pasta (Pallas/Vesta)</th>
+            <th>BN254 + BLS12-377</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>配對支援</strong></td>
+            <td>否</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>遞迴效率</strong></td>
+            <td>高</td>
+            <td>中</td>
+          </tr>
+          <tr>
+            <td><strong>EVM 相容</strong></td>
+            <td>否（需包裝）</td>
+            <td>BN254 是</td>
+          </tr>
+          <tr>
+            <td><strong>安全級別</strong></td>
+            <td>~126 bits</td>
+            <td>~100-128 bits</td>
+          </tr>
+          <tr>
+            <td><strong>可信設置</strong></td>
+            <td>無需</td>
+            <td>需要（KZG）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>PLONKish 算術化</h2>
+
+      <h3>表格結構</h3>
+
+      <pre><code>Halo2 電路表格：
+
+  Row | Advice (私密)  | Instance (公開) | Fixed (常數)  | Selector
+  ----|----------------|-----------------|---------------|----------
+  0   | a[0], b[0]     | x[0]           | q_L, q_R, ... | s_mul
+  1   | a[1], b[1]     | x[1]           | ...           | s_add
+  2   | a[2], b[2]     |                | ...           | s_mul
+  ... | ...            | ...            | ...           | ...
+  n-1 | a[n-1], b[n-1] |                | ...           | ...
+
+列類型：
+  Advice：證明者填入的私密見證值
+  Instance：公開輸入/輸出
+  Fixed：電路定義時固定的常數
+  Selector：啟用/禁用特定門的開關
+
+行數 n：必須是 2 的冪次（用於 FFT）</code></pre>
+
+      <h3>門約束系統</h3>
+
+      <pre><code>標準 PLONK 門：
+
+q_L·a + q_R·b + q_O·c + q_M·(a·b) + q_C = 0
+
+Halo2 擴展：
+
+1. 自定義門：任意多項式約束
+   meta.create_gate("custom", |meta| {
+       let a = meta.query_advice(col_a, Rotation::cur());
+       let b = meta.query_advice(col_b, Rotation::cur());
+       let c = meta.query_advice(col_c, Rotation::cur());
+       let s = meta.query_selector(s_custom);
+
+       // 可以是任意多項式
+       vec![s * (a.clone() * a.clone() - b)]  // a² = b
+   });
+
+2. 跨行存取：Rotation
+   Rotation::cur()   // 當前行
+   Rotation::prev()  // 前一行
+   Rotation::next()  // 下一行
+   Rotation(n)       // 第 n 行
+
+3. 多項式約束：
+   可使用高次多項式
+   門的度數影響證明效率</code></pre>
+
+      <h3>複製約束</h3>
+
+      <pre><code>排列論證（Permutation Argument）：
+
+目標：證明不同位置的值相等
+
+範例：
+  Row 0, Col a：值 v
+  Row 5, Col b：值 v（必須相等）
+  Row 8, Col c：值 v（必須相等）
+
+排列定義：
+  σ(0, a) = (5, b)
+  σ(5, b) = (8, c)
+  σ(8, c) = (0, a)  // 形成循環
+
+多項式編碼：
+  1. 將位置編碼為域元素
+  2. 構造累積多項式 Z(X)
+  3. Z 在域上形成閉環
+
+驗證：
+  ∏(wᵢ + β·position_i + γ) = ∏(wᵢ + β·σ(position_i) + γ)
+
+Halo2 實現：
+  layouter.assign_advice_from_instance(...)  // 連接 instance 到 advice
+  region.constrain_equal(cell1, cell2)        // 強制相等</code></pre>
+
+      <h2>Lookup Arguments（查表）</h2>
+
+      <h3>Plookup 協議</h3>
+
+      <pre><code>Plookup 目標：
+
+證明查詢向量 f 的每個元素都在表格 T 中：
+  f = (f₁, f₂, ..., fₙ)  ← 需要查詢的值
+  T = (t₁, t₂, ..., tₐ)  ← 預定義的表格
+
+協議步驟：
+
+1. 合併與排序
+   s = sort(f ∪ T)
+
+   排序後相鄰元素要麼相等，要麼來自表格的相鄰位置
+
+2. 構造輔助多項式
+   f(X), t(X)：查詢和表格的多項式表示
+   s(X)：排序後的多項式
+   h(X)：輔助多項式
+
+3. 驗證排序正確性
+   使用累積論證證明：
+   (1 + β)^n · ∏(γ + fᵢ) · ∏(γ(1+β) + tᵢ + β·tᵢ₊₁)
+   = ∏(γ(1+β) + sᵢ + β·sᵢ₊₁)
+
+4. 隨機挑戰壓縮
+   使用 Fiat-Shamir 生成 β, γ</code></pre>
+
+      <h3>Halo2 查表實現</h3>
+
+      <pre><code>// 定義查表（在配置階段）
+fn configure(meta: &mut ConstraintSystem<F>) -> Self::Config {
+    let advice = meta.advice_column();
+    let table = meta.lookup_table_column();
+
+    // 定義查表約束
+    meta.lookup("range_check", |meta| {
+        let value = meta.query_advice(advice, Rotation::cur());
+        let selector = meta.query_selector(s_lookup);
+
+        // (input_expression, table_column)
+        vec![(selector * value, table)]
+    });
+
+    Config { advice, table, s_lookup }
+}
+
+// 填充表格（在合成階段）
+fn synthesize(...) {
+    layouter.assign_table(|| "8-bit range table", |mut table| {
+        for i in 0u64..256 {
+            table.assign_cell(
+                || format!("row {}", i),
+                self.config.table,
+                i as usize,
+                || Value::known(F::from(i)),
+            )?;
+        }
+        Ok(())
+    })?;
+}</code></pre>
+
+      <h3>ZKML 查表應用</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>無查表（位元分解）</th>
+            <th>有查表</th>
+            <th>加速比</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ReLU</td>
+            <td>~254 約束</td>
+            <td>~1 約束</td>
+            <td>254x</td>
+          </tr>
+          <tr>
+            <td>範圍檢查 [0, 2^8)</td>
+            <td>8 約束</td>
+            <td>1 約束</td>
+            <td>8x</td>
+          </tr>
+          <tr>
+            <td>Sigmoid（近似）</td>
+            <td>~1000 約束</td>
+            <td>~1 約束</td>
+            <td>1000x</td>
+          </tr>
+          <tr>
+            <td>GELU（近似）</td>
+            <td>~2000 約束</td>
+            <td>~1 約束</td>
+            <td>2000x</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>安全性分析</h2>
+
+      <h3>安全假設</h3>
+
+      <div class="definition">
+        <strong>定義 8（離散對數假設，DL）</strong>
+        <p>給定群生成元 G 和群元素 P = [x]G，計算 x 是計算不可行的。</p>
+        <pre><code>DL 假設強度層級：
+
+弱 ← DL ← CDH ← DDH → 強
+
+Halo2 僅需 DL 假設
+（比 KZG 需要的 q-SDH 更保守）</code></pre>
+      </div>
+
+      <h3>安全性質</h3>
+
+      <pre><code>定理（Halo2 安全性）：
+
+在 DL 假設和隨機預言機模型下，Halo2 證明系統滿足：
+
+1. 完備性（Perfect Completeness）
+   誠實證明者總能生成有效證明
+
+2. 知識可靠性（Knowledge Soundness）
+   若證明有效，則存在提取器可提取見證
+   ε_sound ≤ negl(λ)
+
+3. 零知識（Perfect Zero-Knowledge）
+   存在模擬器 S，使得 Real 和 Simulated 分布相同
+
+證明框架：
+
+知識可靠性論證：
+  IPA 的可靠性來自內積論證的綁定性
+  折疊過程的正確性由 Schwartz-Zippel 保證
+
+零知識論證：
+  隨機遮罩值 r 使承諾均勻分布
+  挑戰來自隨機預言機</code></pre>
+
+      <h3>Fiat-Shamir 安全性</h3>
+
+      <pre><code>互動到非互動轉換：
+
+原始協議：互動式（需要驗證者隨機性）
+Fiat-Shamir：用雜湊替代隨機性
+
+安全性要求：
+  1. 雜湊函數 H 建模為隨機預言機
+  2. transcript 包含所有先前消息
+  3. 攻擊者無法預測 H 的輸出
+
+實現注意：
+  - 必須正確構造 transcript
+  - 包含所有公開輸入
+  - 按正確順序加入消息
+
+Halo2 實現：
+  use halo2_proofs::transcript::{Blake2bRead, Blake2bWrite};
+  // 使用 Blake2b 作為隨機預言機</code></pre>
+
+      <h2>複雜度分析</h2>
+
+      <h3>理論複雜度</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>時間</th>
+            <th>空間</th>
+            <th>主要運算</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Setup</strong></td>
+            <td>O(n)</td>
+            <td>O(n)</td>
+            <td>生成元生成（透明）</td>
+          </tr>
+          <tr>
+            <td><strong>Prove</strong></td>
+            <td>O(n log n)</td>
+            <td>O(n)</td>
+            <td>FFT + MSM + IPA</td>
+          </tr>
+          <tr>
+            <td><strong>Verify</strong></td>
+            <td>O(n) 或 O(log n)*</td>
+            <td>O(log n)</td>
+            <td>MSM 或累積</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>*使用累積方案時，驗證可攤銷至 O(log n)。</p>
+
+      <h3>實際效能基準</h3>
+
+      <pre><code>Halo2 效能（EZKL, M1 MacBook Pro）：
+
+| k (logrows) | 行數      | 證明時間  | 驗證時間 | 證明大小 |
+|-------------|----------|----------|---------|---------|
+| 12          | 4,096    | ~2 秒    | ~50 ms  | ~5 KB   |
+| 16          | 65,536   | ~20 秒   | ~100 ms | ~8 KB   |
+| 20          | 1,048,576| ~5 分鐘  | ~200 ms | ~12 KB  |
+| 24          | 16M      | ~1 小時  | ~500 ms | ~15 KB  |
+
+記憶體使用：
+  k=16：~4 GB
+  k=20：~32 GB
+  k=24：~256 GB</code></pre>
+
+      <h2>ZKML 應用</h2>
+
+      <h3>EZKL 整合</h3>
+
+      <pre><code>EZKL 使用 Halo2 的原因：
+
+1. 無需可信設置
+   - 簡化部署流程
+   - 適合去中心化場景
+   - 用戶無需信任第三方
+
+2. 靈活的查表
+   - 高效處理非線性激活函數
+   - ReLU、Sigmoid、GELU 等
+   - 100-1000 倍效率提升
+
+3. 成熟的生態系統
+   - Zcash 團隊持續維護
+   - 豐富的文檔和工具
+   - 活躍的社區
+
+EZKL 配置選項：
+  {
+    "transcript": "evm" | "poseidon" | "blake2b",
+    "commitment": "kzg" | "ipa",
+    "logrows": 16,
+    "lookup_bits": 12
+  }</code></pre>
+
+      <h3>ML 層電路設計</h3>
+
+      <pre><code>全連接層 Halo2 實現：
+
+// y = Wx + b
+
+struct FCConfig<F: Field> {
+    advice: [Column<Advice>; 3],  // input, weight, output
+    fixed: Column<Fixed>,          // bias
+    s_mac: Selector,               // MAC 操作選擇器
+}
+
+fn configure(meta: &mut ConstraintSystem<F>) -> FCConfig<F> {
+    let [input, weight, output] = [0; 3].map(|_| meta.advice_column());
+    let bias = meta.fixed_column();
+    let s_mac = meta.selector();
+
+    meta.create_gate("MAC", |meta| {
+        let inp = meta.query_advice(input, Rotation::cur());
+        let wgt = meta.query_advice(weight, Rotation::cur());
+        let out = meta.query_advice(output, Rotation::cur());
+        let b = meta.query_fixed(bias, Rotation::cur());
+        let s = meta.query_selector(s_mac);
+
+        // 累加約束：out_new = out_old + inp * wgt
+        // 最終加 bias
+        vec![s * (out - inp * wgt - b)]
+    });
+
+    FCConfig { advice: [input, weight, output], fixed: bias, s_mac }
+}</code></pre>
+
+      <h3>配置參數調優</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>參數</th>
+            <th>影響</th>
+            <th>推薦值</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>k (logrows)</strong></td>
+            <td>電路容量 = 2^k 行</td>
+            <td>根據模型大小選擇</td>
+          </tr>
+          <tr>
+            <td><strong>lookup_bits</strong></td>
+            <td>查表精度，影響非線性近似</td>
+            <td>8-16（通常 12）</td>
+          </tr>
+          <tr>
+            <td><strong>scale</strong></td>
+            <td>定點數縮放因子</td>
+            <td>2^scale，通常 scale=7-15</td>
+          </tr>
+          <tr>
+            <td><strong>bits</strong></td>
+            <td>數值表示位寬</td>
+            <td>16-32</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>實現考量</h2>
+
+      <h3>EVM 相容性</h3>
+
+      <pre><code>問題：Pasta 曲線與 EVM 不相容
+
+EVM 原生支援：BN254 曲線
+Halo2 (IPA)：Pasta 曲線（Pallas/Vesta）
+
+解決方案：
+
+1. 遞迴包裝（推薦）
+   Halo2 證明 → Groth16/KZG 包裝 → EVM 驗證
+
+   流程：
+   a. 生成 Halo2 (IPA) 證明
+   b. 創建 BN254 電路驗證 Halo2 證明
+   c. 生成 Groth16 證明
+   d. EVM 驗證 Groth16
+
+   優點：最終證明小、驗證便宜
+   缺點：額外證明時間
+
+2. KZG 後端
+   使用 Halo2 + KZG (BN254)
+
+   EZKL 配置：
+   { "commitment": "kzg" }
+
+   優點：直接 EVM 相容
+   缺點：需要可信設置
+
+3. 自定義驗證合約
+   在 EVM 中實現 Pasta 曲線運算
+
+   優點：無需包裝
+   缺點：Gas 成本高（~2-5M gas）</code></pre>
+
+      <h3>記憶體優化</h3>
+
+      <pre><code>大型電路的記憶體挑戰：
+
+問題：
+  k=24（16M 行）需要 ~256 GB RAM
+  超出普通機器能力
+
+優化策略：
+
+1. 列拆分
+   將寬電路拆分為多個窄電路
+   分別證明後聚合
+
+2. 流式見證生成
+   不一次生成所有見證
+   按需計算和釋放
+
+3. GPU 加速
+   將 MSM/FFT 卸載到 GPU
+   減少 CPU 記憶體壓力
+
+4. 磁盤交換
+   將不活躍數據交換到磁盤
+   犧牲速度換取容量
+
+EZKL 策略：
+  - 自動估算記憶體需求
+  - 建議合適的 k 值
+  - 支援模型拆分</code></pre>
+
+      <h2>與其他系統比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Halo2 (IPA)</th>
+            <th>Halo2 (KZG)</th>
             <th>Groth16</th>
             <th>STARK</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>可信設定</td>
+            <td><strong>可信設置</strong></td>
             <td>無需</td>
-            <td>需要（per-circuit）</td>
+            <td>通用</td>
+            <td>電路特定</td>
             <td>無需</td>
           </tr>
           <tr>
-            <td>證明大小</td>
-            <td>~3.5 KiB</td>
-            <td>~128 B</td>
-            <td>~50-200 KiB</td>
+            <td><strong>證明大小</strong></td>
+            <td>~5-10 KB</td>
+            <td>~1-3 KB</td>
+            <td>~200 B</td>
+            <td>~50-100 KB</td>
           </tr>
           <tr>
-            <td>驗證時間</td>
-            <td>O(log n)</td>
-            <td>O(1)</td>
-            <td>O(log² n)</td>
+            <td><strong>驗證時間</strong></td>
+            <td>~100-500 ms</td>
+            <td>~10-50 ms</td>
+            <td>~3 ms</td>
+            <td>~20-50 ms</td>
           </tr>
           <tr>
-            <td>證明時間</td>
+            <td><strong>證明時間</strong></td>
             <td>中等</td>
-            <td>較慢</td>
+            <td>中等</td>
             <td>較快</td>
+            <td>快</td>
           </tr>
           <tr>
-            <td>後量子安全</td>
+            <td><strong>查表</strong></td>
+            <td>原生</td>
+            <td>原生</td>
+            <td>無</td>
+            <td>需擴展</td>
+          </tr>
+          <tr>
+            <td><strong>遞迴</strong></td>
+            <td>高效</td>
+            <td>需配對電路</td>
+            <td>昂貴</td>
+            <td>支援</td>
+          </tr>
+          <tr>
+            <td><strong>後量子</strong></td>
+            <td>否</td>
             <td>否</td>
             <td>否</td>
             <td>是</td>
           </tr>
           <tr>
-            <td>遞迴支援</td>
-            <td>原生高效</td>
-            <td>需要額外技術</td>
-            <td>支援</td>
+            <td><strong>ZKML 適用性</strong></td>
+            <td>高（EZKL）</td>
+            <td>高</td>
+            <td>低</td>
+            <td>高（RISC Zero）</td>
           </tr>
         </tbody>
       </table>
-
-      <h2>在 ZKML 中的應用</h2>
-
-      <p>Halo2 被多個 ZKML 框架採用作為後端證明系統：</p>
-
-      <h3>EZKL</h3>
-
-      <p>EZKL 是目前最成熟的 ZKML 框架之一，使用 Halo2 作為證明後端<sup><a href="#ref-2">[2]</a></sup>。選擇 Halo2 的原因包括：</p>
-
-      <ul>
-        <li><strong>無可信設定</strong>：簡化部署流程，適合去中心化應用</li>
-        <li><strong>靈活的查表</strong>：高效支援非線性激活函數</li>
-        <li><strong>成熟的生態</strong>：Zcash 團隊持續維護</li>
-      </ul>
-
-      <h3>ZKML 配置考量</h3>
-
-      <p>在 ZKML 系統中使用 Halo2 時，關鍵配置參數包括：</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>參數</th>
-            <th>說明</th>
-            <th>對效能的影響</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>logrows (k)</td>
-            <td>電路表的行數為 2^k</td>
-            <td>k 越大，支援越複雜的模型，但記憶體和證明時間增加</td>
-          </tr>
-          <tr>
-            <td>lookup_bits</td>
-            <td>查表的精度位元數</td>
-            <td>影響非線性函數的精度與約束數量</td>
-          </tr>
-          <tr>
-            <td>scale</td>
-            <td>定點數的縮放因子</td>
-            <td>影響數值精度和溢位風險</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2>實作注意事項</h2>
-
-      <div class="callout callout-warning">
-        <div class="callout-title">注意</div>
-        <p>Halo2 使用的橢圓曲線（Pasta curves：Pallas 和 Vesta）與以太坊虛擬機（EVM）原生支援的 BN254 曲線不同，因此在以太坊上驗證 Halo2 證明需要額外的成本。</p>
-      </div>
-
-      <p>解決方案包括：</p>
-      <ul>
-        <li><strong>遞迴包裝</strong>：將 Halo2 證明包裝在 Groth16 證明中，利用 EVM 的 BN254 預編譯</li>
-        <li><strong>自定義驗證合約</strong>：在鏈上實現 Pasta 曲線運算（Gas 成本較高）</li>
-        <li><strong>KZG 後端</strong>：EZKL 也支援 KZG 承諾方案，可生成 EVM 友好的證明</li>
-      </ul>
 
       <h2>相關頁面</h2>
 
       <ul>
-        <li><a href="ipa.html">IPA 內積論證</a> - Halo2 使用的多項式承諾方案</li>
-        <li><a href="plonkish.html">PLONKish 算術化</a> - Halo2 採用的約束系統</li>
-        <li><a href="kzg.html">KZG 多項式承諾</a> - 替代的承諾方案比較</li>
-        <li><a href="../frameworks/tools/ezkl.html">EZKL</a> - 使用 Halo2 的 ZKML 框架</li>
+        <li><a href="../commitments/ipa.html">IPA 內積論證</a> - Halo2 使用的多項式承諾方案</li>
+        <li><a href="../arithmetization/plonkish.html">PLONKish 算術化</a> - Halo2 採用的約束系統</li>
+        <li><a href="../commitments/kzg.html">KZG 多項式承諾</a> - 替代的承諾方案</li>
+        <li><a href="../../frameworks/tools/ezkl.html">EZKL</a> - 使用 Halo2 的 ZKML 框架</li>
+        <li><a href="groth16.html">Groth16</a> - 最小證明的替代方案</li>
+        <li><a href="stark.html">STARK</a> - 後量子安全的替代方案</li>
       </ul>
 
       <section class="references">
@@ -308,12 +1053,20 @@
             <a href="https://eprint.iacr.org/2019/1021" target="_blank" rel="noopener">ePrint</a>
           </li>
           <li id="ref-2">
+            <cite>Gabizon, A., Williamson, Z. J., and Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR Cryptology ePrint Archive, 2019.</cite>
+            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-3">
             <cite>Electric Coin Company. "The halo2 Book." Zcash Documentation, 2024.</cite>
             <a href="https://zcash.github.io/halo2/" target="_blank" rel="noopener">文檔</a>
           </li>
-          <li id="ref-3">
-            <cite>Gabizon, A., Williamson, Z. J., and Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR Cryptology ePrint Archive, 2019.</cite>
-            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
+          <li id="ref-4">
+            <cite>Gabizon, A., and Williamson, Z. "plookup: A simplified polynomial protocol for lookup tables." IACR ePrint 2020/315.</cite>
+            <a href="https://eprint.iacr.org/2020/315" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-5">
+            <cite>zkonduit. "EZKL Documentation." 2024.</cite>
+            <a href="https://docs.ezkl.xyz/" target="_blank" rel="noopener">文檔</a>
           </li>
         </ol>
       </section>

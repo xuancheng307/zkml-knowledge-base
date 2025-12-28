@@ -31,358 +31,1249 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>STARK（Scalable Transparent ARgument of Knowledge）是一種不需要可信設置的證明系統，由 Eli Ben-Sasson 等人於 2018 年提出<sup><a href="#ref-1">[1]</a></sup>。STARK 僅依賴雜湊函數的安全性，具備後量子安全性，適合大規模計算的驗證。</p>
+        <p>STARK（Scalable Transparent ARgument of Knowledge）是一種不需要可信設置的證明系統，由 Eli Ben-Sasson 等人於 2018 年提出<sup><a href="#ref-1">[1]</a></sup>。STARK 僅依賴雜湊函數的安全性，具備後量子安全性，適合大規模計算的驗證。其核心創新在於透過 AIR（Algebraic Intermediate Representation）算術化和 FRI（Fast Reed-Solomon IOP of Proximity）承諾機制實現高效的證明生成與驗證。</p>
       </div>
 
-      <h2>核心特性</h2>
+      <h2>形式定義</h2>
+
+      <h3>定義 1：執行軌跡（Execution Trace）</h3>
+
+      <p>執行軌跡是計算過程的完整狀態記錄：</p>
+
+      <pre><code>定義：執行軌跡（Execution Trace）
+
+給定計算 C 具有 w 個寄存器，執行 n 步驟。
+執行軌跡 T 是 n × w 矩陣：
+
+T ∈ F^{n×w}
+
+其中：
+  T[i, j] = 第 i 步時第 j 個寄存器的值
+  n = 執行步數（通常為 2 的冪次）
+  w = 寄存器寬度（狀態維度）
+
+性質：
+  - T[0, :] = 初始狀態（輸入）
+  - T[n-1, :] = 最終狀態（包含輸出）
+  - 相鄰行滿足轉換約束</code></pre>
+
+      <h3>定義 2：AIR（代數中間表示）</h3>
+
+      <p>AIR 將計算轉換為多項式約束系統<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>定義：AIR（Algebraic Intermediate Representation）
+
+AIR 由三元組 (w, n, C) 定義：
+  w ∈ ℕ：寄存器數量
+  n ∈ ℕ：軌跡長度
+  C：約束多項式集合
+
+約束類型：
+
+1. 邊界約束（Boundary Constraints）
+   B(X, t₀(X), t₁(X), ..., t_{w-1}(X)) = 0
+
+   指定特定位置的值：
+   - t_j(ω^0) = input_j（初始值）
+   - t_j(ω^{n-1}) = output_j（最終值）
+
+2. 轉換約束（Transition Constraints）
+   C(t₀(X), ..., t_{w-1}(X), t₀(ωX), ..., t_{w-1}(ωX)) = 0
+
+   定義相鄰步驟的關係：
+   對所有 i ∈ {0, ..., n-2}：
+   C(T[i, :], T[i+1, :]) = 0
+
+其中 ω 是 n 次單位根，t_j(X) 是第 j 列的插值多項式</code></pre>
+
+      <h3>定義 3：軌跡多項式</h3>
+
+      <p>將執行軌跡編碼為多項式：</p>
+
+      <pre><code>定義：軌跡多項式（Trace Polynomial）
+
+給定執行軌跡 T ∈ F^{n×w} 和 n 次單位根 ω。
+對每列 j ∈ {0, ..., w-1}，定義軌跡多項式：
+
+t_j(X) = Σᵢ T[i, j] · Lᵢ(X)
+
+其中 Lᵢ(X) 是拉格朗日基底：
+Lᵢ(X) = ∏_{k≠i} (X - ω^k) / ∏_{k≠i} (ω^i - ω^k)
+
+性質：
+  - deg(t_j) = n - 1
+  - t_j(ω^i) = T[i, j] 對所有 i
+  - 唯一插值</code></pre>
+
+      <h3>定義 4：約束組合多項式</h3>
+
+      <p>將所有約束組合為單一多項式：</p>
+
+      <pre><code>定義：約束組合多項式（Constraint Composition Polynomial）
+
+給定 m 個約束多項式 C₁, ..., Cₘ 和隨機挑戰 α₁, ..., αₘ。
+
+組合約束多項式：
+CP(X) = Σⱼ αⱼ · Cⱼ(t₀(X), ..., t_{w-1}(X), t₀(ωX), ..., t_{w-1}(ωX))
+
+商多項式（若約束滿足）：
+H(X) = CP(X) / Z_T(X)
+
+其中消失多項式：
+Z_T(X) = X^n - 1 = ∏ᵢ (X - ω^i)
+
+核心性質：
+若且唯若所有約束在軌跡點上滿足，H(X) 為多項式（無餘數）</code></pre>
+
+      <h3>定義 5：低度擴展（LDE）</h3>
+
+      <p>將多項式擴展到更大的評估域<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>定義：低度擴展（Low-Degree Extension）
+
+給定多項式 f(X) 在域 D_trace 上的求值，|D_trace| = n。
+選擇擴展域 D_lde，|D_lde| = ρ · n，其中 ρ > 1 為 blowup factor。
+
+低度擴展：
+f_lde : D_lde → F
+f_lde(x) = f(x) 對所有 x ∈ D_lde
+
+參數選擇：
+  - 典型 ρ = 4, 8, 16, 32
+  - D_lde = {g, g², ..., g^{ρn}}，g 為 (ρn) 次單位根
+  - D_trace ⊂ D_lde
+
+性質：
+  - 若 deg(f) < n，則 f 在 D_lde 上的求值唯一確定
+  - LDE 將 n 點擴展為 ρn 點
+  - 任何與 f_lde 不同的低度多項式在 D_lde 上有顯著差異</code></pre>
+
+      <h3>定義 6：Reed-Solomon 碼接近性</h3>
+
+      <p>FRI 協議的基礎概念：</p>
+
+      <pre><code>定義：δ-接近（δ-closeness）
+
+給定函數 f: D → F 和參數 δ ∈ [0, 1]。
+
+f 是 δ-接近 RS[F, D, d] 若存在多項式 p(X) 滿足：
+  - deg(p) < d
+  - |{x ∈ D : f(x) ≠ p(x)}| / |D| ≤ δ
+
+其中 RS[F, D, d] 是 Reed-Solomon 碼：
+RS[F, D, d] = {(p(x))_{x∈D} : p ∈ F[X], deg(p) < d}
+
+碼率（Rate）：
+ρ_code = d / |D|
+
+最小距離：
+d_min = |D| - d + 1 = (1 - ρ_code) · |D|
+
+Johnson bound：
+若 δ < 1 - √ρ_code，則接近的碼字唯一</code></pre>
+
+      <h3>定義 7：FRI 折疊操作</h3>
+
+      <p>FRI 的核心遞迴折疊<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>定義：FRI 折疊（FRI Folding）
+
+給定多項式 f(X) 次數 < d，域 D 大小為 |D|。
+
+奇偶分解：
+f(X) = f_even(X²) + X · f_odd(X²)
+
+其中：
+  f_even(Y) = Σᵢ aᵢ · Y^i （偶次係數）
+  f_odd(Y) = Σᵢ bᵢ · Y^i  （奇次係數）
+  deg(f_even), deg(f_odd) < d/2
+
+折疊操作（給定隨機 α）：
+f^{fold}(Y) = f_even(Y) + α · f_odd(Y)
+
+性質：
+  - deg(f^{fold}) < d/2
+  - 若 f(x) = f_even(x²) + x · f_odd(x²)
+    且 f(-x) = f_even(x²) - x · f_odd(x²)
+  - 則 f^{fold}(x²) = (f(x) + f(-x))/2 + α · (f(x) - f(-x))/(2x)
+
+域收縮：
+D^{fold} = {x² : x ∈ D}，|D^{fold}| = |D|/2</code></pre>
+
+      <h3>定義 8：透明設置</h3>
+
+      <p>STARK 的核心安全特性：</p>
+
+      <pre><code>定義：透明設置（Transparent Setup）
+
+證明系統 Π = (Setup, Prove, Verify) 具有透明設置若：
+
+Setup(1^λ, C) → pp
+
+滿足：
+1. 公開可驗證性：任何人可驗證 pp 的正確性
+2. 無秘密狀態：Setup 不產生需保密的資訊
+3. 確定性：相同輸入產生相同輸出（或公開隨機性）
+
+STARK 透明性來源：
+  - 公共參數僅包含：域 F、雜湊函數 H、FRI 參數
+  - 無 "toxic waste"（對比 Groth16）
+  - 設置可由公開隨機信標（如區塊雜湊）導出
+
+形式化：
+∀ pp ← Setup(1^λ, C)：
+  pp 可由公開資訊完全重建</code></pre>
+
+      <h3>定義 9：抗碰撞雜湊函數</h3>
+
+      <p>STARK 唯一的密碼學假設：</p>
+
+      <pre><code>定義：抗碰撞雜湊函數（Collision-Resistant Hash Function）
+
+函數族 H = {H_λ : {0,1}* → {0,1}^λ}_{λ∈ℕ} 是抗碰撞的若：
+
+對所有 PPT 敵手 A：
+Pr[(x, x') ← A(1^λ) : x ≠ x' ∧ H_λ(x) = H_λ(x')] ≤ negl(λ)
+
+STARK 使用場景：
+1. Merkle 樹承諾
+   - 對 LDE 求值建樹
+   - 根作為承諾
+
+2. Fiat-Shamir 變換
+   - 將互動協議轉為非互動
+   - 挑戰 = H(transcript)
+
+常用函數：
+  - SHA-256（傳統）
+  - BLAKE3（現代，更快）
+  - Poseidon（ZK 友好，遞迴用）</code></pre>
+
+      <h3>定義 10：IOP（互動式 Oracle 證明）</h3>
+
+      <p>STARK 的理論基礎<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>定義：互動式 Oracle 證明（Interactive Oracle Proof）
+
+IOP 是互動式證明系統，其中：
+  - 證明者發送 oracle 字串（可隨機查詢）
+  - 驗證者可查詢 oracle 的特定位置
+
+形式定義：
+(P, V) 是 IOP 若：
+  P(x, w) → (π₁, ..., πₖ)  // oracle 字串序列
+  V^{π₁,...,πₖ}(x) → {0, 1}  // 有查詢存取
+
+複雜度指標：
+  - 輪數：k
+  - oracle 長度：|πᵢ|
+  - 查詢複雜度：V 的查詢次數
+  - 驗證時間：不含查詢的計算時間
+
+STARK 作為 IOP：
+  - oracle π = LDE 求值
+  - 透過 Merkle 樹實例化 oracle 存取
+  - 查詢 = Merkle 路徑驗證</code></pre>
+
+      <h2>為什麼需要 STARK？</h2>
+
+      <h3>設計動機</h3>
+
+      <pre><code>STARK 設計動機：
+
+1. 消除可信設置
+   問題：SNARK（如 Groth16）需要可信設置
+         - 產生 "toxic waste"
+         - 若洩露可偽造證明
+         - 多方計算成本高
+
+   STARK 解決方案：
+         - 僅使用公開隨機性
+         - 無秘密參數
+         - 可公開驗證設置
+
+2. 後量子安全
+   問題：SNARK 基於橢圓曲線
+         - 離散對數問題
+         - Shor 算法可破解
+
+   STARK 解決方案：
+         - 僅依賴雜湊函數
+         - Grover 算法影響有限（2x 安全參數）
+         - 長期安全性保證
+
+3. 大規模計算效率
+   問題：傳統證明系統擴展性差
+         - 證明時間 O(n²) 或更高
+         - 記憶體需求過大
+
+   STARK 解決方案：
+         - 準線性證明時間 O(n log n)
+         - 對數驗證時間 O(log² n)
+         - 適合大型電路</code></pre>
+
+      <h3>與 SNARK 的關鍵差異</h3>
+
+      <pre><code>STARK vs SNARK 設計哲學：
+
+SNARK 路線：
+  - 利用代數結構（橢圓曲線配對）
+  - 追求最小證明大小
+  - 可信設置換取效率
+
+STARK 路線：
+  - 僅使用對稱密碼學
+  - 接受較大證明大小
+  - 透明設置優先
+
+技術對比：
+┌─────────────────┬────────────────┬────────────────┐
+│ 面向            │ SNARK          │ STARK          │
+├─────────────────┼────────────────┼────────────────┤
+│ 密碼學假設      │ 橢圓曲線/配對  │ 雜湊函數       │
+│ 證明大小        │ O(1)           │ O(log² n)      │
+│ 驗證時間        │ O(1)           │ O(log² n)      │
+│ 證明時間        │ O(n log n)     │ O(n log n)     │
+│ 設置            │ 可信/通用      │ 透明           │
+│ 後量子安全      │ 否             │ 是             │
+│ 遞迴成本        │ 高（配對驗證） │ 低（雜湊驗證） │
+└─────────────────┴────────────────┴────────────────┘</code></pre>
+
+      <h2>完整協議</h2>
+
+      <h3>STARK.Setup 演算法</h3>
+
+      <pre><code>演算法：STARK.Setup(1^λ, AIR)
+
+輸入：
+  - 安全參數 λ
+  - AIR = (w, n, C)：算術化電路
+
+輸出：
+  - pp：公共參數
+
+步驟：
+1. 選擇域 F
+   (a) 素數 p，|F| = p
+   (b) 需 p > max(軌跡值) 且 2^k | (p-1) 其中 2^k ≥ ρ·n
+   (c) 常用：Goldilocks p = 2^64 - 2^32 + 1
+
+2. 計算單位根
+   (a) ω = g^{(p-1)/n}，n 次單位根（軌跡域）
+   (b) ω_lde = g^{(p-1)/(ρn)}，ρn 次單位根（LDE 域）
+
+3. 設定 FRI 參數
+   (a) 選擇 blowup factor ρ（典型 4-32）
+   (b) 計算折疊次數 r = log₂(n)
+   (c) 設定查詢次數 q（依安全等級）
+
+4. 選擇雜湊函數
+   (a) H: {0,1}* → {0,1}^{2λ}
+   (b) 用於 Merkle 樹和 Fiat-Shamir
+
+5. 輸出公共參數
+   pp = (F, n, w, ω, ρ, H, C)
+
+複雜度：
+  - 時間：O(log n)（計算單位根）
+  - 空間：O(1)
+  - 無秘密狀態</code></pre>
+
+      <h3>STARK.Prove 演算法</h3>
+
+      <pre><code>演算法：STARK.Prove(pp, x, w)
+
+輸入：
+  - pp：公共參數
+  - x：公開輸入
+  - w：私密見證（計算的執行軌跡）
+
+輸出：
+  - π：STARK 證明
+
+步驟：
+
+【階段 1：軌跡生成與承諾】
+
+1. 執行計算獲取軌跡
+   T ← Execute(x, w)  // n × w 矩陣
+
+2. 計算軌跡多項式
+   對 j = 0, ..., w-1：
+     t_j(X) ← IFFT(T[:, j], ω)  // 插值
+
+3. 低度擴展
+   對 j = 0, ..., w-1：
+     t_j^{lde} ← FFT(t_j, ω_lde)  // 在 LDE 域求值
+
+4. 建立軌跡承諾
+   root_trace ← MerkleTree(t_0^{lde} || t_1^{lde} || ... || t_{w-1}^{lde})
+
+5. 發送承諾，獲取挑戰
+   β ← H(root_trace)  // 約束組合係數
+
+【階段 2：約束組合與商多項式】
+
+6. 計算約束組合多項式
+   CP(X) = Σⱼ βʲ · Cⱼ(t₀(X), ..., t₀(ωX), ...)
+
+7. 計算商多項式
+   H(X) = CP(X) / Z_T(X)
+   其中 Z_T(X) = X^n - 1
+
+8. 分解商多項式（若次數過高）
+   若 deg(H) > n - 1：
+     H(X) = H_0(X) + X^n · H_1(X) + ...
+
+9. 對商多項式做 LDE
+   H_i^{lde} ← FFT(H_i, ω_lde)
+
+10. 建立商承諾
+    root_H ← MerkleTree(H_0^{lde} || H_1^{lde} || ...)
+
+【階段 3：FRI 協議】
+
+11. 準備 FRI 輸入多項式
+    獲取挑戰 γ ← H(root_H)
+    f(X) = t_0(X) + γ·t_1(X) + ... + γ^{w-1}·t_{w-1}(X)
+           + γ^w·H_0(X) + γ^{w+1}·H_1(X) + ...
+
+12. FRI 承諾階段
+    f^{(0)} = f
+    對 i = 0, ..., r-1：
+      (a) 發送 root_i ← MerkleTree(f^{(i)}_lde)
+      (b) 獲取挑戰 α_i ← H(root_i)
+      (c) 折疊：f^{(i+1)}(Y) = f^{(i)}_even(Y) + α_i · f^{(i)}_odd(Y)
+
+    最終發送常數 c = f^{(r)}
+
+13. FRI 查詢階段
+    seed ← H(c)
+    對 j = 1, ..., q：  // q 次查詢
+      (a) 選擇查詢點 x_j ← H(seed || j) mod |D_lde|
+      (b) 對每層 i：收集 f^{(i)}(x_j), f^{(i)}(-x_j) 及 Merkle 路徑
+      (c) 收集軌跡和商多項式在 x_j 的值及路徑
+
+14. 組裝證明
+    π = (root_trace, root_H, FRI_roots, c, queries)
+
+輸出：π</code></pre>
+
+      <h3>STARK.Verify 演算法</h3>
+
+      <pre><code>演算法：STARK.Verify(pp, x, π)
+
+輸入：
+  - pp：公共參數
+  - x：公開輸入（邊界值）
+  - π：STARK 證明
+
+輸出：
+  - {accept, reject}
+
+步驟：
+
+【階段 1：解析證明】
+
+1. 解析證明
+   (root_trace, root_H, FRI_roots, c, queries) ← π
+
+2. 重建隨機挑戰
+   β ← H(root_trace)
+   γ ← H(root_H)
+   α_i ← H(FRI_roots[i]) 對所有 i
+   seed ← H(c)
+
+【階段 2：查詢驗證】
+
+3. 對每個查詢 j = 1, ..., q：
+
+   (a) 重建查詢點
+       x_j ← H(seed || j) mod |D_lde|
+
+   (b) 驗證 Merkle 路徑
+       驗證 trace_values[j] 對應 root_trace
+       驗證 H_values[j] 對應 root_H
+       驗證所有 FRI 層的路徑
+
+   (c) 驗證邊界約束（若 x_j 在邊界）
+       檢查 t_k(x_j) 滿足邊界條件
+
+   (d) 驗證約束組合
+       CP_val = Σⱼ βʲ · Cⱼ(trace_values at x_j)
+       H_val = H_values[j]
+       檢查：CP_val = H_val · Z_T(x_j)
+
+   (e) 驗證 FRI 折疊一致性
+       f^{(0)}_val = trace + γ·... + H values 組合
+
+       對 i = 0, ..., r-1：
+         f_even = (f^{(i)}(x) + f^{(i)}(-x)) / 2
+         f_odd = (f^{(i)}(x) - f^{(i)}(-x)) / (2x)
+         檢查：f^{(i+1)}(x²) = f_even + α_i · f_odd
+
+   (f) 驗證最終常數
+       檢查：f^{(r)} = c
+
+【階段 3：決策】
+
+4. 若所有檢查通過：
+     return accept
+   否則：
+     return reject
+
+複雜度分析：
+  - 查詢次數：q = O(λ)（安全參數相關）
+  - 每查詢驗證：O(log n)（Merkle 路徑 + FRI 層）
+  - 總驗證時間：O(λ · log² n)</code></pre>
+
+      <h2>Blow-up Factor 分析</h2>
+
+      <h3>定義與影響</h3>
+
+      <pre><code>Blow-up Factor（膨脹因子）分析：
+
+定義：
+ρ = |D_lde| / |D_trace| = 擴展域大小 / 軌跡域大小
+
+典型值：ρ = 4, 8, 16, 32
+
+對系統指標的影響：
+
+1. 證明大小
+   證明大小 ∝ log(ρ·n) · q
+
+   ρ↑ → 證明略增（對數關係）
+
+2. 證明時間
+   證明時間 = O(ρ·n · log(ρ·n))
+
+   主要成本：FFT 在擴展域
+   ρ↑ → 證明時間線性增加
+
+3. 安全性（Soundness）
+   soundness error ≈ max(ρ_code^{q/2}, 2^{-λ})
+
+   其中碼率 ρ_code = 1/ρ
+   ρ↑ → 碼率↓ → 安全性↑
+
+4. 查詢次數
+   固定安全等級 λ，需要 q 次查詢
+   q ≈ λ / log(1/ρ_code) = λ / log(ρ)
+
+   ρ↑ → 需要的查詢次數↓</code></pre>
+
+      <h3>安全性與效能權衡</h3>
 
       <table>
         <thead>
           <tr>
-            <th>特性</th>
-            <th>STARK</th>
+            <th>Blow-up Factor ρ</th>
+            <th>碼率</th>
+            <th>查詢次數（128-bit）</th>
+            <th>證明大小</th>
+            <th>證明時間倍率</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>4</td>
+            <td>1/4</td>
+            <td>~64</td>
+            <td>~80 KB</td>
+            <td>1x（基準）</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>1/8</td>
+            <td>~43</td>
+            <td>~60 KB</td>
+            <td>~2x</td>
+          </tr>
+          <tr>
+            <td>16</td>
+            <td>1/16</td>
+            <td>~32</td>
+            <td>~50 KB</td>
+            <td>~4x</td>
+          </tr>
+          <tr>
+            <td>32</td>
+            <td>1/32</td>
+            <td>~26</td>
+            <td>~45 KB</td>
+            <td>~8x</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>實務選擇指南</h3>
+
+      <pre><code>Blow-up Factor 選擇策略：
+
+場景 1：鏈上驗證（Gas 敏感）
+  推薦：ρ = 16 或 32
+  理由：
+    - 減少查詢次數 → 減少 Merkle 路徑
+    - 證明更小 → calldata 成本降低
+    - 驗證時間更短
+
+場景 2：快速證明（延遲敏感）
+  推薦：ρ = 4
+  理由：
+    - FFT 成本最低
+    - 適合即時應用
+    - 接受較大證明
+
+場景 3：平衡選擇
+  推薦：ρ = 8
+  理由：
+    - 證明時間適中
+    - 證明大小合理
+    - StarkWare 默認值
+
+ZKML 考量：
+  - 大型模型（>100M 參數）：ρ = 4（減少證明時間）
+  - 鏈上推論驗證：ρ = 16（減少驗證成本）
+  - 遞迴證明：ρ = 8（平衡內外層）</code></pre>
+
+      <h2>FRI 協議詳解</h2>
+
+      <h3>FRI 與 STARK 整合</h3>
+
+      <pre><code>FRI 在 STARK 中的角色：
+
+STARK 需要證明：
+  "軌跡多項式和商多項式是低度的"
+
+為何需要低度證明？
+  - 若 deg(t_j) < n，則 t_j 由軌跡點唯一確定
+  - 若 deg(H) < constraint_degree，則約束被滿足
+  - 低度 ⟺ 計算正確
+
+FRI 提供：
+  互動式 Oracle 證明（IOP），證明函數接近 RS 碼
+
+整合流程：
+
+1. 承諾階段
+   STARK: 發送 Merkle(LDE(f))
+   等價於: FRI oracle f
+
+2. 折疊階段
+   FRI: 遞迴折疊，次數減半
+   STARK: 使用 Fiat-Shamir 生成挑戰
+
+3. 查詢階段
+   FRI: 抽樣驗證折疊一致性
+   STARK: 同時驗證約束滿足
+
+優化：批次 FRI
+  - 多個多項式（軌跡 + 商）組合為一
+  - 使用隨機係數 γ
+  - 單次 FRI 證明所有多項式</code></pre>
+
+      <h3>FRI 安全性分析</h3>
+
+      <pre><code>FRI Soundness 分析：
+
+定理（FRI Soundness）：
+若 f 不是 δ-接近任何次數 < d 的多項式，
+則 FRI 驗證者以機率 ≥ 1 - ε 拒絕。
+
+其中：
+ε ≤ (ρ + δ)^q + r·2^{-λ}
+
+參數說明：
+  ρ = 碼率（1/blowup_factor）
+  δ = 接近性參數
+  q = 查詢次數
+  r = 折疊輪數
+  λ = 雜湊安全參數
+
+安全等級計算：
+
+目標：128-bit 安全
+
+條件 1：碼相關
+  (ρ + δ)^q ≤ 2^{-128}
+  q ≥ 128 / log₂(1/(ρ+δ))
+
+條件 2：雜湊相關
+  r·2^{-λ} ≤ 2^{-128}
+  λ ≥ 128 + log₂(r)
+
+範例：ρ = 1/8, δ = 1/8
+  需要 q ≥ 128 / log₂(4) = 64 查詢
+  使用 λ = 256 位雜湊（含安全裕度）</code></pre>
+
+      <h2>安全性證明</h2>
+
+      <h3>完備性（Completeness）</h3>
+
+      <pre><code>定理：STARK 完備性
+
+若 (x, w) 滿足關係 R（即計算正確），
+則誠實證明者總能產生被接受的證明。
+
+證明概要：
+
+1. 軌跡多項式正確性
+   若執行正確，軌跡 T 滿足所有約束
+   t_j(ω^i) = T[i, j] 由插值保證
+
+2. 約束多項式整除性
+   CP(X) 在所有 ω^i 為零（約束滿足）
+   因此 Z_T(X) | CP(X)
+   商 H(X) 確實是多項式
+
+3. FRI 正確性
+   deg(t_j) = n - 1 < n（低度）
+   deg(H) < constraint_degree（低度）
+   FRI 對低度多項式總是接受
+
+4. Merkle 一致性
+   誠實證明者的 Merkle 樹一致
+   所有路徑驗證通過
+
+結論：Pr[Verify(pp, x, Prove(pp, x, w)) = accept] = 1</code></pre>
+
+      <h3>可靠性（Soundness）</h3>
+
+      <pre><code>定理：STARK Soundness
+
+若 (x, w*) 不滿足關係 R（即計算錯誤），
+則任何惡意證明者產生被接受的證明機率 ≤ negl(λ)。
+
+證明概要（反證法）：
+
+假設存在有效攻擊策略...
+
+Case 1：偽造 Merkle 承諾
+  - 需找到碰撞 H(x) = H(x')
+  - 機率 ≤ 2^{-λ}（抗碰撞假設）
+
+Case 2：軌跡不滿足約束
+  - CP(ω^i) ≠ 0 對某些 i
+  - H(X) = CP(X)/Z_T(X) 不是多項式
+  - 存在極點（pole）
+  - FRI 將以高機率拒絕
+
+Case 3：FRI 欺騙
+  - 聲稱 f 低度但實際不是
+  - 由 FRI soundness：
+    Pr[接受] ≤ (ρ + δ)^q ≤ 2^{-128}
+
+總 soundness error：
+ε ≤ 2^{-λ} + (ρ + δ)^q + negl(λ)
+
+選擇適當參數使 ε ≤ 2^{-128}</code></pre>
+
+      <h3>零知識性</h3>
+
+      <pre><code>STARK 零知識分析：
+
+標準 STARK 不是零知識的！
+
+原因：
+  - Merkle 樹洩露軌跡值
+  - 查詢回應直接暴露 t_j(x)
+
+ZK-STARK 修改：
+
+1. 添加隨機遮罩
+   t'_j(X) = t_j(X) + r_j(X) · Z_T(X)
+
+   其中 r_j(X) 為隨機多項式
+   - t'_j 在軌跡點與 t_j 相同
+   - t'_j 在其他點被隨機化
+
+2. 商多項式遮罩
+   H'(X) = H(X) + s(X) · Z_Q(X)
+
+   s(X) 為隨機多項式
+
+3. 更大的 LDE 域
+   確保足夠多的隨機點
+
+定理（ZK-STARK）：
+添加適當遮罩後，ZK-STARK 是完美零知識的。
+
+對於任何驗證者 V*：
+View_real ≡ View_simulated
+
+模擬器：
+  - 選擇隨機軌跡（滿足邊界但隨機內部）
+  - 對查詢點做局部一致
+  - 統計上不可區分</code></pre>
+
+      <h2>後量子安全分析</h2>
+
+      <h3>量子威脅模型</h3>
+
+      <pre><code>量子計算對密碼學的影響：
+
+Shor 算法（指數加速）：
+  - 整數分解：O(n³) 量子
+  - 離散對數：O(n³) 量子
+  - 影響：RSA、ECC、配對 完全破解
+
+Grover 算法（平方加速）：
+  - 搜索問題：O(√N) 量子 vs O(N) 經典
+  - 雜湊碰撞：O(2^{n/3}) 量子 vs O(2^{n/2}) 經典
+  - 影響：安全參數需增加
+
+STARK 量子安全性：
+
+使用的原語：
+  ✓ 雜湊函數 - 受 Grover 影響但可調整
+  ✓ 有限域算術 - 量子無優勢
+  ✗ 無橢圓曲線 - Shor 無關
+
+安全調整：
+  經典 128-bit → 量子等效 128-bit
+  需要：256-bit 雜湊（SHA-256）
+        或 384-bit（保守）</code></pre>
+
+      <h3>後量子參數選擇</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>安全等級</th>
+            <th>經典安全</th>
+            <th>量子安全</th>
+            <th>推薦雜湊</th>
+            <th>查詢次數</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Level 1</td>
+            <td>128-bit</td>
+            <td>64-bit</td>
+            <td>SHA-256</td>
+            <td>64</td>
+          </tr>
+          <tr>
+            <td>Level 3</td>
+            <td>192-bit</td>
+            <td>96-bit</td>
+            <td>SHA-384</td>
+            <td>96</td>
+          </tr>
+          <tr>
+            <td>Level 5</td>
+            <td>256-bit</td>
+            <td>128-bit</td>
+            <td>SHA-512</td>
+            <td>128</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <pre><code>NIST 後量子標準對照：
+
+STARK 對應 NIST Level 1-5：
+  - Level 1：等效 AES-128 → 使用 SHA-256
+  - Level 3：等效 AES-192 → 使用 SHA-384
+  - Level 5：等效 AES-256 → 使用 SHA-512
+
+比較其他後量子方案：
+  - Lattice-based（CRYSTALS）：更小簽名，但新假設
+  - Hash-based（SPHINCS+）：僅簽名，無 ZK
+  - STARK：通用 ZK，成熟假設
+
+結論：STARK 是唯一同時具備：
+  1. 後量子安全
+  2. 透明設置
+  3. 通用可編程性</code></pre>
+
+      <h2>複雜度分析</h2>
+
+      <h3>漸進複雜度</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>時間複雜度</th>
+            <th>空間複雜度</th>
             <th>說明</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>透明設置</strong></td>
-            <td>是</td>
-            <td>無需可信第三方</td>
+            <td>Setup</td>
+            <td>O(log n)</td>
+            <td>O(1)</td>
+            <td>計算單位根</td>
           </tr>
           <tr>
-            <td><strong>後量子安全</strong></td>
-            <td>是</td>
-            <td>僅依賴雜湊函數</td>
+            <td>Prove - 軌跡生成</td>
+            <td>O(n)</td>
+            <td>O(n·w)</td>
+            <td>執行計算</td>
           </tr>
           <tr>
-            <td><strong>證明大小</strong></td>
-            <td>O(log² n)</td>
-            <td>~50-200 KB</td>
+            <td>Prove - FFT</td>
+            <td>O(ρn log n)</td>
+            <td>O(ρn)</td>
+            <td>LDE 計算</td>
           </tr>
           <tr>
-            <td><strong>驗證時間</strong></td>
-            <td>O(log² n)</td>
-            <td>~10-50 ms</td>
+            <td>Prove - Merkle</td>
+            <td>O(ρn)</td>
+            <td>O(ρn)</td>
+            <td>雜湊計算</td>
           </tr>
           <tr>
-            <td><strong>證明時間</strong></td>
-            <td>O(n log n)</td>
-            <td>準線性</td>
+            <td>Prove - FRI</td>
+            <td>O(ρn log n)</td>
+            <td>O(ρn)</td>
+            <td>折疊 + 承諾</td>
+          </tr>
+          <tr>
+            <td>Verify</td>
+            <td>O(λ log² n)</td>
+            <td>O(λ log n)</td>
+            <td>查詢驗證</td>
+          </tr>
+          <tr>
+            <td>證明大小</td>
+            <td>-</td>
+            <td>O(λ log² n)</td>
+            <td>FRI + Merkle</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>系統架構</h2>
-
-      <h3>STARK 流程</h3>
-
-      <pre><code>STARK 證明流程：
-
-1. 算術化（Arithmetization）
-   計算 → AIR（Algebraic Intermediate Representation）
-   - 定義執行軌跡
-   - 定義多項式約束
-
-2. 軌跡生成
-   執行計算，記錄每步狀態
-   軌跡 T: n × w 矩陣
-
-3. 低度擴展（LDE）
-   將軌跡編碼為多項式
-   擴展到更大的評估域
-
-4. FRI 承諾
-   使用 FRI 證明多項式是低度的
-   Merkle 樹承諾
-
-5. 查詢與驗證
-   隨機查詢點
-   驗證約束滿足 + FRI 證明</code></pre>
-
-      <h3>AIR 約束</h3>
-
-      <pre><code>AIR（Algebraic Intermediate Representation）：
-
-軌跡結構：
-  T[i, j] = 第 i 步的第 j 個寄存器
-
-約束類型：
-
-1. 邊界約束（Boundary Constraints）
-   指定特定位置的值
-   T[0, 0] = input_0
-   T[n-1, 1] = output
-
-2. 轉換約束（Transition Constraints）
-   定義相鄰步驟的關係
-   例如：T[i+1, 0] = T[i, 0] + T[i, 1]
-
-多項式表示：
-   軌跡多項式：t_j(X) 插值第 j 列
-   約束多項式：C(t_0(X), t_1(X), ..., t_0(ωX), t_1(ωX), ...)
-
-   若約束滿足，C 在所有軌跡點為零</code></pre>
-
-      <h2>FRI 協議</h2>
-
-      <h3>核心機制</h3>
-
-      <p>FRI（Fast Reed-Solomon Interactive Oracle Proof）是 STARK 的核心<sup><a href="#ref-2">[2]</a></sup>：</p>
-
-      <pre><code>FRI 目標：證明函數接近低度多項式
-
-協議步驟：
-
-1. 承諾階段
-   - 對多項式 f(X) 在擴展域 D 上求值
-   - 建立 Merkle 樹承諾
-
-2. 折疊階段（log d 輪）
-   - 收到隨機挑戰 α
-   - 折疊：f'(X) = f_even(X) + α · f_odd(X)
-   - 次數減半
-   - 提交新多項式
-
-3. 查詢階段
-   - 隨機選取查詢點
-   - 提供 Merkle 證明
-   - 驗證折疊一致性
-
-複雜度：
-  證明大小：O(λ · log² d)
-  驗證時間：O(λ · log² d)
-  其中 λ = 安全參數</code></pre>
-
-      <h3>FRI 詳解</h3>
-
-      <pre><code>FRI 折疊過程：
-
-初始：f(X) 次數 d
-
-第 1 輪：
-  f(X) = f_even(X²) + X · f_odd(X²)
-  f₁(X) = f_even(X) + α₁ · f_odd(X)
-  次數：d/2
-
-第 k 輪：
-  f_k(X) = f_{k-1,even}(X) + α_k · f_{k-1,odd}(X)
-  次數：d/2^k
-
-最終：
-  f_final = 常數
-
-驗證者檢查：
-  每輪的折疊關係正確
-  最終值為常數</code></pre>
-
-      <h2>安全性</h2>
-
-      <h3>安全假設</h3>
-
-      <pre><code>STARK 安全基於：
-
-1. 抗碰撞雜湊函數
-   用於 Merkle 樹承諾
-
-2. 隨機預言機模型
-   Fiat-Shamir 變換
-
-安全論證：
-  - 若 f 不是低度多項式
-  - 則 f 與任何低度多項式有顯著距離
-  - FRI 驗證會以高機率拒絕
-
-soundness error ≈ (ρ + ε)^λ
-  ρ = 碼率
-  ε = 接近性參數
-  λ = 查詢次數</code></pre>
-
-      <h3>後量子安全</h3>
-
-      <pre><code>量子安全分析：
-
-STARK 使用的原語：
-  - 雜湊函數（SHA-256, BLAKE3）
-  - 有限域算術
-
-量子攻擊影響：
-  - Grover 算法：碰撞查找 O(2^{n/2}) → O(2^{n/3})
-  - 需增加雜湊輸出長度（256 → 384 bits）
-
-對比 SNARK：
-  - SNARK 基於橢圓曲線
-  - Shor 算法可破解
-  - 不具後量子安全</code></pre>
-
-      <h2>效能分析</h2>
-
-      <h3>證明大小</h3>
-
-      <pre><code>STARK 證明組成：
-
-1. 軌跡承諾
-   ~32 bytes × log(trace_length)
-
-2. 約束承諾
-   ~32 bytes × log(constraint_degree)
-
-3. FRI 證明
-   ~32 bytes × λ × log² d
-   λ ≈ 64（128-bit 安全）
-
-典型大小：
-  小電路（~10K 約束）：~50 KB
-  中電路（~1M 約束）：~100 KB
-  大電路（~100M 約束）：~200 KB
-
-與 SNARK 比較：
-  SNARK：~200 bytes（固定）
-  STARK：隨電路規模對數增長</code></pre>
-
-      <h3>效能基準</h3>
+      <h3>具體效能數據</h3>
 
       <table>
         <thead>
           <tr>
             <th>電路規模</th>
+            <th>軌跡長度</th>
             <th>證明時間</th>
             <th>驗證時間</th>
             <th>證明大小</th>
+            <th>峰值記憶體</th>
           </tr>
         </thead>
         <tbody>
           <tr>
+            <td>2¹⁶ (~65K)</td>
+            <td>65,536</td>
+            <td>~0.5 秒</td>
+            <td>~5 ms</td>
+            <td>~40 KB</td>
+            <td>~256 MB</td>
+          </tr>
+          <tr>
             <td>2²⁰ (~1M)</td>
+            <td>1,048,576</td>
             <td>~5 秒</td>
             <td>~20 ms</td>
             <td>~80 KB</td>
+            <td>~4 GB</td>
           </tr>
           <tr>
             <td>2²⁴ (~16M)</td>
-            <td>~30 秒</td>
+            <td>16,777,216</td>
+            <td>~1 分鐘</td>
             <td>~30 ms</td>
             <td>~120 KB</td>
+            <td>~64 GB</td>
           </tr>
           <tr>
             <td>2²⁸ (~256M)</td>
-            <td>~5 分鐘</td>
+            <td>268,435,456</td>
+            <td>~15 分鐘</td>
             <td>~50 ms</td>
             <td>~180 KB</td>
+            <td>~1 TB</td>
           </tr>
         </tbody>
       </table>
 
       <h2>ZKML 應用</h2>
 
-      <h3>STARK 在 ZKML 的優勢</h3>
+      <h3>STARK 在 ML 推論驗證的優勢</h3>
 
-      <pre><code>適合 ZKML 的特性：
+      <pre><code>STARK 適合 ZKML 的特性：
 
-1. 透明設置
-   - 模型更新無需重新設置
-   - 簡化部署流程
+1. 透明設置 → 模型更新友好
+   - 更換模型無需重新設置
+   - CI/CD 流程簡化
+   - 多模型部署成本低
 
-2. 大電路效率
-   - 證明時間與電路準線性
-   - 大型模型仍可處理
+2. 準線性證明時間 → 大型模型可行
+   傳統：O(n²) → 10M 參數 = 不可行
+   STARK：O(n log n) → 100M 參數 = 可行
 
-3. 後量子安全
-   - 長期安全性保證
-   - 適合高價值應用
+3. 後量子安全 → 長期應用保障
+   - 醫療 AI 需要長期可驗證
+   - 金融模型法規要求
+   - 政府應用合規
 
-4. 遞迴友好
-   - STARK 驗證電路較簡單
-   - 適合證明聚合</code></pre>
+4. 遞迴友好 → 證明聚合
+   - 批次推論一次證明
+   - 多模型 pipeline 證明
+   - 分佈式證明聚合</code></pre>
 
-      <h3>STARK 系統生態</h3>
+      <h3>STARK-based ZKML 框架</h3>
 
       <pre><code>主要實現：
 
-1. StarkWare / Cairo
-   - 產品級實現
-   - StarkNet 使用
-   - Cairo 語言
+1. RISC Zero
+   架構：通用 zkVM (RISC-V)
+   ML 支援：Rust ML 庫直接運行
 
-2. RISC Zero
-   - 通用 zkVM
-   - RISC-V 指令集
-   - Rust 程式支援
+   優點：
+     - 無需電路編寫
+     - 支援任意 Rust 程式
+     - 活躍社群
+
+   適用：
+     - 小型模型推論
+     - 複雜前處理邏輯
+     - 快速原型開發
+
+2. Cairo (StarkWare)
+   架構：專用 DSL
+   ML 支援：Giza (Cairo ML 框架)
+
+   優點：
+     - 產品級實現
+     - StarkNet 整合
+     - 證明聚合服務
+
+   適用：
+     - 鏈上 AI 應用
+     - StarkNet DApp
+     - 批次驗證
 
 3. Polygon Miden
-   - 模塊化設計
-   - 遞迴優化
+   架構：模塊化 zkVM
+   ML 支援：實驗性
+
+   優點：
+     - 模塊化設計
+     - EVM 兼容規劃
+     - 遞迴優化
+
+   適用：
+     - 跨鏈應用
+     - 自定義 VM
 
 4. Plonky2/Plonky3
-   - PLONK + STARK 混合
-   - 超快證明時間</code></pre>
+   架構：STARK + PLONK 混合
+   ML 支援：ezkl 後端
 
-      <h3>與 SNARK 結合</h3>
+   優點：
+     - 超快證明時間
+     - 小證明包裝
+     - 最新優化</code></pre>
 
-      <pre><code>STARK → SNARK 包裝：
+      <h3>ZKML 效能比較</h3>
 
-動機：
-  - STARK 證明太大無法直接上鏈
-  - SNARK 驗證更便宜
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>證明系統</th>
+            <th>1M 乘法證明時間</th>
+            <th>證明大小</th>
+            <th>驗證時間</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RISC Zero</td>
+            <td>STARK</td>
+            <td>~10 秒</td>
+            <td>~200 KB</td>
+            <td>~50 ms</td>
+          </tr>
+          <tr>
+            <td>Cairo/Giza</td>
+            <td>STARK</td>
+            <td>~8 秒</td>
+            <td>~150 KB</td>
+            <td>~30 ms</td>
+          </tr>
+          <tr>
+            <td>Plonky2</td>
+            <td>STARK+PLONK</td>
+            <td>~3 秒</td>
+            <td>~50 KB</td>
+            <td>~10 ms</td>
+          </tr>
+          <tr>
+            <td>ezkl (Halo2)</td>
+            <td>PLONK+IPA</td>
+            <td>~15 秒</td>
+            <td>~10 KB</td>
+            <td>~200 ms</td>
+          </tr>
+        </tbody>
+      </table>
 
-方法：
-  1. 生成 STARK 證明（鏈下）
-  2. SNARK 電路驗證 STARK 證明
-  3. 生成 SNARK 證明
-  4. 鏈上驗證 SNARK
+      <h2>STARK → SNARK 包裝</h2>
 
-工具：
-  - Groth16 包裝（~200 bytes 最終證明）
-  - 複雜度：額外證明時間
+      <h3>動機與方法</h3>
 
-應用：
-  - StarkNet（STARK → Groth16）
-  - Polygon zkEVM</code></pre>
+      <pre><code>STARK → SNARK 包裝策略：
 
-      <h2>實現細節</h2>
+問題：
+  - STARK 證明大（50-200 KB）
+  - EVM calldata 成本高
+  - ~16 gas/byte → 大證明成本高昂
 
-      <h3>域選擇</h3>
+解決方案：遞迴證明包裝
+  1. 鏈下生成 STARK 證明（快速、大）
+  2. 用 SNARK 電路驗證 STARK 證明
+  3. 生成 SNARK 證明（小、鏈上高效）
 
-      <pre><code>STARK 常用域：
+技術細節：
 
-1. 小素數域
-   - p = 2^64 - 2^32 + 1（Goldilocks）
-   - 效率高，適合 64-bit CPU
+SNARK 電路驗證 STARK：
+  - 雜湊驗證（Poseidon 友好）
+  - Merkle 路徑檢查
+  - 域算術
+  - FRI 折疊驗證
 
-2. 擴展域
-   - F_p² 或更高次擴展
-   - 增加安全性
+挑戰：
+  - STARK 驗證電路大（~10-50M 約束）
+  - 需要高效 SNARK
+  - Poseidon 雜湊更適合（vs SHA-256）
 
-3. 二進位域
-   - F_{2^n}
-   - 硬體友好
+實際應用：
+  - StarkNet：STARK → Groth16
+  - Polygon zkEVM：類似方法
+  - 最終證明：~200 bytes</code></pre>
 
-ZKML 考量：
-  - 域大小需容納激活值範圍
-  - 量化後通常 8-16 bit 足夠</code></pre>
+      <h3>效能分析</h3>
 
-      <h3>優化技術</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>階段</th>
+            <th>時間</th>
+            <th>輸出大小</th>
+            <th>驗證成本</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>原始 STARK 證明</td>
+            <td>~30 秒</td>
+            <td>~100 KB</td>
+            <td>~500K gas</td>
+          </tr>
+          <tr>
+            <td>SNARK 包裝</td>
+            <td>~2 分鐘</td>
+            <td>~200 B</td>
+            <td>~300K gas</td>
+          </tr>
+          <tr>
+            <td>總計</td>
+            <td>~2.5 分鐘</td>
+            <td>~200 B</td>
+            <td>~300K gas</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <pre><code>STARK 優化：
+      <h2>域選擇與優化</h2>
 
-1. 並行 FFT
-   - 多核 CPU 加速
-   - GPU FFT 實現
+      <h3>STARK 友好域</h3>
 
-2. 批次 Merkle
-   - 減少雜湊計算
+      <pre><code>常用有限域：
 
-3. 遞迴證明
-   - 分段並行證明
-   - 最終聚合
+1. Goldilocks 域
+   p = 2^64 - 2^32 + 1
 
-4. 硬體加速
-   - FPGA/ASIC
-   - 專用雜湊硬體
+   性質：
+     - 64-bit 友好
+     - 快速模運算
+     - 2-adicity = 32（2^32 | p-1）
 
-效能提升：
-  單核 → 多核：4-8x
-  CPU → GPU：10-50x</code></pre>
+   使用：Polygon Miden, Plonky2
+
+2. Baby Bear
+   p = 2^31 - 2^27 + 1 = 2013265921
+
+   性質：
+     - 31-bit 素數
+     - 2-adicity = 27
+     - 更快運算
+
+   使用：RISC Zero
+
+3. M31 (Mersenne31)
+   p = 2^31 - 1
+
+   性質：
+     - 梅森素數
+     - 極快模運算
+     - 2-adicity = 1（需擴展域）
+
+   使用：StarkWare Circle STARK
+
+4. BN254 標量域（兼容用）
+   p = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+
+   使用：與 EVM 橋接
+
+ZKML 域選擇：
+  - 量化模型：Baby Bear 足夠（31-bit）
+  - 高精度：Goldilocks（64-bit）
+  - EVM 兼容：BN254 標量域</code></pre>
+
+      <h3>硬體加速</h3>
+
+      <pre><code>STARK 硬體優化：
+
+1. GPU 加速
+   主要運算：FFT, Merkle hashing
+
+   FFT 加速：
+     - cuFFT (NVIDIA)
+     - ROCm (AMD)
+     - 加速：10-50x
+
+   Merkle 加速：
+     - 並行雜湊
+     - 批次處理
+     - 加速：5-20x
+
+2. FPGA 加速
+   優勢：
+     - 低延遲
+     - 能源效率
+     - 可定制
+
+   實現：
+     - Ingonyama (Poseidon)
+     - 定制 FFT 核心
+     - 加速：10-100x
+
+3. ASIC 設計
+   目標：
+     - 專用 STARK 證明器
+     - 最大吞吐量
+
+   狀態：
+     - StarkWare 開發中
+     - 預期：100-1000x
+
+當前可用加速：
+  - CPU 多核：4-8x
+  - GPU (RTX 4090)：20-50x
+  - 雲端 GPU 集群：100x+</code></pre>
 
       <h2>與其他系統比較</h2>
 
@@ -393,35 +1284,62 @@ ZKML 考量：
             <th>STARK</th>
             <th>Groth16</th>
             <th>PLONK</th>
+            <th>Halo2</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>設置</strong></td>
+            <td><strong>設置類型</strong></td>
             <td>透明</td>
-            <td>電路特定</td>
-            <td>通用</td>
+            <td>電路特定可信</td>
+            <td>通用可信</td>
+            <td>透明</td>
           </tr>
           <tr>
-            <td><strong>後量子</strong></td>
+            <td><strong>後量子安全</strong></td>
             <td>是</td>
             <td>否</td>
             <td>否</td>
+            <td>是</td>
           </tr>
           <tr>
             <td><strong>證明大小</strong></td>
-            <td>~100 KB</td>
+            <td>50-200 KB</td>
             <td>~200 B</td>
             <td>~400 B</td>
+            <td>~10 KB</td>
           </tr>
           <tr>
-            <td><strong>驗證成本</strong></td>
-            <td>中</td>
-            <td>低</td>
-            <td>低</td>
+            <td><strong>驗證時間</strong></td>
+            <td>10-50 ms</td>
+            <td>~3 ms</td>
+            <td>~5 ms</td>
+            <td>~200 ms</td>
           </tr>
           <tr>
-            <td><strong>大電路友好</strong></td>
+            <td><strong>證明時間（1M 約束）</strong></td>
+            <td>~5 秒</td>
+            <td>~10 秒</td>
+            <td>~8 秒</td>
+            <td>~15 秒</td>
+          </tr>
+          <tr>
+            <td><strong>大電路擴展性</strong></td>
+            <td>優秀</td>
+            <td>中等</td>
+            <td>中等</td>
+            <td>良好</td>
+          </tr>
+          <tr>
+            <td><strong>EVM 驗證成本</strong></td>
+            <td>~500K gas</td>
+            <td>~200K gas</td>
+            <td>~300K gas</td>
+            <td>N/A（無鏈上驗證）</td>
+          </tr>
+          <tr>
+            <td><strong>遞迴成本</strong></td>
+            <td>低</td>
             <td>高</td>
             <td>中</td>
             <td>中</td>
@@ -432,10 +1350,11 @@ ZKML 考量：
       <h2>相關頁面</h2>
 
       <ul>
-        <li><a href="../commitments/fri.html">FRI</a> - STARK 使用的多項式承諾</li>
-        <li><a href="../arithmetization/plonkish.html">PLONKish / AIR</a> - AIR 算術化詳解</li>
-        <li><a href="groth16.html">Groth16</a> - 最小證明的替代方案</li>
-        <li><a href="../../frameworks/tools/risc-zero.html">RISC Zero</a> - 基於 STARK 的 zkVM</li>
+        <li><a href="../commitments/fri.html">FRI</a> - STARK 使用的多項式承諾協議詳解</li>
+        <li><a href="../arithmetization/plonkish.html">PLONKish / AIR</a> - AIR 算術化方法與 PLONKish 比較</li>
+        <li><a href="groth16.html">Groth16</a> - 最小證明大小的 SNARK 替代方案</li>
+        <li><a href="halo2.html">Halo2</a> - 另一種透明設置的證明系統</li>
+        <li><a href="../../frameworks/tools/risc-zero.html">RISC Zero</a> - 基於 STARK 的通用 zkVM</li>
       </ul>
 
       <section class="references">
@@ -446,12 +1365,24 @@ ZKML 考量：
             <a href="https://eprint.iacr.org/2018/046" target="_blank" rel="noopener">ePrint</a>
           </li>
           <li id="ref-2">
+            <cite>Ben-Sasson, E., Goldberg, L., Kopparty, S., & Saraf, S. "DEEP-FRI: Sampling Outside the Box Improves Soundness." ITCS 2020.</cite>
+            <a href="https://doi.org/10.4230/LIPIcs.ITCS.2020.5" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-3">
             <cite>Ben-Sasson, E., et al. "Fast Reed-Solomon Interactive Oracle Proofs of Proximity." ICALP 2018.</cite>
             <a href="https://doi.org/10.4230/LIPIcs.ICALP.2018.14" target="_blank" rel="noopener">DOI</a>
           </li>
-          <li id="ref-3">
+          <li id="ref-4">
             <cite>StarkWare. "ethSTARK Documentation." 2023.</cite>
             <a href="https://github.com/starkware-libs/ethSTARK" target="_blank" rel="noopener">GitHub</a>
+          </li>
+          <li id="ref-5">
+            <cite>RISC Zero. "RISC Zero zkVM Whitepaper." 2023.</cite>
+            <a href="https://dev.risczero.com/api" target="_blank" rel="noopener">Documentation</a>
+          </li>
+          <li id="ref-6">
+            <cite>Polygon. "Plonky2: Fast Recursive Arguments with PLONK and FRI." 2022.</cite>
+            <a href="https://github.com/0xPolygonZero/plonky2" target="_blank" rel="noopener">GitHub</a>
           </li>
         </ol>
       </section>

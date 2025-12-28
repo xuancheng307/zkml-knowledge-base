@@ -30,12 +30,35 @@
 
       <div class="callout callout-info">
         <div class="callout-title">安全基礎</div>
-        <p>理解 ZKML 的威脅模型是正確應用這項技術的基礎。本頁面定義 ZKML 系統中的參與者、攻擊者能力、以及系統需要達成的安全目標。</p>
+        <p>理解 ZKML 的威脅模型是正確應用這項技術的基礎。本頁面定義 ZKML 系統中的參與者、攻擊者能力、以及系統需要達成的安全目標。主要參考 Peng et al. 的綜述<sup><a href="#ref-1">[1]</a></sup>與 ZKML (EuroSys 2024) 論文<sup><a href="#ref-2">[2]</a></sup>。</p>
+      </div>
+
+      <h2>形式化框架</h2>
+
+      <h3>系統模型定義</h3>
+
+      <div class="definition">
+        <strong>定義 1（ZKML 系統）</strong>
+        <p>ZKML 系統是一個五元組 Π = (Setup, Commit, Prove, Verify, f)，其中：</p>
+        <ul>
+          <li>Setup(1<sup>λ</sup>) → (pk, vk)：安全參數 λ 生成證明密鑰和驗證密鑰</li>
+          <li>Commit(W) → c<sub>W</sub>：對模型權重 W 生成承諾</li>
+          <li>Prove(pk, W, x, y) → π：生成 f(x; W) = y 的零知識證明</li>
+          <li>Verify(vk, c<sub>W</sub>, x, y, π) → {0, 1}：驗證證明有效性</li>
+          <li>f：神經網路推理函數</li>
+        </ul>
+      </div>
+
+      <div class="definition">
+        <strong>定義 2（可驗證推理關係）</strong>
+        <p>可驗證推理的 NP 關係 R 定義為：</p>
+        <pre><code>R = {((c_W, x, y), W) : Commit(W) = c_W ∧ f(x; W) = y}</code></pre>
+        <p>其中公開陳述 (statement) 為 (c<sub>W</sub>, x, y)，私密見證 (witness) 為 W。</p>
       </div>
 
       <h2>參與者角色</h2>
 
-      <h3>核心角色</h3>
+      <h3>核心角色定義</h3>
 
       <table>
         <thead>
@@ -43,200 +66,569 @@
             <th>角色</th>
             <th>描述</th>
             <th>持有資源</th>
+            <th>信任假設</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>證明者</strong></td>
+            <td><strong>證明者 (Prover)</strong></td>
             <td>執行 ML 推理並生成證明</td>
-            <td>模型、輸入、計算資源</td>
+            <td>模型 W、輸入 x、計算資源</td>
+            <td>可能惡意</td>
           </tr>
           <tr>
-            <td><strong>驗證者</strong></td>
+            <td><strong>驗證者 (Verifier)</strong></td>
             <td>驗證證明的正確性</td>
-            <td>驗證密鑰、公開輸入</td>
+            <td>驗證密鑰 vk、公開輸入</td>
+            <td>誠實但好奇</td>
           </tr>
           <tr>
             <td><strong>數據擁有者</strong></td>
             <td>提供待推理的數據</td>
-            <td>私密輸入數據</td>
+            <td>私密輸入數據 x</td>
+            <td>可能需隱私保護</td>
           </tr>
           <tr>
             <td><strong>模型擁有者</strong></td>
             <td>提供 ML 模型</td>
-            <td>模型權重</td>
+            <td>模型權重 W、架構</td>
+            <td>可能需隱私保護</td>
+          </tr>
+          <tr>
+            <td><strong>Setup 執行者</strong></td>
+            <td>執行可信設置（若需要）</td>
+            <td>Trusted Setup 參數</td>
+            <td>至少一方誠實（MPC）</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>場景配置</h3>
+      <h3>應用場景配置</h3>
 
-      <pre><code>場景一：雲端 ML 驗證
-  證明者 = 服務商（模型 + 計算）
-  驗證者 = 用戶
-  目標：用戶驗證服務商誠實
+      <div class="callout callout-warning">
+        <div class="callout-title">場景決定威脅模型</div>
+        <p>不同應用場景下，角色的重疊方式不同，導致威脅模型有根本差異。</p>
+      </div>
 
-場景二：隱私推理
-  證明者 = 用戶（數據 + 本地計算）
+      <h4>場景一：雲端 ML 服務驗證 (MLaaS)</h4>
+
+      <pre><code>參與者配置：
+  證明者 = 服務商（持有模型 + 計算資源）
+  驗證者 = 用戶（接收推理結果）
+  數據擁有者 = 用戶
+
+威脅模型：
+  - 服務商可能使用較弱的模型
+  - 服務商可能偽造推理結果
+  - 用戶數據傳輸時可能被服務商記錄
+
+安全目標：
+  - Soundness：服務商無法偽造推理結果
+  - 模型承諾綁定：證明綁定到特定模型
+
+隱私需求：
+  - 模型權重對用戶保密（模型即資產）
+  - 用戶輸入對服務商保密（可選）</code></pre>
+
+      <h4>場景二：隱私推理</h4>
+
+      <pre><code>參與者配置：
+  證明者 = 用戶（持有私密數據 + 本地計算）
   驗證者 = 服務商或第三方
-  目標：用戶不洩露數據
+  模型擁有者 = 可能公開或服務商持有
 
-場景三：區塊鏈整合
+威脅模型：
+  - 驗證者試圖從證明中推斷用戶數據
+  - 惡意證明者可能偽造推理結果
+
+安全目標：
+  - Zero-Knowledge：驗證者學不到 x 的資訊
+  - Soundness：無法偽造錯誤計算的證明
+
+典型應用：
+  - 醫療診斷（患者數據隱私）
+  - 金融徵信（財務資料隱私）</code></pre>
+
+      <h4>場景三：區塊鏈整合</h4>
+
+      <pre><code>參與者配置：
   證明者 = 鏈下執行者
-  驗證者 = 智能合約
-  目標：鏈上可驗證的 AI 決策</code></pre>
+  驗證者 = 智能合約（確定性執行）
+  數據來源 = 鏈上或預言機
+
+威脅模型：
+  - 執行者完全不可信
+  - 所有鏈上數據公開可見
+  - Gas 成本是關鍵限制
+
+安全目標：
+  - Soundness：保護區塊鏈狀態完整性
+  - 證明大小最小化（降低 gas 成本）
+  - 驗證時間最小化
+
+特殊考量：
+  - 模型架構必須公開（電路公開）
+  - 權重可保密（作為見證）</code></pre>
 
       <h2>攻擊者模型</h2>
 
-      <h3>攻擊者能力</h3>
+      <h3>計算能力假設</h3>
 
-      <pre><code>計算能力：
-  - 標準假設：多項式時間（PPT）
-  - 更強假設：無限計算（信息論安全）
-
-觀察能力：
-  - 可見公開輸入/輸出
-  - 可見證明內容
-  - 可能控制部分網路通訊
-
-控制能力：
-  - 惡意證明者：可偏離協議
-  - 惡意驗證者：可選擇挑戰（互動式）
-  - 外部攻擊者：被動觀察</code></pre>
-
-      <h3>攻擊目標</h3>
-
-      <pre><code>破壞可靠性（Soundness Attack）：
-  攻擊者偽造錯誤計算的證明
-  影響：接受錯誤的 ML 輸出
-
-破壞零知識（Privacy Attack）：
-  攻擊者從證明中提取私密資訊
-  影響：洩露模型權重或輸入數據
-
-拒絕服務（DoS Attack）：
-  攻擊者阻止合法證明生成/驗證
-  影響：系統不可用</code></pre>
-
-      <h2>安全目標</h2>
-
-      <h3>完備性（Completeness）</h3>
-
-      <pre><code>定義：
-  誠實證明者的正確計算總能通過驗證
-
-形式化：
-  若 M(x) = y 且證明者誠實
-  則 Verify(Prove(M, x, y)) = accept
-
-ZKML 考量：
-  - 量化誤差可能影響完備性
-  - 需確保定點計算與浮點足夠接近</code></pre>
-
-      <h3>可靠性（Soundness）</h3>
-
-      <pre><code>定義：
-  攻擊者無法偽造錯誤計算的證明
-
-形式化：
-  對任何 PPT 攻擊者 A：
-  Pr[Verify(A(M, x, y')) = accept ∧ M(x) ≠ y'] ≤ negl(λ)
-
-ZKML 考量：
-  - 量化引入的鬆弛需納入分析
-  - 溢出可能破壞 soundness</code></pre>
-
-      <h3>零知識性（Zero-Knowledge）</h3>
-
-      <pre><code>定義：
-  驗證者從證明過程中學不到私密資訊
-
-形式化：
-  存在模擬器 S，對任何驗證者 V*：
-  View_V*(Prove) ≈ S(public_info)
-
-ZKML 隱私範圍：
-  - 模型權重（模型即服務場景）
-  - 輸入數據（隱私推理場景）
-  - 中間激活值</code></pre>
-
-      <h2>威脅與防禦</h2>
-
-      <h3>常見攻擊類型</h3>
+      <div class="definition">
+        <strong>定義 3（PPT 攻擊者）</strong>
+        <p>多項式時間 (Probabilistic Polynomial Time, PPT) 攻擊者 A 是一個隨機演算法，其運行時間在安全參數 λ 上是多項式的。</p>
+      </div>
 
       <table>
         <thead>
           <tr>
-            <th>攻擊</th>
-            <th>描述</th>
-            <th>防禦</th>
+            <th>攻擊者類型</th>
+            <th>計算能力</th>
+            <th>安全模型</th>
+            <th>適用系統</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>PPT 攻擊者</td>
+            <td>多項式時間</td>
+            <td>計算安全</td>
+            <td>SNARK、PLONK、Halo2</td>
+          </tr>
+          <tr>
+            <td>無限計算能力</td>
+            <td>不受限制</td>
+            <td>信息論安全</td>
+            <td>部分 STARK 構造</td>
+          </tr>
+          <tr>
+            <td>量子攻擊者</td>
+            <td>量子多項式時間</td>
+            <td>後量子安全</td>
+            <td>STARK（雜湊基礎）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>攻擊者能力模型</h3>
+
+      <pre><code>觀察能力：
+  Level 0：僅見公開輸出
+    - 證明 π
+    - 公開輸入 x（若公開）
+    - 公開輸出 y
+
+  Level 1：可見通訊內容
+    - 所有網路傳輸
+    - 可能的時間資訊
+
+  Level 2：可控制部分輸入
+    - 選擇性輸入攻擊
+    - 適應性查詢
+
+控制能力：
+  惡意證明者：
+    - 可偏離協議
+    - 可選擇任意見證
+    - 可生成任意「證明」
+
+  惡意驗證者：
+    - 可選擇挑戰值（互動式協議）
+    - 可多次驗證同一證明
+    - 可嘗試提取私密資訊
+
+  中間人攻擊者：
+    - 可攔截、修改、重放訊息
+    - 可進行時間分析</code></pre>
+
+      <h3>攻擊目標分類</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>攻擊類型</th>
+            <th>目標</th>
+            <th>影響</th>
+            <th>防禦機制</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Soundness Attack</strong></td>
+            <td>偽造錯誤計算的證明</td>
+            <td>接受錯誤的 ML 輸出</td>
+            <td>ZKP 健全性保證</td>
+          </tr>
+          <tr>
+            <td><strong>Privacy Attack</strong></td>
+            <td>從證明提取私密資訊</td>
+            <td>洩露模型或數據</td>
+            <td>ZK 性質保證</td>
+          </tr>
+          <tr>
+            <td><strong>Model Extraction</strong></td>
+            <td>透過查詢重建模型</td>
+            <td>智慧財產權損失</td>
+            <td>查詢限制、差分隱私</td>
+          </tr>
+          <tr>
+            <td><strong>Model Substitution</strong></td>
+            <td>使用不同於承諾的模型</td>
+            <td>服務不誠實</td>
+            <td>模型承諾綁定</td>
+          </tr>
+          <tr>
+            <td><strong>Replay Attack</strong></td>
+            <td>重用舊證明</td>
+            <td>服務不誠實</td>
+            <td>時間戳/Nonce</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>安全目標形式化</h2>
+
+      <h3>完備性 (Completeness)</h3>
+
+      <div class="definition">
+        <strong>定義 4（完備性）</strong>
+        <p>ZKML 系統滿足完備性，若對所有 (W, x)：</p>
+        <pre><code>Pr[Verify(vk, Commit(W), x, f(x;W), Prove(pk, W, x, f(x;W))) = 1] = 1</code></pre>
+        <p>其中機率來自 Setup 和 Prove 的隨機性。</p>
+      </div>
+
+      <p><strong>ZKML 考量</strong>：量化誤差可能影響完備性。若定點運算結果 f_q(x; W_q) 與浮點結果 f(x; W) 差距過大，誠實證明者可能無法生成有效證明。需要：</p>
+      <ul>
+        <li>嚴格的量化誤差界限</li>
+        <li>適當的容差 (tolerance) 設定</li>
+        <li>電路設計時預留誤差空間</li>
+      </ul>
+
+      <h3>健全性 (Soundness)</h3>
+
+      <div class="definition">
+        <strong>定義 5（計算健全性）</strong>
+        <p>ZKML 系統滿足計算健全性，若對任何 PPT 攻擊者 A：</p>
+        <pre><code>Pr[(c_W, x, y*, π*) ← A(pk, vk) :
+    Verify(vk, c_W, x, y*, π*) = 1 ∧
+    ∄W. (Commit(W) = c_W ∧ f(x;W) = y*)] ≤ negl(λ)</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 6（知識健全性 / 可提取性）</strong>
+        <p>更強的知識健全性要求存在提取器 E，使得：若 A 能生成有效證明，則 E 能從 A 提取見證 W。</p>
+        <pre><code>Pr[(c_W, x, y, π) ← A(pk, vk), W ← E^A(pk, vk) :
+    Verify(vk, c_W, x, y, π) = 1 ∧
+    (Commit(W) ≠ c_W ∨ f(x;W) ≠ y)] ≤ negl(λ)</code></pre>
+      </div>
+
+      <p><strong>ZKML 考量</strong>：</p>
+      <ul>
+        <li>量化引入的鬆弛需納入分析</li>
+        <li>有限域溢位可能破壞 soundness</li>
+        <li>查表範圍不足可能允許作弊</li>
+      </ul>
+
+      <h3>零知識性 (Zero-Knowledge)</h3>
+
+      <div class="definition">
+        <strong>定義 7（計算零知識）</strong>
+        <p>ZKML 系統滿足零知識，若存在 PPT 模擬器 S，對任何 PPT 驗證者 V* 和所有 (W, x)：</p>
+        <pre><code>View_V*(Prove(pk, W, x, f(x;W))) ≈_c S(vk, Commit(W), x, f(x;W))</code></pre>
+        <p>其中 ≈<sub>c</sub> 表示計算不可區分。</p>
+      </div>
+
+      <p><strong>ZKML 隱私範圍</strong>：</p>
+      <table>
+        <thead>
+          <tr>
+            <th>保護對象</th>
+            <th>場景</th>
+            <th>實現方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>模型權重 W</td>
+            <td>MLaaS、模型即資產</td>
+            <td>W 作為見證，僅公開 Commit(W)</td>
+          </tr>
+          <tr>
+            <td>輸入數據 x</td>
+            <td>隱私推理、醫療/金融</td>
+            <td>x 作為見證，輸入承諾公開</td>
+          </tr>
+          <tr>
+            <td>中間激活值</td>
+            <td>防止模型逆向</td>
+            <td>所有中間計算為見證</td>
+          </tr>
+          <tr>
+            <td>模型架構</td>
+            <td>需額外機制</td>
+            <td>通用電路（zkVM）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>安全假設</h2>
+
+      <h3>密碼學假設</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>證明系統</th>
+            <th>主要假設</th>
+            <th>Trusted Setup</th>
+            <th>後量子安全</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Groth16</strong></td>
+            <td>q-SDH, q-PKE, DLOG</td>
+            <td>電路專屬</td>
+            <td>否</td>
+          </tr>
+          <tr>
+            <td><strong>PLONK</strong></td>
+            <td>DLP, AGM</td>
+            <td>通用 SRS</td>
+            <td>否</td>
+          </tr>
+          <tr>
+            <td><strong>Halo2 (KZG)</strong></td>
+            <td>DLP, AGM</td>
+            <td>通用 SRS</td>
+            <td>否</td>
+          </tr>
+          <tr>
+            <td><strong>Halo2 (IPA)</strong></td>
+            <td>DLP</td>
+            <td>無</td>
+            <td>否</td>
+          </tr>
+          <tr>
+            <td><strong>STARK</strong></td>
+            <td>雜湊抗碰撞</td>
+            <td>無（透明）</td>
+            <td>是</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>可信設置假設</h3>
+
+      <pre><code>Trusted Setup 安全模型：
+
+單方設置（不建議）：
+  - 單一方執行 Setup
+  - 若該方保留「trapdoor」，可偽造證明
+  - 完全信任單一實體
+
+MPC 設置（推薦）：
+  - 多方參與 Setup
+  - 只要有一方誠實銷毀秘密，系統安全
+  - Powers of Tau 儀式
+
+透明設置：
+  - 無需信任假設
+  - 從公開隨機性生成參數
+  - STARK 和 IPA 採用此方式</code></pre>
+
+      <h2>ZKML 特有安全考量</h2>
+
+      <h3>量化相關威脅</h3>
+
+      <pre><code>量化誤差攻擊：
+  問題：量化引入的誤差可能被惡意利用
+
+  攻擊場景：
+    1. 攻擊者找到 x 使得 f_q(x) ≠ f(x)
+    2. 聲稱量化結果是「正確」的
+    3. 誤差範圍內的偽造
+
+  防禦：
+    - 嚴格的誤差界限證明
+    - 與浮點結果的一致性驗證
+    - 適當的容差設定
+
+溢位攻擊：
+  問題：有限域運算可能溢位
+
+  攻擊場景：
+    1. 構造導致溢位的輸入
+    2. 溢位後約束可能被繞過
+
+  防禦：
+    - 範圍檢查約束
+    - 足夠大的域和位寬
+    - 詳見 <a href="../security/overflow.html">溢位風險</a></code></pre>
+
+      <h3>模型承諾安全</h3>
+
+      <pre><code>承諾綁定性：
+  需求：攻擊者無法找到兩個不同的 W₁, W₂ 使得 Commit(W₁) = Commit(W₂)
+
+  實現方式：
+    - Poseidon/Pedersen 雜湊
+    - Merkle 樹承諾
+    - KZG 多項式承諾
+
+承諾隱藏性：
+  需求：從 Commit(W) 無法推斷 W 的資訊
+
+  應用：模型權重保密
+
+  實現：使用 hiding commitment scheme（如 Pedersen）</code></pre>
+
+      <h2>威脅緩解策略</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>威脅</th>
+            <th>緩解策略</th>
+            <th>實現複雜度</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>模型替換</td>
-            <td>使用不同於承諾的模型</td>
-            <td>模型承諾綁定</td>
+            <td>模型承諾綁定到證明</td>
+            <td>低</td>
           </tr>
           <tr>
             <td>輸入篡改</td>
-            <td>聲稱使用不同輸入</td>
-            <td>輸入承諾綁定</td>
+            <td>輸入承諾或簽名</td>
+            <td>低</td>
           </tr>
           <tr>
             <td>證明偽造</td>
-            <td>不執行計算直接偽造</td>
-            <td>ZKP 可靠性保證</td>
+            <td>選用安全的 ZKP 系統</td>
+            <td>依賴底層系統</td>
+          </tr>
+          <tr>
+            <td>重放攻擊</td>
+            <td>Nonce 或時間戳</td>
+            <td>低</td>
           </tr>
           <tr>
             <td>側信道洩露</td>
-            <td>從時間/功耗推斷資訊</td>
             <td>恆定時間實作</td>
+            <td>高</td>
+          </tr>
+          <tr>
+            <td>模型提取</td>
+            <td>查詢限制、差分隱私</td>
+            <td>中</td>
+          </tr>
+          <tr>
+            <td>量化攻擊</td>
+            <td>嚴格誤差界限</td>
+            <td>中</td>
           </tr>
         </tbody>
       </table>
-
-      <h3>安全假設</h3>
-
-      <pre><code>密碼學假設（依系統而異）：
-
-SNARK (Groth16, PLONK)：
-  - 離散對數假設
-  - 配對相關假設（q-SDH, q-PKE）
-  - 可信設置誠實（至少一方）
-
-STARK：
-  - 雜湊函數抗碰撞
-  - 隨機預言機模型
-
-IPA (Halo2)：
-  - 離散對數假設
-  - 無可信設置</code></pre>
 
       <h2>實務建議</h2>
 
       <h3>系統選擇指南</h3>
 
-      <pre><code>高安全場景：
-  - 使用成熟的證明系統
-  - 選擇經過審計的實作
-  - 考慮後量子安全（STARK）
+      <table>
+        <thead>
+          <tr>
+            <th>需求</th>
+            <th>推薦系統</th>
+            <th>理由</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>最高安全（後量子）</td>
+            <td>STARK</td>
+            <td>雜湊基礎，透明設置</td>
+          </tr>
+          <tr>
+            <td>無需信任設置</td>
+            <td>Halo2 (IPA) / STARK</td>
+            <td>透明設置</td>
+          </tr>
+          <tr>
+            <td>最小證明大小</td>
+            <td>Groth16 / KZG</td>
+            <td>常數大小證明</td>
+          </tr>
+          <tr>
+            <td>最快驗證</td>
+            <td>Groth16 / PLONK</td>
+            <td>O(1) 配對運算</td>
+          </tr>
+          <tr>
+            <td>EVM 相容</td>
+            <td>Groth16 (BN254)</td>
+            <td>原生支援</td>
+          </tr>
+        </tbody>
+      </table>
 
-效能優先場景：
-  - 可接受適度安全假設
-  - 使用優化的 SNARK
+      <h3>部署檢查清單</h3>
 
-隱私優先場景：
-  - 確保零知識性質
-  - 審慎處理輸入/模型承諾</code></pre>
+      <pre><code>安全部署檢查：
+
+□ 密碼學參數
+  - 安全參數 λ ≥ 128 bits
+  - 選用經過審計的實作
+  - 正確執行 Trusted Setup（若需要）
+
+□ 電路設計
+  - 所有運算有範圍檢查
+  - 量化誤差在可接受範圍
+  - 無未約束的見證值
+
+□ 承諾機制
+  - 模型承諾使用安全雜湊
+  - 輸入承諾（若需隱私）
+  - 時間戳/Nonce 防重放
+
+□ 運行時安全
+  - 恆定時間實作（若需）
+  - 安全的隨機數生成
+  - 錯誤訊息不洩露敏感資訊</code></pre>
 
       <h2>相關頁面</h2>
 
       <ul>
-        <li><a href="index.html">總覽：什麼是 ZKML</a></li>
-        <li><a href="../zkp/properties.html">完備性、可靠性、零知識</a></li>
-        <li><a href="../zkml/security/soundness.html">量化與 Soundness</a></li>
+        <li><a href="index.html">問題與場景總覽</a></li>
+        <li><a href="verifiable.html">可驗證推理</a> - 詳細場景分析</li>
+        <li><a href="private.html">隱私推理</a> - 隱私保護場景</li>
+        <li><a href="../security/soundness.html">Soundness 分析</a> - 量化對健全性的影響</li>
+        <li><a href="../security/overflow.html">溢位風險</a> - 數值安全分析</li>
+        <li><a href="/zkml-knowledge-base/zkp/properties.html">ZKP 三大性質</a> - 完備性、健全性、零知識</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Peng, Z., Wang, T., Zhao, C., et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-3">
+            <cite>Groth, J. "On the Size of Pairing-based Non-interactive Arguments." EUROCRYPT 2016.</cite>
+            <a href="https://eprint.iacr.org/2016/260" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
+            <cite>Ben-Sasson, E., et al. "Scalable, transparent, and post-quantum secure computational integrity." STOC 2018.</cite>
+            <a href="https://eprint.iacr.org/2018/046" target="_blank" rel="noopener">ePrint</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

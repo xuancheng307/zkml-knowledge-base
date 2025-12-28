@@ -30,166 +30,588 @@
 
       <div class="callout callout-info">
         <div class="callout-title">論文資訊</div>
-        <p>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. (2024). "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." <em>EuroSys '24</em>, Athens, Greece.</p>
+        <p><strong>標題</strong>：ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs<br>
+        <strong>作者</strong>：Bo-Jhang Chen, Sruthi Waiwitlikhit, Ion Stoica, Daniel Kang<br>
+        <strong>發表</strong>：EuroSys '24, April 22-25, 2024, Athens, Greece<br>
+        <strong>機構</strong>：UC Berkeley, University of Illinois Urbana-Champaign</p>
       </div>
 
-      <h2>概述</h2>
+      <h2>研究動機</h2>
 
-      <p>ZKML 是首個能夠為現實規模機器學習模型產生 ZK-SNARK 證明的框架<sup><a href="#ref-1">[1]</a></sup>。在此之前，所有 ZKML 相關工作僅能處理 MNIST、CIFAR-10 等小型模型。ZKML 突破性地支援：</p>
+      <p>ZKML 是首個能夠為<strong>現實規模機器學習模型</strong>產生 ZK-SNARK 證明的端到端框架<sup><a href="#ref-1">[1]</a></sup>。在此論文發表之前，所有 ZKML 相關工作僅能處理 MNIST、CIFAR-10 等小型模型，無法擴展到實際應用所需的模型規模。</p>
+
+      <h3>核心問題</h3>
+
+      <p>論文識別出 ZKML 的三個核心挑戰：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>挑戰</th>
+            <th>描述</th>
+            <th>ZKML 解決方案</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>電路設計複雜</strong></td>
+            <td>不同運算需要不同的最優電路實現</td>
+            <td>多種 Gadgets + 自動選擇</td>
+          </tr>
+          <tr>
+            <td><strong>配置空間龐大</strong></td>
+            <td>電路參數選擇影響效能達 24 倍</td>
+            <td>成本估算器 + 優化器</td>
+          </tr>
+          <tr>
+            <td><strong>非線性函數困難</strong></td>
+            <td>激活函數難以用多項式約束</td>
+            <td>查表優化策略</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>突破性成果</h3>
+
+      <p>ZKML 首次支援以下現實規模模型的可驗證推理：</p>
 
       <ul>
-        <li><strong>視覺模型</strong>：ResNet-18、VGG-16、MobileNet (ImageNet)</li>
-        <li><strong>語言模型</strong>：DistilGPT-2（8130 萬參數）</li>
-        <li><strong>推薦系統</strong>：Twitter 推薦演算法 MaskNet</li>
-        <li><strong>擴散模型</strong>：小型 Stable Diffusion</li>
+        <li><strong>視覺模型</strong>：ResNet-18、VGG-16、MobileNet（ImageNet 規模）</li>
+        <li><strong>語言模型</strong>：DistilGPT-2（8,130 萬參數）</li>
+        <li><strong>推薦系統</strong>：Twitter 推薦演算法 MaskNet（4,810 萬參數）</li>
+        <li><strong>擴散模型</strong>：小型 Stable Diffusion（1,950 萬參數）</li>
       </ul>
-
-      <p>ZKML 透過設計優化編譯器，將 TensorFlow 模型轉換為 halo2 ZK-SNARK 電路。不同的電路設計選擇可影響效能達 <strong>24 倍</strong>，因此 ZKML 包含兩大核心組件：gadgets（低階操作的高效約束）與 optimizer（決定電路佈局的優化器）。</p>
-
-      <h2>應用場景</h2>
-
-      <p>ZKML 論文描述了多種 ZK-SNARK 在 ML 領域的應用<sup><a href="#ref-1">[1]</a></sup>：</p>
-
-      <h3>可信審計（Trustless Audits）</h3>
-      <p>ML 模型日益強大且訓練於私有資料。例如 OpenAI 未公開 GPT-4 權重，Twitter 推薦系統訓練於用戶私有資料。ZK-SNARK 允許模型提供者承諾固定模型，並證明輸出確實由該模型產生，實現端到端的可信審計。</p>
-
-      <h3>隱私生物認證（Private Biometric Authentication）</h3>
-      <p>結合 ZK-SNARK 與認證感測器，可實現無信任的生物識別驗證。用戶拍攝照片後，使用 ML 模型驗證臉部是否匹配先前註冊的身份，同時保護隱私。</p>
-
-      <h3>無信任信用評分（Trustless Credit Scores）</h3>
-      <p>在區塊鏈場景中，用戶可能需要低抵押貸款。透過 ZK-SNARK 計算並驗證信用評分，借貸雙方都能確保評分計算的誠實性。</p>
 
       <h2>系統架構</h2>
 
-      <p>ZKML 架構分為多層<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <h3>整體架構圖</h3>
+
+      <pre><code>┌─────────────────────────────────────────────────────────┐
+│                     User Interface                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐  │
+│  │   Prover    │  │  Verifier   │  │   Benchmark     │  │
+│  └─────────────┘  └─────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────┤
+│                        Core                              │
+│  ┌────────────────────┐  ┌────────────────────────────┐ │
+│  │    Aggregator      │  │    Layout Optimizer        │ │
+│  │  (電路組合器)       │  │  (佈局優化器)              │ │
+│  └────────────────────┘  └────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│                   Logical Layers                         │
+│  Conv2D │ FullyConnected │ Softmax │ ReLU │ Pooling ... │
+│  (43 種 ML 層支援)                                       │
+├─────────────────────────────────────────────────────────┤
+│                  Low-level Gadgets                       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐ │
+│  │  Shape   │ │Arithmetic│ │Non-linear│ │ Specialized│ │
+│  │ reshape  │ │ Add, Mul │ │ ReLU,    │ │ Max, Exp,  │ │
+│  │ slice    │ │ Div, Dot │ │ Sigmoid  │ │ VarDiv     │ │
+│  └──────────┘ └──────────┘ └──────────┘ └────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│                    ZK Backend                            │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │           Halo2 (KZG / IPA Commitment)             │ │
+│  └────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+      <h3>組件說明</h3>
 
       <table>
         <thead>
-          <tr><th>層級</th><th>組件</th><th>說明</th></tr>
+          <tr>
+            <th>層級</th>
+            <th>組件</th>
+            <th>功能</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>ZK Backend</td><td>halo2 + KZG/IPA</td><td>底層證明系統</td></tr>
-          <tr><td>Low-level Gadgets</td><td>Shape / Arithmetic / Non-linearities / Specialized</td><td>基礎操作約束</td></tr>
-          <tr><td>Logical Layers</td><td>Conv2D, FullyConnected, Softmax 等</td><td>ML 層實作</td></tr>
-          <tr><td>Core</td><td>Aggregator + Layout Optimizer</td><td>電路組合與優化</td></tr>
-          <tr><td>User Tools</td><td>Prover, Verifier, Benchmark</td><td>使用者介面</td></tr>
+          <tr>
+            <td>User Interface</td>
+            <td>Prover, Verifier, Benchmark</td>
+            <td>使用者介面與效能測試</td>
+          </tr>
+          <tr>
+            <td>Core</td>
+            <td>Aggregator + Layout Optimizer</td>
+            <td>電路組合與配置優化</td>
+          </tr>
+          <tr>
+            <td>Logical Layers</td>
+            <td>43 種 ML 層</td>
+            <td>高階 ML 運算到 Gadget 的映射</td>
+          </tr>
+          <tr>
+            <td>Gadgets</td>
+            <td>4 類基礎運算</td>
+            <td>低階電路約束實現</td>
+          </tr>
+          <tr>
+            <td>ZK Backend</td>
+            <td>Halo2</td>
+            <td>PLONKish 證明系統</td>
+          </tr>
         </tbody>
       </table>
 
-      <h3>Gadgets 分類</h3>
+      <h2>Gadgets 設計</h2>
 
-      <p>ZKML 的 gadgets 分為四大類：</p>
+      <p>ZKML 將 ML 運算分解為四大類 Gadgets，這是系統效能的核心<sup><a href="#ref-1">[1]</a></sup>：</p>
 
-      <h4>1. Shape Operations（形狀操作）</h4>
-      <p>由於張量可持有對先前分配儲存格的引用，形狀操作（reshape、slice、concat）可邏輯上執行而無需分配新儲存格，因此對證明時間「免費」。</p>
+      <h3>1. Shape Operations（形狀操作）</h3>
 
-      <h4>2. Arithmetic Operations（算術操作）</h4>
-      <p>包含加、減、乘、除、平方等操作。ZKML 實作多種 gadgets 供優化器選擇：</p>
+      <div class="callout callout-info">
+        <div class="callout-title">零成本抽象</div>
+        <p>由於張量可持有對先前分配儲存格的引用，形狀操作（reshape、slice、concat、transpose）可邏輯上執行而無需分配新儲存格，因此對證明時間「免費」。</p>
+      </div>
 
-      <table>
-        <thead>
-          <tr><th>名稱</th><th>操作</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Add(x, y)</td><td>x + y</td></tr>
-          <tr><td>Mul(x, y)</td><td>x · y</td></tr>
-          <tr><td>Div(x, y)</td><td>⌊x/y⌋</td></tr>
-          <tr><td>DivRound(x, y)</td><td>Round(x/y)</td></tr>
-          <tr><td>Square(x)</td><td>x²</td></tr>
-          <tr><td>DotProd(x, y)</td><td>x · y（向量內積）</td></tr>
-        </tbody>
-      </table>
-
-      <h4>3. Pointwise Non-linearities（逐點非線性）</h4>
-      <p>激活函數如 ReLU、ELU、sigmoid、tanh。除 ReLU 外，這些函數難以用多項式約束高效近似，因此使用 <strong>lookup tables</strong> 實作。查表大小受限於電路列數，這限制了定點數表示的精度。</p>
-
-      <h4>4. Specialized Operations（特化操作）</h4>
-      <p>主要為 Softmax 所需的操作：</p>
+      <p>支援的形狀操作：</p>
       <ul>
-        <li><strong>Maximum</strong>：使用多項式約束 (c-a)(c-b)=0 加上查表約束</li>
-        <li><strong>Scaled Exponentiation</strong>：y = exp(x) · SF</li>
-        <li><strong>Variable Division</strong>：VarDiv(a, b) = Round(b/a)，使用 limb 分解處理大數</li>
+        <li><code>reshape</code>：改變張量形狀</li>
+        <li><code>slice</code>：切片操作</li>
+        <li><code>concat</code>：拼接操作</li>
+        <li><code>transpose</code>：轉置操作</li>
+        <li><code>split</code>：分割操作</li>
       </ul>
 
-      <h2>電路優化</h2>
+      <h3>2. Arithmetic Operations（算術操作）</h3>
 
-      <h3>優化挑戰</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Gadget</th>
+            <th>運算</th>
+            <th>約束形式</th>
+            <th>儲存格數</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Add(x, y)</code></td>
+            <td>x + y</td>
+            <td>x + y - z = 0</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td><code>Mul(x, y)</code></td>
+            <td>x · y</td>
+            <td>x · y - z = 0</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td><code>Div(x, y)</code></td>
+            <td>⌊x/y⌋</td>
+            <td>x = q · y + r, 0 ≤ r &lt; y</td>
+            <td>4</td>
+          </tr>
+          <tr>
+            <td><code>DivRound(x, y)</code></td>
+            <td>Round(x/y)</td>
+            <td>含捨入邏輯的約束</td>
+            <td>5</td>
+          </tr>
+          <tr>
+            <td><code>Square(x)</code></td>
+            <td>x²</td>
+            <td>x · x - z = 0</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td><code>DotProd(x, y)</code></td>
+            <td>x · y (向量)</td>
+            <td>累積乘積約束</td>
+            <td>n + 1</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <p>halo2 電路可視為 2D 網格，儲存格值屬於大質數有限域 F<sub>p</sub>。列數必須是 2 的冪次。有三種約束方式：</p>
+      <h3>3. Pointwise Non-linearities（逐點非線性）</h3>
 
-      <ol>
-        <li><strong>多項式約束（Custom Gates）</strong>：強制某行多項式為零</li>
-        <li><strong>複製約束（Copy Constraint）</strong>：強制網格中任意兩儲存格相等</li>
-        <li><strong>查表約束（Lookup Constraint）</strong>：強制某行儲存格模式存在於查表中</li>
-      </ol>
+      <p>激活函數如 ReLU、ELU、Sigmoid、Tanh 難以用低次多項式約束表示。ZKML 提供兩種實現方式<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <h4>方式一：位元分解</h4>
+
+      <pre><code>ReLU(x) = max(x, 0) 的位元分解實現：
+
+1. 將輸入 x 分解為 b 個位元
+2. 檢查最高位（符號位）判斷正負
+3. 根據符號位選擇輸出 x 或 0
+
+約束：
+  x = Σᵢ bᵢ · 2ⁱ          (位元分解)
+  bᵢ · (bᵢ - 1) = 0       (每個 bᵢ 是 0 或 1)
+  y = x · (1 - sign_bit)   (條件選擇)
+
+儲存格數：b + 2
+適用場景：ReLU 操作數量較少時</code></pre>
+
+      <h4>方式二：查表（Lookup Table）</h4>
+
+      <pre><code>查表實現：
+
+1. 預計算：建立 {(x, f(x))} 查表
+2. 約束：驗證 (input, output) 對存在於表中
+
+表大小：2^n 行，n 是輸入位元數
+儲存格數：2（僅需 input 和 output）
+
+優點：每次操作成本固定
+缺點：表大小受限於電路總行數
+
+適用場景：大量非線性操作時</code></pre>
 
       <div class="callout callout-warning">
         <div class="callout-title">關鍵洞察</div>
-        <p>最高效的電路佈局取決於 ML 模型中的<strong>全域操作分布</strong>。例如，若只執行一次 ReLU，使用位元分解可能比查表更高效；但若執行 2<sup>18</sup> 次 ReLU，查表則更有效率。</p>
+        <p>最佳實現方式取決於模型中非線性操作的<strong>全域分布</strong>。若只執行少量 ReLU，位元分解可能更高效；若執行數百萬次 ReLU，查表更划算。ZKML 優化器會自動選擇最佳策略。</p>
       </div>
 
-      <h3>優化器演算法</h3>
+      <h3>4. Specialized Operations（特化操作）</h3>
 
-      <p>ZKML 優化器執行以下流程<sup><a href="#ref-1">[1]</a></sup>：</p>
-
-      <ol>
-        <li><strong>產生邏輯佈局</strong>：基於 ML 模型操作產生候選 gadget 選擇</li>
-        <li><strong>產生物理佈局</strong>：變化網格大小，保持最小列數</li>
-        <li><strong>成本估算</strong>：選擇最高效能佈局</li>
-      </ol>
-
-      <p>成本估算聚焦於四項主要操作：</p>
-      <ul>
-        <li>Fast Fourier Transformations (FFTs)</li>
-        <li>Multi-Scalar Multiplications (MSMs)</li>
-        <li>Lookup table 建立</li>
-        <li>有限域元素運算</li>
-      </ul>
-
-      <p>FFT 成本估算公式：</p>
-      <p class="math">$$C_{\text{FFT}} = n_{\text{FFT}} \cdot t_{\text{FFT}}(k) + n'_{\text{FFT}} \cdot t_{\text{FFT}}(k')$$</p>
-
-      <p>其中 k 為列數 2<sup>k</sup>，k' = k + log<sub>2</sub>(d<sub>max</sub> - 1)，d<sub>max</sub> 為約束最大次數。</p>
-
-      <h2>支援層級</h2>
-
-      <p>ZKML 目前支援 43 種層，與先前工作比較<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <p>主要為 Softmax 所需的複雜操作：</p>
 
       <table>
         <thead>
-          <tr><th>層類型</th><th>ZEN</th><th>vCNN</th><th>zkCNN</th><th>ZKML</th></tr>
+          <tr>
+            <th>Gadget</th>
+            <th>運算</th>
+            <th>實現方式</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>Conv2D</td><td>✓</td><td>✓</td><td>✓</td><td>✓*</td></tr>
-          <tr><td>FullyConnected</td><td>✓</td><td>✓</td><td>✓</td><td>✓*</td></tr>
-          <tr><td>Pooling</td><td>✓</td><td>✓</td><td>✓</td><td>✓*</td></tr>
-          <tr><td>ReLU</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
-          <tr><td>DepthwiseConv2D</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
-          <tr><td>BatchMatMul</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
-          <tr><td>Softmax</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
-          <tr><td>Other non-linearities</td><td>✗</td><td>✗</td><td>✗</td><td>✓</td></tr>
+          <tr>
+            <td><strong>Maximum</strong></td>
+            <td>max(a, b)</td>
+            <td>多項式約束 (c-a)(c-b)=0 + 查表約束（確保 c ≥ a, c ≥ b）</td>
+          </tr>
+          <tr>
+            <td><strong>Scaled Exp</strong></td>
+            <td>y = exp(x) · SF</td>
+            <td>查表實現（指數函數難以多項式近似）</td>
+          </tr>
+          <tr>
+            <td><strong>VarDiv</strong></td>
+            <td>Round(b/a)</td>
+            <td>Limb 分解處理大數除法</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Variable Division 細節</h4>
+
+      <pre><code>Softmax 需要除以動態計算的分母：
+  softmax(xᵢ) = exp(xᵢ) / Σⱼ exp(xⱼ)
+
+VarDiv 使用 limb 分解處理大數：
+  1. 將大數分解為多個 limbs（例如每個 16 位）
+  2. 對每個 limb 分別驗證
+  3. 重新組合得到結果
+
+這避免了在有限域中直接處理超大數值</code></pre>
+
+      <h2>佈局優化器</h2>
+
+      <h3>優化問題形式化</h3>
+
+      <p>Halo2 電路可視為 2D 網格，具有以下特性<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li>儲存格值屬於大質數有限域 F<sub>p</sub></li>
+        <li>行數必須是 2 的冪次：rows = 2<sup>k</sup></li>
+        <li>三種約束方式：多項式約束、複製約束、查表約束</li>
+      </ul>
+
+      <p>同一 ML 模型可有多種電路佈局，效能差異可達 <strong>24 倍</strong>。優化目標：</p>
+
+      <pre><code>minimize  C(layout)  // 總成本
+subject to:
+  rows ≤ 2^k_max      // 行數上限
+  memory ≤ M_max      // 記憶體上限
+  accuracy ≥ θ        // 準確度門檻</code></pre>
+
+      <h3>優化器演算法</h3>
+
+      <pre><code>ZKML 優化器流程：
+
+輸入：TensorFlow 模型 M, 配置約束 C
+
+Phase 1: 生成邏輯佈局
+  for each layer L in M:
+    gadget_options = enumerate_gadget_choices(L)
+    logical_layouts.add(gadget_options)
+
+Phase 2: 生成物理佈局
+  for each logical_layout in logical_layouts:
+    for k in [k_min, k_max]:  // 變化行數
+      physical_layout = place_gadgets(logical_layout, k)
+      if satisfies_constraints(physical_layout):
+        candidates.add(physical_layout)
+
+Phase 3: 成本估算與選擇
+  for each candidate in candidates:
+    cost = estimate_cost(candidate)
+  return argmin(candidates, key=cost)
+
+輸出：最優電路佈局</code></pre>
+
+      <h3>成本估算模型</h3>
+
+      <p>ZKML 成本估算聚焦於四項主要操作<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>描述</th>
+            <th>複雜度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>FFT</td>
+            <td>快速傅立葉變換，多項式運算</td>
+            <td>O(n log n)</td>
+          </tr>
+          <tr>
+            <td>MSM</td>
+            <td>多標量乘法，橢圓曲線運算</td>
+            <td>O(n)</td>
+          </tr>
+          <tr>
+            <td>Lookup Table</td>
+            <td>查表建立與驗證</td>
+            <td>O(2<sup>k</sup>)</td>
+          </tr>
+          <tr>
+            <td>Field Ops</td>
+            <td>有限域元素運算</td>
+            <td>O(1) 每次</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>FFT 成本估算公式</h4>
+
+      <pre><code>C_FFT = n_FFT · t_FFT(k) + n'_FFT · t_FFT(k')
+
+其中：
+  k = log₂(rows)           電路行數的對數
+  k' = k + log₂(d_max - 1) 擴展大小
+  d_max                    約束最大次數
+  t_FFT(k)                 大小為 2^k 的 FFT 時間（預先測量）
+
+FFT 數量計算：
+  n_FFT = N_i + N_a + 3·N_lk + ⌈(N_pm + d_max - 3)/(d_max - 2)⌉
+
+其中：
+  N_i    instance 列數
+  N_a    advice 列數
+  N_lk   查表數量
+  N_pm   置換約束數量</code></pre>
+
+      <h4>MSM 數量</h4>
+
+      <pre><code>承諾方案      MSM 數量
+KZG          n_FFT + d_max - 1
+IPA          n_FFT + d_max</code></pre>
+
+      <h3>估算準確性</h3>
+
+      <p>ZKML 使用 Kendall 等級相關係數衡量估算準確性<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>後端</th>
+            <th>Kendall τ</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>KZG</td>
+            <td><strong>0.89</strong></td>
+            <td>高度相關</td>
+          </tr>
+          <tr>
+            <td>IPA</td>
+            <td><strong>0.88</strong></td>
+            <td>高度相關</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>這意味著估算器能準確排序不同佈局的相對效能，即使絕對值可能有誤差。</p>
+
+      <h2>支援的 ML 層</h2>
+
+      <p>ZKML 支援 <strong>43 種</strong> ML 層，遠超先前工作<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>層類型</th>
+            <th>ZEN</th>
+            <th>vCNN</th>
+            <th>zkCNN</th>
+            <th>ZKML</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Conv2D</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓*</td>
+          </tr>
+          <tr>
+            <td>FullyConnected</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓*</td>
+          </tr>
+          <tr>
+            <td>Pooling</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓*</td>
+          </tr>
+          <tr>
+            <td>ReLU</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>DepthwiseConv2D</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>BatchMatMul</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Softmax</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>LayerNorm</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>GELU / ELU</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Embedding</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✗</td>
+            <td>✓</td>
+          </tr>
         </tbody>
       </table>
 
       <p><small>* 表示 ZKML 提供額外優化實作</small></p>
 
-      <h2>效能數據</h2>
+      <h2>效能評估</h2>
 
       <h3>端到端證明時間（KZG 後端）</h3>
 
       <table>
         <thead>
-          <tr><th>模型</th><th>參數量</th><th>證明時間</th><th>驗證時間</th><th>證明大小</th></tr>
+          <tr>
+            <th>模型</th>
+            <th>參數量</th>
+            <th>FLOPs</th>
+            <th>證明時間</th>
+            <th>驗證時間</th>
+            <th>證明大小</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>GPT-2</td><td>81.3M</td><td>3651.67 s</td><td>18.70 s</td><td>28,128 bytes</td></tr>
-          <tr><td>Diffusion</td><td>19.5M</td><td>3600.57 s</td><td>92.78 ms</td><td>28,704 bytes</td></tr>
-          <tr><td>Twitter</td><td>48.1M</td><td>358.7 s</td><td>22.41 ms</td><td>6,816 bytes</td></tr>
-          <tr><td>DLRM</td><td>764.3K</td><td>34.4 s</td><td>12.26 ms</td><td>18,816 bytes</td></tr>
-          <tr><td>MobileNet</td><td>3.5M</td><td>1225.5 s</td><td>17.67 ms</td><td>17,664 bytes</td></tr>
-          <tr><td>ResNet-18</td><td>280.9K</td><td>52.9 s</td><td>11.84 ms</td><td>15,744 bytes</td></tr>
-          <tr><td>VGG16</td><td>15.2M</td><td>637.14 s</td><td>9.62 ms</td><td>12,064 bytes</td></tr>
-          <tr><td>MNIST</td><td>8.1K</td><td>2.45 s</td><td>6.69 ms</td><td>6,560 bytes</td></tr>
+          <tr>
+            <td>MNIST CNN</td>
+            <td>8.1K</td>
+            <td>444.9K</td>
+            <td>2.45 s</td>
+            <td>6.69 ms</td>
+            <td>6.6 KB</td>
+          </tr>
+          <tr>
+            <td>ResNet-18</td>
+            <td>280.9K</td>
+            <td>81.9M</td>
+            <td>52.9 s</td>
+            <td>11.84 ms</td>
+            <td>15.7 KB</td>
+          </tr>
+          <tr>
+            <td>VGG-16</td>
+            <td>15.2M</td>
+            <td>627.9M</td>
+            <td>637.1 s</td>
+            <td>9.62 ms</td>
+            <td>12.1 KB</td>
+          </tr>
+          <tr>
+            <td>MobileNet v2</td>
+            <td>3.5M</td>
+            <td>601.8M</td>
+            <td>1225.5 s</td>
+            <td>17.67 ms</td>
+            <td>17.7 KB</td>
+          </tr>
+          <tr>
+            <td>DLRM</td>
+            <td>764.3K</td>
+            <td>1.9M</td>
+            <td>34.4 s</td>
+            <td>12.26 ms</td>
+            <td>18.8 KB</td>
+          </tr>
+          <tr>
+            <td>Twitter</td>
+            <td>48.1M</td>
+            <td>96.2M</td>
+            <td>358.7 s</td>
+            <td>22.41 ms</td>
+            <td>6.8 KB</td>
+          </tr>
+          <tr>
+            <td>GPT-2</td>
+            <td>81.3M</td>
+            <td>188.9M</td>
+            <td>3651.7 s</td>
+            <td>18.70 s</td>
+            <td>28.1 KB</td>
+          </tr>
+          <tr>
+            <td>Diffusion</td>
+            <td>19.5M</td>
+            <td>22.9B</td>
+            <td>3600.6 s</td>
+            <td>92.78 ms</td>
+            <td>28.7 KB</td>
+          </tr>
         </tbody>
       </table>
 
@@ -197,15 +619,47 @@
 
       <table>
         <thead>
-          <tr><th>指標</th><th>ZKML (ResNet-18)</th><th>ZKML (VGG-16)</th><th>zkCNN</th><th>vCNN</th></tr>
+          <tr>
+            <th>指標</th>
+            <th>ZKML (ResNet-18)</th>
+            <th>ZKML (VGG-16)</th>
+            <th>zkCNN</th>
+            <th>vCNN</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>準確率</td><td><strong>91.9%</strong></td><td>90.4%</td><td>90.3%</td><td>90.4%*</td></tr>
-          <tr><td>證明時間</td><td><strong>52.9 s</strong></td><td>584.1 s</td><td>88.3 s</td><td>31 hours*</td></tr>
-          <tr><td>驗證時間</td><td><strong>12 ms</strong></td><td>16 ms</td><td>59 ms</td><td>20 seconds</td></tr>
-          <tr><td>證明大小</td><td>15.3 kB</td><td><strong>12.1 kB</strong></td><td>341 kB</td><td>0.34 kB</td></tr>
+          <tr>
+            <td><strong>準確率</strong></td>
+            <td><strong>91.9%</strong></td>
+            <td>90.4%</td>
+            <td>90.3%</td>
+            <td>90.4%*</td>
+          </tr>
+          <tr>
+            <td><strong>證明時間</strong></td>
+            <td><strong>52.9 s</strong></td>
+            <td>584.1 s</td>
+            <td>88.3 s</td>
+            <td>~31 hours*</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td><strong>12 ms</strong></td>
+            <td>16 ms</td>
+            <td>59 ms</td>
+            <td>20 s</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>15.3 KB</td>
+            <td><strong>12.1 KB</strong></td>
+            <td>341 KB</td>
+            <td>0.34 KB</td>
+          </tr>
         </tbody>
       </table>
+
+      <p><small>* vCNN 數據為論文中的估計值</small></p>
 
       <p>相較於 zkCNN，ZKML 實現：</p>
       <ul>
@@ -214,45 +668,160 @@
         <li>更高的模型準確率</li>
       </ul>
 
-      <h3>優化器效益</h3>
-
-      <p>ZKML 優化器相較固定配置可提升效能達 <strong>131%</strong>：</p>
+      <h3>優化器效益分析</h3>
 
       <table>
         <thead>
-          <tr><th>模型</th><th>ZKML 時間</th><th>固定配置時間</th><th>提升</th></tr>
+          <tr>
+            <th>模型</th>
+            <th>ZKML 優化</th>
+            <th>固定配置</th>
+            <th>提升幅度</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>VGG16</td><td>637.1 s</td><td>1474.0 s</td><td>131%</td></tr>
-          <tr><td>MobileNet</td><td>1225.5 s</td><td>2407.8 s</td><td>96%</td></tr>
-          <tr><td>MNIST</td><td>2.5 s</td><td>4.4 s</td><td>76%</td></tr>
-          <tr><td>GPT-2</td><td>3651.7 s</td><td>5952.0 s</td><td>63%</td></tr>
+          <tr>
+            <td>VGG-16</td>
+            <td>637.1 s</td>
+            <td>1474.0 s</td>
+            <td><strong>131%</strong></td>
+          </tr>
+          <tr>
+            <td>MobileNet</td>
+            <td>1225.5 s</td>
+            <td>2407.8 s</td>
+            <td><strong>96%</strong></td>
+          </tr>
+          <tr>
+            <td>MNIST</td>
+            <td>2.5 s</td>
+            <td>4.4 s</td>
+            <td>76%</td>
+          </tr>
+          <tr>
+            <td>GPT-2</td>
+            <td>3651.7 s</td>
+            <td>5952.0 s</td>
+            <td>63%</td>
+          </tr>
         </tbody>
       </table>
 
-      <h2>安全性</h2>
+      <h3>Gadget 選擇效益</h3>
 
-      <p>ZKML 繼承 halo2 的安全屬性<sup><a href="#ref-1">[1]</a></sup>：</p>
-
-      <ul>
-        <li><strong>零知識（Zero-Knowledge）</strong>：驗證者無法獲得除聲明真假外的資訊</li>
-        <li><strong>完備性（Completeness）</strong>：誠實證明者總能說服驗證者</li>
-        <li><strong>知識健全性（Knowledge Soundness）</strong>：證明者必須知道輸入和權重</li>
-      </ul>
-
-      <p>halo2 支援兩種承諾方案：</p>
+      <p>移除額外 Gadget 實現會導致嚴重效能下降<sup><a href="#ref-1">[1]</a></sup>：</p>
 
       <table>
         <thead>
-          <tr><th>方案</th><th>Trusted Setup</th><th>證明大小</th><th>驗證速度</th></tr>
+          <tr>
+            <th>模型</th>
+            <th>ZKML (多 Gadget)</th>
+            <th>固定 Gadget</th>
+            <th>效能下降</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>KZG</td><td>需要（一次性、通用）</td><td>較小</td><td>較快</td></tr>
-          <tr><td>IPA</td><td>不需要（透明）</td><td>較大</td><td>較慢</td></tr>
+          <tr>
+            <td>MNIST</td>
+            <td>2.5 s</td>
+            <td>6.2 s</td>
+            <td>2.5×</td>
+          </tr>
+          <tr>
+            <td>DLRM</td>
+            <td>34.4 s</td>
+            <td>859.5 s</td>
+            <td><strong>24×</strong></td>
+          </tr>
+          <tr>
+            <td>ResNet-18</td>
+            <td>52.9 s</td>
+            <td>812.6 s</td>
+            <td>15×</td>
+          </tr>
         </tbody>
       </table>
 
-      <h2>限制</h2>
+      <h2>安全性分析</h2>
+
+      <p>ZKML 繼承 Halo2 的安全屬性<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>屬性</th>
+            <th>說明</th>
+            <th>保證</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Zero-Knowledge</strong></td>
+            <td>驗證者無法獲得除聲明真假外的資訊</td>
+            <td>計算 ZK</td>
+          </tr>
+          <tr>
+            <td><strong>Completeness</strong></td>
+            <td>誠實證明者總能說服驗證者</td>
+            <td>完美完備性</td>
+          </tr>
+          <tr>
+            <td><strong>Knowledge Soundness</strong></td>
+            <td>證明者必須知道輸入和權重</td>
+            <td>計算健全性</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>承諾方案比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>方案</th>
+            <th>Trusted Setup</th>
+            <th>證明大小</th>
+            <th>驗證速度</th>
+            <th>假設</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>KZG</td>
+            <td>需要（通用 SRS）</td>
+            <td>較小</td>
+            <td>較快（配對）</td>
+            <td>DLP</td>
+          </tr>
+          <tr>
+            <td>IPA</td>
+            <td>不需要</td>
+            <td>較大</td>
+            <td>較慢</td>
+            <td>DLP</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>應用場景</h2>
+
+      <h3>可信審計（Trustless Audits）</h3>
+
+      <p>ML 模型日益強大且訓練於私有資料。ZK-SNARK 允許模型提供者承諾固定模型，並證明輸出確實由該模型產生，實現端到端的可信審計<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <p><strong>範例</strong>：OpenAI 未公開 GPT-4 權重；Twitter 推薦系統訓練於用戶私有資料。</p>
+
+      <h3>隱私生物認證</h3>
+
+      <p>結合 ZK-SNARK 與認證感測器，可實現無信任的生物識別驗證。用戶拍攝照片後，使用 ML 模型驗證臉部是否匹配先前註冊的身份，同時保護隱私。</p>
+
+      <h3>無信任信用評分</h3>
+
+      <p>在區塊鏈場景中，用戶可能需要低抵押貸款。透過 ZK-SNARK 計算並驗證信用評分，借貸雙方都能確保評分計算的誠實性。</p>
+
+      <h2>限制與未來工作</h2>
+
+      <h3>當前限制</h3>
 
       <ul>
         <li><strong>記憶體限制</strong>：最大模型（DistilGPT-2）需要 1TB RAM</li>
@@ -261,10 +830,29 @@
         <li><strong>不支援分支/迴圈</strong>：分支和迴圈會被展開</li>
       </ul>
 
-      <h2>程式碼</h2>
+      <h3>未來發展方向</h3>
 
-      <p>ZKML 以約 16,000 行 Rust 和 Python 程式碼實作，開源於：</p>
+      <ul>
+        <li>更高效的記憶體管理</li>
+        <li>GPU 加速證明生成</li>
+        <li>更大模型規模支援</li>
+        <li>與 zkVM 的整合</li>
+      </ul>
+
+      <h2>程式碼與資源</h2>
+
+      <p>ZKML 以約 <strong>16,000 行 Rust 和 Python</strong> 程式碼實作，開源於：</p>
       <p><a href="https://github.com/uiuc-kanglab/zkml" target="_blank" rel="noopener">https://github.com/uiuc-kanglab/zkml</a></p>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="/zkml-knowledge-base/zkml/circuit/index.html">模型到電路轉換</a> - Gadget 設計詳解</li>
+        <li><a href="/zkml-knowledge-base/zkml/optimization/config-space.html">配置空間</a> - 參數優化詳解</li>
+        <li><a href="/zkml-knowledge-base/zkml/optimization/cost-metrics.html">成本指標</a> - 效能評估方法</li>
+        <li><a href="zktorch.html">ZKTorch</a> - 後續研究</li>
+        <li><a href="../tools/ezkl.html">EZKL</a> - 另一個主要框架</li>
+      </ul>
 
       <section class="references">
         <h2>參考文獻</h2>
@@ -281,6 +869,10 @@
           <li id="ref-3">
             <cite>Lee, S., Ko, H., Kim, J., & Oh, H. "vCNN: Verifiable Convolutional Neural Network based on zk-SNARKs." IACR ePrint 2020.</cite>
             <a href="https://eprint.iacr.org/2020/584" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
+            <cite>Gabizon, A., Williamson, Z. J., & Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR ePrint 2019.</cite>
+            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
           </li>
         </ol>
       </section>

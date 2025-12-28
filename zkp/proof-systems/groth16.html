@@ -31,10 +31,25 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>Groth16 是目前最高效的 zk-SNARK 證明系統之一，由 Jens Groth 於 2016 年提出<sup><a href="#ref-1">[1]</a></sup>。它具有最小的證明大小（3 個群元素，~192 bytes）和最快的驗證時間（3 次配對），是區塊鏈應用的首選方案。</p>
+        <p>Groth16 是目前最高效的 zk-SNARK 證明系統之一，由 Jens Groth 於 2016 年提出<sup><a href="#ref-1">[1]</a></sup>。它具有最小的證明大小（3 個群元素，~192 bytes）和最快的驗證時間（3 次配對），是區塊鏈應用的首選方案。其核心創新在於將 QAP（Quadratic Arithmetic Program）直接編碼到配對群結構中，實現了理論上最優的證明簡潔性。</p>
       </div>
 
-      <h2>系統特性</h2>
+      <h2>歷史背景與定位</h2>
+
+      <p>Groth16 是 SNARK 發展史上的里程碑。在此之前，GGPR13、Pinocchio 等系統的證明包含 7-8 個群元素，而 Groth16 將其壓縮至理論最小的 3 個元素<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <h3>發展脈絡</h3>
+
+      <pre><code>SNARK 發展時間線：
+
+2012  GGPR      8 群元素，首個實用 SNARK
+2013  Pinocchio 8 群元素，QAP 基礎
+2014  BCTV14    7 群元素，優化的 QAP
+2016  Groth16   3 群元素，理論最優 ← 當前系統
+2019  PLONK     ~10 群元素，但通用設置
+2021  Halo2     無需可信設置</code></pre>
+
+      <h3>系統特性總覽</h3>
 
       <table>
         <thead>
@@ -58,7 +73,7 @@
           <tr>
             <td><strong>證明時間</strong></td>
             <td>O(n log n)</td>
-            <td>n = 電路大小</td>
+            <td>n = 電路約束數</td>
           </tr>
           <tr>
             <td><strong>可信設置</strong></td>
@@ -68,244 +83,696 @@
           <tr>
             <td><strong>安全假設</strong></td>
             <td>q-PKE + 配對</td>
-            <td>強假設</td>
+            <td>知識型假設（較強）</td>
+          </tr>
+          <tr>
+            <td><strong>零知識性</strong></td>
+            <td>完美</td>
+            <td>統計上不可區分</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>數學基礎</h2>
+      <h2>形式化定義</h2>
 
-      <h3>R1CS 到 QAP</h3>
+      <div class="definition">
+        <strong>定義 1（雙線性群）</strong>
+        <p>雙線性群是一個三元組 (G₁, G₂, G_T)，配備雙線性映射 e: G₁ × G₂ → G_T，滿足：</p>
+        <ul>
+          <li><strong>雙線性</strong>：∀a,b ∈ Z_p, P ∈ G₁, Q ∈ G₂: e([a]P, [b]Q) = e(P, Q)^{ab}</li>
+          <li><strong>非退化性</strong>：若 P ≠ 0 且 Q ≠ 0，則 e(P, Q) ≠ 1</li>
+          <li><strong>可計算性</strong>：存在多項式時間算法計算 e(P, Q)</li>
+        </ul>
+      </div>
 
-      <p>Groth16 基於 QAP（Quadratic Arithmetic Program）<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <div class="definition">
+        <strong>定義 2（R1CS 表示）</strong>
+        <p>Rank-1 Constraint System 由三個矩陣 A, B, C ∈ F^{m×n} 定義，滿足：</p>
+        <pre><code>(A · w) ∘ (B · w) = C · w</code></pre>
+        <p>其中 w = (1, x₁, ..., x_ℓ, w₁, ..., w_{n-ℓ-1}) 是見證向量，∘ 表示 Hadamard 積。</p>
+      </div>
 
-      <pre><code>從 R1CS 到 QAP：
+      <div class="definition">
+        <strong>定義 3（QAP - Quadratic Arithmetic Program）</strong>
+        <p>給定 R1CS (A, B, C)，QAP 定義為多項式集合 {u_j(X), v_j(X), w_j(X)}_{j=0}^{n-1} 及目標多項式 t(X)，滿足：</p>
+        <pre><code>對所有有效見證 w：
+  A(X) · B(X) - C(X) ≡ 0 (mod t(X))
 
-R1CS 約束：(Aw) ∘ (Bw) = Cw
+其中：
+  A(X) = Σ_{j=0}^{n-1} w_j · u_j(X)
+  B(X) = Σ_{j=0}^{n-1} w_j · v_j(X)
+  C(X) = Σ_{j=0}^{n-1} w_j · w_j(X)
+  t(X) = ∏_{i=1}^{m} (X - r_i)  [零化多項式]</code></pre>
+      </div>
 
-QAP 轉換：
-  1. 選取 m 個點 {r₁, ..., rₘ}
-  2. 對每列 j，插值多項式：
-     uⱼ(X), vⱼ(X), wⱼ(X)
-  3. 定義：
-     A(X) = Σ wⱼ · uⱼ(X)
-     B(X) = Σ wⱼ · vⱼ(X)
-     C(X) = Σ wⱼ · wⱼ(X)
-  4. 零化多項式：t(X) = ∏(X - rᵢ)
+      <div class="definition">
+        <strong>定義 4（QAP 轉換）</strong>
+        <p>從 R1CS 到 QAP 的轉換過程：</p>
+        <pre><code>輸入：R1CS 矩陣 A, B, C ∈ F^{m×n}
 
-QAP 關係：
-  A(X) · B(X) - C(X) = h(X) · t(X)
-  對某個商多項式 h(X)</code></pre>
+1. 選取互異評估點 Ω = {r₁, ..., r_m} ⊂ F
+2. 對每列 j ∈ [0, n-1]：
+   u_j(X) ← 插值多項式使 u_j(r_i) = A_{i,j}
+   v_j(X) ← 插值多項式使 v_j(r_i) = B_{i,j}
+   w_j(X) ← 插值多項式使 w_j(r_i) = C_{i,j}
+3. 定義 t(X) = ∏_{i=1}^{m} (X - r_i)
 
-      <h3>配對群結構</h3>
+輸出：QAP = ({u_j, v_j, w_j}_{j=0}^{n-1}, t(X))</code></pre>
+      </div>
+
+      <div class="definition">
+        <strong>定義 5（知識可靠性）</strong>
+        <p>證明系統具有知識可靠性，若存在多項式時間提取器 E，對任何產生有效證明的證明者 P*：</p>
+        <pre><code>Pr[E^{P*}(x) = w : Verify(vk, x, P*(pk, w)) = 1] ≥ 1 - negl(λ)</code></pre>
+        <p>即：能產生有效證明的證明者必定「知道」有效見證。</p>
+      </div>
+
+      <div class="definition">
+        <strong>定義 6（q-PKE 假設）</strong>
+        <p>q-Power Knowledge of Exponent 假設：給定</p>
+        <pre><code>(g, g^α, g^τ, g^{τ²}, ..., g^{τ^q}, g^{ατ}, g^{ατ²}, ..., g^{ατ^q})</code></pre>
+        <p>任何 PPT 算法若能輸出 (c, ĉ) 使得 ĉ = c^α，則必定「知道」多項式係數 (a₀, ..., a_q) 使得 c = g^{Σᵢ aᵢτⁱ}。</p>
+      </div>
+
+      <div class="definition">
+        <strong>定義 7（零知識性）</strong>
+        <p>證明系統具有完美零知識性，若存在模擬器 S，對所有敵手 A：</p>
+        <pre><code>View_A(Real(x, w)) ≡ View_A(Simulated(x))
+
+其中 ≡ 表示分布相同（非計算不可區分）。</code></pre>
+      </div>
+
+      <h2>配對群結構</h2>
+
+      <h3>群元素表示</h3>
 
       <pre><code>雙線性群設置：
 
-群：G₁, G₂, G_T（同階 p）
+群：G₁, G₂, G_T（同階 p，素數）
 配對：e: G₁ × G₂ → G_T
-生成元：G₁ 的 g₁，G₂ 的 g₂
+生成元：g₁ ∈ G₁, g₂ ∈ G₂
 
-雙線性性質：
-  e(aP, bQ) = e(P, Q)^{ab}
+符號約定（方括號記法）：
+  [x]₁ = x · g₁ ∈ G₁  （G₁ 中 x 的標量乘法）
+  [x]₂ = x · g₂ ∈ G₂  （G₂ 中 x 的標量乘法）
+  [x]_T = e(g₁, g₂)^x ∈ G_T
 
-符號約定：
-  [x]₁ = x · g₁ ∈ G₁
-  [x]₂ = x · g₂ ∈ G₂</code></pre>
+配對性質：
+  e([a]₁, [b]₂) = e(g₁, g₂)^{ab} = [ab]_T
 
-      <h2>協議細節</h2>
+常用曲線：
+  - BN254：~100-bit 安全，EVM 預編譯支援
+  - BLS12-381：~128-bit 安全，較大但更安全</code></pre>
 
-      <h3>可信設置</h3>
+      <h3>曲線選擇考量</h3>
 
-      <pre><code>Groth16 Setup(R1CS, τ, α, β, γ, δ):
+      <table>
+        <thead>
+          <tr>
+            <th>曲線</th>
+            <th>G₁ 大小</th>
+            <th>G₂ 大小</th>
+            <th>安全性</th>
+            <th>應用</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BN254</td>
+            <td>32 bytes</td>
+            <td>64 bytes</td>
+            <td>~100 bits</td>
+            <td>以太坊、zkSync</td>
+          </tr>
+          <tr>
+            <td>BLS12-381</td>
+            <td>48 bytes</td>
+            <td>96 bytes</td>
+            <td>~128 bits</td>
+            <td>Zcash、Filecoin</td>
+          </tr>
+          <tr>
+            <td>BLS12-377</td>
+            <td>48 bytes</td>
+            <td>96 bytes</td>
+            <td>~128 bits</td>
+            <td>Aleo（遞迴友好）</td>
+          </tr>
+        </tbody>
+      </table>
 
-輸入：R1CS 實例，隨機秘密 τ, α, β, γ, δ
+      <h2>協議完整描述</h2>
 
-輸出：
-  證明密鑰 pk = (
-    [α]₁, [β]₁, [β]₂, [δ]₁, [δ]₂,
-    {[τⁱ]₁}ᵢ₌₀ⁿ⁻¹,
-    {[(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/δ]₁}ⱼ∈private,
-    {[τⁱ·t(τ)/δ]₁}ᵢ₌₀ⁿ⁻²
+      <h3>Phase 1: 可信設置（Trusted Setup）</h3>
+
+      <div class="definition">
+        <strong>算法 1：Setup(R1CS, 1^λ)</strong>
+        <pre><code>輸入：
+  - R1CS 實例 (A, B, C) ∈ F^{m×n}
+  - 安全參數 λ
+
+隨機取樣（toxic waste）：
+  τ, α, β, γ, δ ←$ F_p*
+
+計算 QAP：
+  {u_j(X), v_j(X), w_j(X)}_{j=0}^{n-1} ← QAP(A, B, C)
+  t(X) ← 零化多項式
+
+計算 τ 的冪次（Powers of Tau）：
+  對 i = 0, 1, ..., m-1:
+    [τⁱ]₁, [τⁱ]₂
+
+計算證明密鑰（Proving Key）：
+  pk = (
+    [α]₁,
+    [β]₁, [β]₂,
+    [δ]₁, [δ]₂,
+    {[τⁱ]₁}_{i=0}^{m-1},
+    {[τⁱ]₂}_{i=0}^{m-1},
+    {[(β·u_j(τ) + α·v_j(τ) + w_j(τ))/δ]₁}_{j∈I_priv},
+    {[τⁱ·t(τ)/δ]₁}_{i=0}^{m-2}
   )
 
-  驗證密鑰 vk = (
-    [α]₁, [β]₂, [γ]₂, [δ]₂,
-    {[(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/γ]₁}ⱼ∈public
+計算驗證密鑰（Verification Key）：
+  vk = (
+    [α]₁,
+    [β]₂,
+    [γ]₂,
+    [δ]₂,
+    {[(β·u_j(τ) + α·v_j(τ) + w_j(τ))/γ]₁}_{j∈I_pub}
   )
 
-安全要求：
-  τ, α, β, γ, δ 必須銷毀（toxic waste）</code></pre>
+銷毀：τ, α, β, γ, δ（必須！）
 
-      <h3>證明生成</h3>
+輸出：(pk, vk)</code></pre>
+      </div>
 
-      <pre><code>Groth16 Prove(pk, w):
+      <div class="callout callout-warning">
+        <div class="callout-title">Toxic Waste 安全性</div>
+        <p>若任何人知道 τ、α、β、γ 或 δ 中的任一個，即可偽造任意語句的證明。因此：</p>
+        <ul>
+          <li>實務上使用多方計算（MPC）儀式產生 SRS</li>
+          <li>只要有一位參與者誠實銷毀其隨機性，系統即安全</li>
+          <li>著名儀式：Zcash Powers of Tau（87 位參與者）</li>
+        </ul>
+      </div>
 
-輸入：證明密鑰，見證向量 w = (1, x, w_private)
+      <h3>Phase 2: 證明生成（Prove）</h3>
 
-隨機值：r, s ← F_p
+      <div class="definition">
+        <strong>算法 2：Prove(pk, x, w)</strong>
+        <pre><code>輸入：
+  - 證明密鑰 pk
+  - 公開輸入 x = (x₁, ..., x_ℓ)
+  - 私密見證 w = (w₁, ..., w_{n-ℓ-1})
 
-計算：
-  A = [α + Σ wⱼ·uⱼ(τ) + r·δ]₁
+構造完整見證向量：
+  w_full = (1, x₁, ..., x_ℓ, w₁, ..., w_{n-ℓ-1})
 
-  B = [β + Σ wⱼ·vⱼ(τ) + s·δ]₂
+隨機取樣（零知識盲化因子）：
+  r, s ←$ F_p
 
-  C = [Σⱼ∈private wⱼ·(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/δ
-       + h(τ)·t(τ)/δ
-       + s·A + r·B - r·s·δ]₁
+計算多項式：
+  A(X) = Σ_{j=0}^{n-1} w_full[j] · u_j(X)
+  B(X) = Σ_{j=0}^{n-1} w_full[j] · v_j(X)
+  C(X) = Σ_{j=0}^{n-1} w_full[j] · w_j(X)
 
-輸出：π = (A, B, C) ∈ G₁ × G₂ × G₁</code></pre>
+計算商多項式：
+  h(X) = (A(X)·B(X) - C(X)) / t(X)
+  [注：若見證有效，必整除]
 
-      <h3>驗證</h3>
+計算證明元素 A：
+  [A]₁ = [α]₁ + Σ_{j=0}^{n-1} w_full[j]·[u_j(τ)]₁ + r·[δ]₁
+       = [α + A(τ) + r·δ]₁
 
-      <pre><code>Groth16 Verify(vk, x, π):
+計算證明元素 B：
+  [B]₂ = [β]₂ + Σ_{j=0}^{n-1} w_full[j]·[v_j(τ)]₂ + s·[δ]₂
+       = [β + B(τ) + s·δ]₂
 
-輸入：驗證密鑰，公開輸入 x，證明 π = (A, B, C)
+  [B]₁ = [β]₁ + Σ_{j=0}^{n-1} w_full[j]·[v_j(τ)]₁ + s·[δ]₁
+       = [β + B(τ) + s·δ]₁  [用於計算 C]
+
+計算證明元素 C：
+  [C]₁ = Σ_{j∈I_priv} w_full[j]·[(β·u_j(τ) + α·v_j(τ) + w_j(τ))/δ]₁
+       + Σ_{i=0}^{m-2} h_i·[τⁱ·t(τ)/δ]₁
+       + s·[A]₁ + r·[B]₁ - r·s·[δ]₁
+       = [(私密部分 + h(τ)·t(τ) + sA(τ) + rB(τ) + (s·α + r·β - rs·δ))/δ]₁
+
+輸出：π = ([A]₁, [B]₂, [C]₁) ∈ G₁ × G₂ × G₁</code></pre>
+      </div>
+
+      <h3>Phase 3: 驗證（Verify）</h3>
+
+      <div class="definition">
+        <strong>算法 3：Verify(vk, x, π)</strong>
+        <pre><code>輸入：
+  - 驗證密鑰 vk
+  - 公開輸入 x = (x₁, ..., x_ℓ)
+  - 證明 π = ([A]₁, [B]₂, [C]₁)
 
 計算公開輸入的線性組合：
-  L = Σⱼ∈public xⱼ · [(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/γ]₁
+  [L]₁ = Σ_{j=0}^{ℓ} x_j · [(β·u_j(τ) + α·v_j(τ) + w_j(τ))/γ]₁
+       （其中 x₀ = 1）
 
 驗證配對等式：
-  e(A, B) = e([α]₁, [β]₂) · e(L, [γ]₂) · e(C, [δ]₂)
+  e([A]₁, [B]₂) ?= e([α]₁, [β]₂) · e([L]₁, [γ]₂) · e([C]₁, [δ]₂)
 
-複雜度：
-  - 3 次配對運算
-  - 1 次 G₁ 多標量乘法（公開輸入）</code></pre>
+等價於驗證：
+  A·B = α·β + L·γ + C·δ  (在指數上)
 
-      <h2>安全性分析</h2>
+展開：
+  (α + A(τ) + r·δ)(β + B(τ) + s·δ)
+  = α·β
+  + (Σ_{j∈I_pub} w_j·(β·u_j(τ) + α·v_j(τ) + w_j(τ)))
+  + (私密部分 + h(τ)·t(τ) + sA(τ) + rB(τ) + sα + rβ - rsδ)
 
-      <h3>安全假設</h3>
+輸出：1（接受）或 0（拒絕）</code></pre>
+      </div>
 
-      <pre><code>Groth16 安全基於：
+      <h3>配對等式推導</h3>
 
-1. q-PKE（q-Power Knowledge of Exponent）
-   給定 (g, g^α, g^τ, ..., g^{τ^q}, g^{ατ}, ..., g^{ατ^q})
-   任何能輸出 (c, ĉ) 使 ĉ = c^α 的算法
-   必須「知道」某個 a₀, ..., aₙ 使 c = g^{Σaᵢτⁱ}
+      <pre><code>為何配對等式成立？
 
-2. d-SDH（Strong Diffie-Hellman）
-   給定 (g, g^τ, ..., g^{τ^d})
-   難以計算 (c, g^{1/(τ+c)}) 對任意 c
+設：
+  a = α + A(τ) + rδ
+  b = β + B(τ) + sδ
 
-3. 雙線性配對假設
-   離散對數在 G₁, G₂, G_T 中均困難</code></pre>
+則 a·b 展開為：
+  a·b = αβ + αB(τ) + αsδ + A(τ)β + A(τ)B(τ) + A(τ)sδ
+      + rδβ + rδB(τ) + rsδ²
 
-      <h3>Toxic Waste 風險</h3>
+利用 QAP 性質 A(τ)B(τ) - C(τ) = h(τ)t(τ)：
+  A(τ)B(τ) = C(τ) + h(τ)t(τ)
+           = Σw_j·w_j(τ) + h(τ)t(τ)
 
-      <pre><code>可信設置的危險：
+分離公開/私密部分：
+  Σw_j·w_j(τ) = Σ_{j∈pub}... + Σ_{j∈priv}...
 
-若攻擊者知道 τ, α, β, γ, δ：
-  - 可以偽造任意證明
-  - 證明系統完全失效
+重組得：
+  a·b = αβ
+      + γ · (公開輸入線性組合/γ)
+      + δ · (私密見證 + h(τ)t(τ) + 盲化項)/δ
 
-緩解措施：
-  1. MPC 儀式（如 Zcash Powers of Tau）
-  2. 多方參與，只需一人誠實
-  3. 公開可驗證的儀式
+這正是驗證等式的結構！</code></pre>
 
-Groth16 vs 通用設置：
-  - Groth16：每個電路需獨立設置
-  - PLONK：通用設置，可重用</code></pre>
+      <h2>複雜度分析</h2>
 
-      <h2>效能分析</h2>
-
-      <h3>複雜度比較</h3>
+      <h3>理論複雜度</h3>
 
       <table>
         <thead>
           <tr>
             <th>操作</th>
-            <th>Groth16</th>
-            <th>PLONK</th>
-            <th>STARK</th>
+            <th>時間複雜度</th>
+            <th>空間複雜度</th>
+            <th>主要運算</th>
           </tr>
         </thead>
         <tbody>
           <tr>
+            <td><strong>Setup</strong></td>
+            <td>O(n)</td>
+            <td>O(n)</td>
+            <td>n 次標量乘法</td>
+          </tr>
+          <tr>
+            <td><strong>Prove</strong></td>
+            <td>O(n log n)</td>
+            <td>O(n)</td>
+            <td>FFT + MSM</td>
+          </tr>
+          <tr>
+            <td><strong>Verify</strong></td>
+            <td>O(ℓ) + O(1)</td>
+            <td>O(1)</td>
+            <td>ℓ-MSM + 3 配對</td>
+          </tr>
+          <tr>
             <td><strong>證明大小</strong></td>
-            <td>~192 B</td>
-            <td>~400 B</td>
-            <td>~50 KB</td>
-          </tr>
-          <tr>
-            <td><strong>驗證時間</strong></td>
-            <td>~3 ms</td>
-            <td>~5 ms</td>
-            <td>~10 ms</td>
-          </tr>
-          <tr>
-            <td><strong>證明時間</strong></td>
-            <td>O(n log n)</td>
-            <td>O(n log n)</td>
-            <td>O(n log n)</td>
-          </tr>
-          <tr>
-            <td><strong>設置類型</strong></td>
-            <td>電路特定</td>
-            <td>通用</td>
-            <td>透明</td>
+            <td>-</td>
+            <td>O(1)</td>
+            <td>3 群元素</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>實際效能</h3>
+      <h3>證明時間分解</h3>
 
-      <pre><code>基準測試（100 萬約束，BN254）：
+      <pre><code>Prove 時間組成（1M 約束）：
 
-證明生成：
-  - CPU（單核）：~60 秒
-  - CPU（多核）：~15 秒
-  - GPU：~5 秒
+1. 見證多項式計算：~5%
+   - A(X), B(X), C(X) 評估
 
-驗證：
-  - ~3 毫秒
+2. 商多項式計算：~15%
+   - h(X) = (A·B - C) / t
+   - 需要 FFT 進行多項式除法
 
-記憶體使用：
-  - 證明：~8 GB
-  - 驗證：~1 MB</code></pre>
+3. MSM（多標量乘法）：~80%
+   - 計算 [A]₁, [B]₁, [B]₂, [C]₁
+   - n 個群元素的線性組合
 
-      <h2>ZKML 應用</h2>
+總時間（BN254，單核）：~60 秒
+GPU 加速後：~5 秒</code></pre>
+
+      <h3>實際效能基準</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>電路規模</th>
+            <th>證明時間（CPU）</th>
+            <th>證明時間（GPU）</th>
+            <th>記憶體</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2^16 (~65K)</td>
+            <td>~3 秒</td>
+            <td>~0.5 秒</td>
+            <td>~500 MB</td>
+          </tr>
+          <tr>
+            <td>2^20 (~1M)</td>
+            <td>~60 秒</td>
+            <td>~5 秒</td>
+            <td>~8 GB</td>
+          </tr>
+          <tr>
+            <td>2^24 (~16M)</td>
+            <td>~15 分鐘</td>
+            <td>~80 秒</td>
+            <td>~64 GB</td>
+          </tr>
+          <tr>
+            <td>2^28 (~256M)</td>
+            <td>~4 小時</td>
+            <td>~20 分鐘</td>
+            <td>~500 GB</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>安全性分析</h2>
+
+      <h3>安全假設</h3>
+
+      <div class="definition">
+        <strong>定義 8（d-SDH 假設）</strong>
+        <p>d-Strong Diffie-Hellman 假設：給定</p>
+        <pre><code>(g, g^τ, g^{τ²}, ..., g^{τ^d})</code></pre>
+        <p>對任何 PPT 算法，計算 (c, g^{1/(τ+c)}) 對任意 c ∈ F_p 是計算不可行的。</p>
+      </div>
+
+      <h3>安全性定理</h3>
+
+      <pre><code>定理（Groth16 安全性）[1]：
+
+在以下假設下，Groth16 證明系統是：
+  1. 完備的（Perfect Completeness）
+  2. 具有知識可靠性（Knowledge Soundness）
+  3. 完美零知識的（Perfect Zero-Knowledge）
+
+假設：
+  (a) q-PKE（Generic Group Model 中可證明）
+  (b) d-SDH（標準密碼學假設）
+  (c) 雙線性配對群的安全性
+
+安全性歸約：
+  若存在 PPT 敵手 A 能偽造證明
+  → 存在 PPT 算法 B 能打破 q-PKE 或 d-SDH
+  → 矛盾</code></pre>
+
+      <h3>完備性證明</h3>
+
+      <pre><code>完備性論證：
+
+設 (x, w) 是有效的語句-見證對，即 (A·w) ∘ (B·w) = C·w
+
+則：
+  A(X)·B(X) - C(X) = h(X)·t(X)  對某 h(X)
+
+證明者計算的 [A]₁, [B]₂, [C]₁ 滿足：
+  e([A]₁, [B]₂) = e([α + A(τ) + rδ]₁, [β + B(τ) + sδ]₂)
+                = [αβ + αB(τ) + ... + A(τ)B(τ) + ...]_T
+
+由 QAP 性質和 C 的構造：
+  = [(αβ) + (公開部分)·γ + (私密部分 + h(τ)t(τ) + 盲化)·δ]_T
+  = e([α]₁, [β]₂) · e([L]₁, [γ]₂) · e([C]₁, [δ]₂)
+
+因此誠實證明者總能通過驗證。 ∎</code></pre>
+
+      <h3>知識可靠性論證</h3>
+
+      <pre><code>知識可靠性論證框架：
+
+在代數群模型（AGM）中：
+  任何能輸出有效證明的算法
+  必定是對 SRS 元素的線性組合
+
+提取器構造：
+  1. 監控算法對 SRS 的使用
+  2. 記錄每個輸出群元素的「係數」
+  3. 從係數還原見證 w
+
+安全歸約：
+  若提取失敗 → 算法輸出與 SRS 線性無關的元素
+              → 違反 q-PKE 假設
+
+形式化：
+  Pr[Verify(vk, x, π) = 1 ∧ (x, w) ∉ R] ≤ negl(λ)</code></pre>
+
+      <h3>零知識性證明</h3>
+
+      <pre><code>零知識模擬器構造：
+
+Simulator(vk, x, τ*, α*, β*, γ*, δ*)：  [知道 trapdoor]
+
+  1. 隨機取樣：a, b ←$ F_p
+
+  2. 計算模擬證明：
+     [A]₁ = [a]₁
+     [B]₂ = [b]₂
+     [C]₁ = [(a·b - αβ - L·γ) / δ]₁
+          = [a]₁ · b/δ - [αβ/δ]₁ - [L·γ/δ]₁
+
+  3. 輸出：π* = ([A]₁, [B]₂, [C]₁)
+
+驗證模擬證明有效：
+  e([a]₁, [b]₂) = [ab]_T
+  e([α]₁,[β]₂) · e([L]₁,[γ]₂) · e([(ab-αβ-Lγ)/δ]₁,[δ]₂)
+  = [αβ + Lγ + ab - αβ - Lγ]_T = [ab]_T ✓
+
+分布不可區分性：
+  真實證明：[A]₁ = [α + A(τ) + rδ]₁，r 隨機
+  模擬證明：[A]₁ = [a]₁，a 隨機
+  兩者分布相同（均為 G₁ 上均勻分布）∎</code></pre>
+
+      <h2>設計動機（Why 區塊）</h2>
+
+      <h3>為何證明只有 3 個群元素？</h3>
+
+      <pre><code>Groth16 的關鍵創新：
+
+問題：如何最小化證明大小？
+
+洞察：
+  1. 驗證等式必須是配對等式（利用雙線性）
+  2. 配對等式每邊需要 G₁ × G₂ 輸入
+  3. 理論下界：至少需要 1 個 G₁ + 1 個 G₂ 元素
+
+Groth16 解決方案：
+  - 使用 α, β 將公開輸入「嵌入」到 vk 中
+  - 使用 δ 將私密見證「隱藏」在 C 中
+  - 使用 γ 分離公開/私密部分
+
+結果：
+  證明 = (A ∈ G₁, B ∈ G₂, C ∈ G₁) = 3 元素
+  這是 QAP-based SNARK 的理論最優！
+
+代價：
+  - 電路特定 SRS（每個電路需重新設置）
+  - 較強的安全假設（q-PKE）</code></pre>
+
+      <h3>為何需要電路特定設置？</h3>
+
+      <pre><code>電路特定 vs 通用設置：
+
+Groth16 設置包含：
+  {[(β·u_j(τ) + α·v_j(τ) + w_j(τ))/δ]₁}_j
+
+這些元素依賴於具體電路的 QAP 多項式 u_j, v_j, w_j。
+
+為何不能通用？
+  若 SRS 獨立於電路
+  → 證明者可「選擇」對自己有利的電路
+  → 安全性失效
+
+PLONK 如何實現通用設置：
+  - 不在 SRS 中編碼電路
+  - 在證明中發送電路承諾
+  - 代價：證明較大（~10 群元素）
+
+權衡：
+  Groth16：小證明 + 快驗證，但電路特定
+  PLONK：通用設置，但證明較大</code></pre>
+
+      <h3>為何 r, s 盲化因子？</h3>
+
+      <pre><code>盲化因子的作用：
+
+問題：若無 r, s，證明是否洩露見證？
+
+分析：
+  不盲化時：
+    [A]₁ = [α + A(τ)]₁
+    [B]₂ = [β + B(τ)]₂
+
+  給定相同見證的多個證明：
+    敵手可能推斷 A(τ), B(τ) 的結構
+
+盲化後：
+  [A]₁ = [α + A(τ) + r·δ]₁
+  每次 r 不同 → A 每次不同
+  即使相同見證，證明也完全隨機
+
+安全性：
+  r, s 提供完美零知識性
+  不僅計算隱藏，而是信息論隱藏</code></pre>
+
+      <h2>ZKML 應用分析</h2>
 
       <h3>為何 ZKML 較少使用 Groth16</h3>
 
       <pre><code>Groth16 在 ZKML 的限制：
 
 1. 電路特定設置
-   - 每個模型需要獨立設置
-   - 模型更新需重新設置
-   - 設置時間長（大模型可能數小時）
+   - 每個 ML 模型需要獨立設置
+   - 模型更新（fine-tuning）需重新設置
+   - 設置時間可能比證明時間更長
 
-2. 非線性函數困難
-   - 純 R1CS 無查表支援
-   - ReLU 需要位元分解（~254 約束/ReLU）
+   範例：ResNet-50 電路
+     - 約 2500 萬約束
+     - 設置時間：~2 小時
+     - 證明時間：~20 分鐘
+     - 模型更新 → 重做 2 小時設置
+
+2. 無查表支援
+   - R1CS 無法高效表達非線性函數
+   - ReLU 需位元分解：~254 約束/次
+   - Softmax 更加昂貴
+
+   對比 PLONKish：
+     ReLU 查表：~1 約束/次
+     效率差 100-200 倍
 
 3. 大電路問題
-   - 設置隨電路線性增長
-   - 大型 ML 模型設置成本高
+   - 設置記憶體：O(n)
+   - 大型模型（如 BERT）：數十億約束
+   - 設置可能需要 TB 級記憶體</code></pre>
 
-ZKML 偏好：
-  - PLONK/Halo2：查表支援 + 通用設置
-  - STARK：透明設置 + 大電路友好</code></pre>
+      <h3>Groth16 仍適用的場景</h3>
 
-      <h3>適用場景</h3>
-
-      <pre><code>Groth16 仍適合：
+      <pre><code>適合使用 Groth16 的 ZKML 場景：
 
 1. 小型固定模型
-   - 模型不常更新
-   - 電路規模可控
+   - 模型穩定不常更新
+   - 電路規模 < 1M 約束
+   - 可接受一次性設置成本
 
-2. 極致驗證效率需求
-   - 鏈上驗證成本敏感
+   範例：
+     - 欺詐檢測模型（固定規則）
+     - 嵌入式 ML（資源受限）
+
+2. 極致鏈上成本敏感
    - 每次驗證都上鏈
+   - Gas 成本是主要考量
+   - 證明大小差異顯著
 
-3. 最小證明大小
+   成本對比（以太坊 ~30 gwei）：
+     Groth16：~200K gas，~$5
+     PLONK：~300K gas，~$7.5
+     STARK：~500K gas，~$12
+
+3. 最小證明大小需求
    - 儲存成本敏感
    - 傳輸頻寬受限
+   - 需要長期存檔
 
-範例應用：
-  - 固定的欺詐檢測模型
-  - 嵌入式 ML 驗證
-  - 極簡區塊鏈整合</code></pre>
+   大小對比：
+     Groth16：192 bytes
+     PLONK：~400 bytes
+     STARK：~50 KB</code></pre>
+
+      <h3>ZKML 框架整合</h3>
+
+      <pre><code>支援 Groth16 的 ZKML 工具：
+
+1. Circom + snarkjs
+   - 原生 Groth16 支援
+   - 適合手寫小型電路
+   - ZKML 應用有限
+
+2. arkworks
+   - Rust 高效能實現
+   - 可整合到自定義系統
+
+3. gnark
+   - Go 語言實現
+   - Gnark-crypto 配對庫
+   - Consensys 維護
+
+4. 混合架構
+   - 用 STARK/PLONK 證明 ML 推理
+   - 用 Groth16 包裝最終證明（壓縮）
+   - 結合兩者優勢</code></pre>
+
+      <h2>變體與改進</h2>
+
+      <h3>Groth16 變體</h3>
+
+      <pre><code>1. Groth16 with Aggregation
+   - 聚合多個 Groth16 證明
+   - 技術：SnarkPack [Gailly et al., 2021]
+   - n 個證明 → O(log n) 聚合證明
+
+2. LegoSNARK
+   - 模塊化證明組合
+   - 可將多個 Groth16 證明連接
+   - 適合複雜多階段計算
+
+3. 遞迴 Groth16
+   - 在 Groth16 電路中驗證 Groth16
+   - 挑戰：配對電路非常大（~百萬約束）
+   - 實現：Nova + Groth16 混合
+
+4. Marlin
+   - 通用設置變體
+   - 保持類似效率
+   - 略大證明（~10 群元素）</code></pre>
+
+      <h3>實現優化</h3>
+
+      <pre><code>MSM 優化技術：
+
+1. Pippenger 算法
+   - 標準 MSM：O(n) 群運算
+   - Pippenger：O(n / log n) 群運算
+   - 實際加速：5-10 倍
+
+2. 並行化
+   - MSM 天然可並行
+   - 多核 CPU：4-8 倍加速
+   - GPU：10-100 倍加速
+
+3. 預計算
+   - 對固定生成元預計算窗口表
+   - 時間-空間權衡
+
+FFT 優化：
+  - NTT（有限域 FFT）
+  - 並行蝴蝶運算
+  - Cache-oblivious 實現</code></pre>
 
       <h2>工具與實現</h2>
 
@@ -313,66 +780,142 @@ ZKML 偏好：
 
       <pre><code>1. snarkjs (JavaScript)
    - 完整 Groth16 實現
-   - 與 Circom 整合
+   - 與 Circom 無縫整合
    - 支援瀏覽器
+   - 適合快速原型開發
 
 2. arkworks (Rust)
-   - 高效能實現
+   - groth16 crate
+   - 高效能、模塊化
    - 多曲線支援
-   - 可組合的庫
+   - 適合生產環境
 
 3. gnark (Go)
-   - 高效能
-   - 良好 API
-   - 多後端支援
+   - 高效能實現
+   - 良好 API 設計
+   - Consensys 商業支援
 
 4. bellman (Rust)
-   - Zcash 使用
-   - 成熟穩定</code></pre>
+   - Zcash 團隊開發
+   - 經過長期生產驗證
+   - 與 Zcash 生態整合
+
+5. rapidsnark (C++)
+   - 極致效能優化
+   - 專注證明生成
+   - 用於生產環境加速</code></pre>
 
       <h3>使用範例</h3>
 
-      <pre><code>// Circom + snarkjs 範例
+      <pre><code>// Circom + snarkjs 完整流程
 
-// circuit.circom
+// 1. 定義電路 (circuit.circom)
 template Multiply() {
     signal input a;
     signal input b;
     signal output c;
     c <== a * b;
 }
-
 component main = Multiply();
 
-// 命令行使用
-$ circom circuit.circom --r1cs --wasm
-$ snarkjs groth16 setup circuit.r1cs pot12.ptau circuit_0.zkey
-$ snarkjs groth16 prove circuit_0.zkey witness.wtns proof.json
-$ snarkjs groth16 verify verification_key.json public.json proof.json</code></pre>
+// 2. 編譯電路
+$ circom circuit.circom --r1cs --wasm --sym
 
-      <h2>變體與改進</h2>
+// 3. Powers of Tau 儀式（或使用現有）
+$ snarkjs powersoftau new bn128 12 pot12_0000.ptau
+$ snarkjs powersoftau contribute pot12_0000.ptau pot12_0001.ptau
+$ snarkjs powersoftau prepare phase2 pot12_0001.ptau pot12_final.ptau
 
-      <h3>Groth16 變體</h3>
+// 4. 電路特定設置（Phase 2）
+$ snarkjs groth16 setup circuit.r1cs pot12_final.ptau circuit_0.zkey
+$ snarkjs zkey contribute circuit_0.zkey circuit_final.zkey
+$ snarkjs zkey export verificationkey circuit_final.zkey vk.json
 
-      <pre><code>1. Groth16 with Lookup (研究中)
-   - 嘗試添加查表支援
-   - 複雜度增加
+// 5. 計算見證
+$ node generate_witness.js circuit.wasm input.json witness.wtns
 
-2. LegoSNARK
-   - 模塊化證明
-   - 可組合 Groth16 證明
+// 6. 生成證明
+$ snarkjs groth16 prove circuit_final.zkey witness.wtns proof.json public.json
 
-3. 遞迴 Groth16
-   - 在 Groth16 電路中驗證 Groth16
-   - 配對運算的電路表示複雜</code></pre>
+// 7. 驗證
+$ snarkjs groth16 verify vk.json public.json proof.json
+
+// 8. 生成 Solidity 驗證器
+$ snarkjs zkey export solidityverifier circuit_final.zkey verifier.sol</code></pre>
+
+      <h2>與其他系統的比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Groth16</th>
+            <th>PLONK</th>
+            <th>Halo2</th>
+            <th>STARK</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>192 B</td>
+            <td>~400 B</td>
+            <td>~3 KB</td>
+            <td>~50 KB</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td>~3 ms</td>
+            <td>~5 ms</td>
+            <td>~10 ms</td>
+            <td>~20 ms</td>
+          </tr>
+          <tr>
+            <td><strong>證明時間</strong></td>
+            <td>快</td>
+            <td>中</td>
+            <td>中</td>
+            <td>快</td>
+          </tr>
+          <tr>
+            <td><strong>設置類型</strong></td>
+            <td>電路特定</td>
+            <td>通用</td>
+            <td>無需</td>
+            <td>透明</td>
+          </tr>
+          <tr>
+            <td><strong>查表支援</strong></td>
+            <td>無</td>
+            <td>有</td>
+            <td>有</td>
+            <td>需擴展</td>
+          </tr>
+          <tr>
+            <td><strong>後量子安全</strong></td>
+            <td>否</td>
+            <td>否</td>
+            <td>否</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>安全假設</strong></td>
+            <td>q-PKE</td>
+            <td>AGM</td>
+            <td>DLOG</td>
+            <td>Hash</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h2>相關頁面</h2>
 
       <ul>
         <li><a href="plonk.html">PLONK</a> - 通用設置的替代方案</li>
-        <li><a href="../halo2.html">Halo2</a> - 無需可信設置的方案</li>
+        <li><a href="halo2.html">Halo2</a> - 無需可信設置的方案</li>
         <li><a href="stark.html">STARK</a> - 透明設置方案</li>
         <li><a href="../arithmetization/r1cs.html">R1CS</a> - Groth16 使用的算術化</li>
+        <li><a href="../commitments/kzg.html">KZG</a> - 相關的多項式承諾</li>
       </ul>
 
       <section class="references">
@@ -389,6 +932,14 @@ $ snarkjs groth16 verify verification_key.json public.json proof.json</code></pr
           <li id="ref-3">
             <cite>Bowe, S., Gabizon, A., & Miers, I. "Scalable Multi-party Computation for zk-SNARK Parameters in the Random Beacon Model." IACR ePrint 2017/1050.</cite>
             <a href="https://eprint.iacr.org/2017/1050" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
+            <cite>Gabizon, A., Williamson, Z., & Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR ePrint 2019/953.</cite>
+            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-5">
+            <cite>Gailly, N., Maller, M., & Nitulescu, A. "SnarkPack: Practical SNARK Aggregation." FC 2022.</cite>
+            <a href="https://eprint.iacr.org/2021/529" target="_blank" rel="noopener">ePrint</a>
           </li>
         </ol>
       </section>
