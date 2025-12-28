@@ -31,120 +31,712 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>KZG（Kate-Zaverucha-Goldberg）多項式承諾是一種基於配對的密碼學原語，允許證明者承諾一個多項式，並在之後證明該多項式在特定點的求值正確，而無需揭示整個多項式<sup><a href="#ref-1">[1]</a></sup>。</p>
+        <p>KZG（Kate-Zaverucha-Goldberg）多項式承諾是一種基於配對的密碼學原語，允許證明者承諾一個多項式，並在之後證明該多項式在特定點的求值正確，而無需揭示整個多項式<sup><a href="#ref-1">[1]</a></sup>。其核心優勢在於 O(1) 的證明大小和 O(1) 的驗證時間，使其成為 PLONK、Marlin 等現代 zkSNARK 的首選承諾方案。</p>
       </div>
 
-      <h2>數學基礎</h2>
+      <h2>形式定義</h2>
 
-      <h3>雙線性配對</h3>
+      <h3>定義 1：多項式承諾方案</h3>
 
-      <p>KZG 依賴於雙線性配對（bilinear pairing）的存在。給定三個群 \(\mathbb{G}_1, \mathbb{G}_2, \mathbb{G}_T\)，配對函數 \(e: \mathbb{G}_1 \times \mathbb{G}_2 \rightarrow \mathbb{G}_T\) 滿足<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <p>多項式承諾方案的抽象定義<sup><a href="#ref-1">[1]</a></sup>：</p>
 
-      <ul>
-        <li><strong>雙線性</strong>：\(e(aP, bQ) = e(P, Q)^{ab}\) 對所有 \(a, b \in \mathbb{Z}_p\)</li>
-        <li><strong>非退化性</strong>：若 \(P \neq 0\) 且 \(Q \neq 0\)，則 \(e(P, Q) \neq 1\)</li>
-        <li><strong>可計算性</strong>：存在有效算法計算 \(e(P, Q)\)</li>
-      </ul>
+      <pre><code>定義：多項式承諾方案（Polynomial Commitment Scheme）
 
-      <h3>常用配對友好曲線</h3>
+PCS = (Setup, Commit, Open, Verify) 是多項式承諾方案若：
+
+Setup(1^λ, d) → pp
+  輸入：安全參數 λ，最大次數 d
+  輸出：公共參數 pp
+
+Commit(pp, f(X)) → C
+  輸入：公共參數 pp，多項式 f(X) ∈ F[X]_≤d
+  輸出：承諾 C
+
+Open(pp, f(X), z) → (y, π)
+  輸入：公共參數 pp，多項式 f(X)，求值點 z
+  輸出：求值 y = f(z)，證明 π
+
+Verify(pp, C, z, y, π) → {0, 1}
+  輸入：公共參數 pp，承諾 C，點 z，值 y，證明 π
+  輸出：接受或拒絕
+
+正確性要求：
+∀ f(X) ∈ F[X]_≤d, z ∈ F：
+  C ← Commit(pp, f(X))
+  (y, π) ← Open(pp, f(X), z)
+  ⟹ Verify(pp, C, z, y, π) = 1</code></pre>
+
+      <h3>定義 2：雙線性群</h3>
+
+      <p>KZG 依賴的代數結構<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>定義：雙線性群（Bilinear Groups）
+
+雙線性群三元組 (G₁, G₂, G_T) 配備配對 e：
+
+e: G₁ × G₂ → G_T
+
+滿足：
+
+1. 雙線性（Bilinearity）
+   ∀ a, b ∈ Z_p, P ∈ G₁, Q ∈ G₂：
+   e(aP, bQ) = e(P, Q)^{ab}
+
+2. 非退化性（Non-degeneracy）
+   若 P ≠ 0 且 Q ≠ 0，則 e(P, Q) ≠ 1_T
+
+3. 可計算性（Computability）
+   存在多項式時間算法計算 e(P, Q)
+
+類型：
+  Type-1：G₁ = G₂（對稱配對）
+  Type-2：G₁ ≠ G₂ 但存在高效同態
+  Type-3：G₁ ≠ G₂ 無已知高效同態
+
+常用曲線：
+  BN254：Type-3，EVM 預編譯支援
+  BLS12-381：Type-3，~128-bit 安全
+  BLS12-377：Type-3，遞迴友好</code></pre>
+
+      <h3>定義 3：結構化參考字串（SRS）</h3>
+
+      <p>KZG 的公共參數結構：</p>
+
+      <pre><code>定義：結構化參考字串（Structured Reference String）
+
+給定雙線性群 (G₁, G₂, G_T) 和秘密 τ ∈ F_p。
+
+KZG SRS 定義為：
+
+srs = (
+  [1]₁, [τ]₁, [τ²]₁, ..., [τ^d]₁,    // G₁ 元素
+  [1]₂, [τ]₂                           // G₂ 元素
+)
+
+其中記號 [x]ᵢ = x · Gᵢ，Gᵢ 是 Gᵢ 的生成元。
+
+性質：
+  - |srs| = O(d)（線性於次數上界）
+  - τ 稱為 "trapdoor" 或 "toxic waste"
+  - srs 唯一確定 τ（離散對數困難下）
+
+擴展 SRS（用於度數界證明）：
+srs_ext = srs ∪ {[τ^i]₂ : i = 2, ..., d}</code></pre>
+
+      <h3>定義 4：q-SDH 假設</h3>
+
+      <p>KZG 安全性的核心假設<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>定義：q-SDH 假設（q-Strong Diffie-Hellman Assumption）
+
+給定 (G, g, g^τ, g^{τ²}, ..., g^{τ^q})，其中 g 是 G 的生成元。
+
+q-SDH 假設：對任何 PPT 敵手 A，以下機率可忽略：
+
+Pr[A(g, g^τ, ..., g^{τ^q}) = (c, g^{1/(τ+c)})] ≤ negl(λ)
+
+其中 c ∈ F_p\{-τ}。
+
+直觀理解：
+  - 即使知道 τ 的多個冪次
+  - 也無法計算任何 1/(τ+c) 的離散對數
+  - 這使得無法偽造多項式評估證明
+
+與 d-PKE 關係：
+  q-SDH 蘊含 d-PKE（d-Power Knowledge of Exponent）
+  用於證明知識可靠性</code></pre>
+
+      <h3>定義 5：多項式除法引理</h3>
+
+      <p>KZG 正確性的數學基礎：</p>
+
+      <pre><code>定義：多項式除法引理（Polynomial Division Lemma）
+
+對於多項式 f(X) ∈ F[X] 和點 z ∈ F：
+
+f(z) = y ⟺ (X - z) | (f(X) - y)
+
+即：
+f(z) = y ⟺ ∃ q(X) ∈ F[X] : f(X) - y = (X - z) · q(X)
+
+其中 q(X) = (f(X) - y) / (X - z) 稱為商多項式。
+
+性質：
+  - deg(q) = deg(f) - 1
+  - q(X) 唯一
+  - 若 f(z) ≠ y，則除法有餘數，q(X) 不存在於 F[X] 中
+
+KZG 應用：
+  承諾 [q(τ)]₁ 作為 f(z) = y 的證明</code></pre>
+
+      <h3>定義 6：承諾綁定性</h3>
+
+      <p>承諾方案的核心安全屬性：</p>
+
+      <pre><code>定義：計算綁定性（Computational Binding）
+
+PCS 是計算綁定的若對任何 PPT 敵手 A：
+
+Pr[
+  pp ← Setup(1^λ, d);
+  (f, f', z, y, y', π, π') ← A(pp);
+  f ≠ f' ∧
+  Commit(pp, f) = Commit(pp, f') ∧
+  Verify(pp, C, z, y, π) = 1 ∧
+  Verify(pp, C, z, y', π') = 1 ∧
+  y ≠ y'
+] ≤ negl(λ)
+
+KZG 綁定性證明概要：
+  假設敵手可打破綁定性...
+  則可構造 q-SDH 問題的解
+  與 q-SDH 困難性矛盾</code></pre>
+
+      <h3>定義 7：知識可靠性</h3>
+
+      <p>證明者確實知道多項式<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>定義：知識可靠性（Knowledge Soundness）
+
+PCS 具有知識可靠性若存在多項式時間提取器 E 使得：
+
+對任何 PPT 敵手 A 產生有效證明 (C, z, y, π)：
+
+Pr[
+  f ← E^A(pp);
+  Commit(pp, f) = C ∧ f(z) = y
+] ≥ 1 - negl(λ)
+
+即：若 A 能產生有效證明，則 E 可提取 A 知道的多項式 f。
+
+KZG 知識可靠性：
+  基於 d-PKE（d-Power Knowledge of Exponent）假設
+
+  給定 (g, g^τ, ..., g^{τ^d})：
+  若 A 輸出 C 和 (c₀, ..., c_d) 使 C = g^{Σ cᵢτⁱ}
+  則 A "知道" 多項式 f(X) = Σ cᵢXⁱ</code></pre>
+
+      <h2>為什麼選擇 KZG？</h2>
+
+      <h3>設計動機</h3>
+
+      <pre><code>KZG 設計動機：
+
+1. 常數大小證明
+   問題：Merkle 樹證明大小 O(log n)
+   KZG 解決方案：
+     - 證明 = 1 個群元素
+     - 固定 48 bytes（BLS12-381）
+     - 與多項式次數無關
+
+2. 常數時間驗證
+   問題：IPA 驗證需 O(n) 時間
+   KZG 解決方案：
+     - 僅 2 次配對運算
+     - ~3 ms 驗證時間
+     - 適合區塊鏈環境
+
+3. 高效批次驗證
+   問題：多個證明逐一驗證成本高
+   KZG 解決方案：
+     - 隨機線性組合
+     - 批次驗證近乎單一證明成本
+
+4. 與 PLONK 的完美結合
+   - PLONK 需要多項式承諾
+   - KZG 提供 O(1) 驗證
+   - 組合得到高效 zkSNARK</code></pre>
+
+      <h3>可信設置的權衡</h3>
+
+      <pre><code>可信設置的考量：
+
+優點（為何接受可信設置）：
+  1. O(1) 證明和驗證 - 獨特優勢
+  2. 設置可重用 - 一次設置，多次使用
+  3. 通用 SRS - 不依賴具體電路
+  4. MPC 儀式 - 降低信任需求
+
+缺點（可信設置的風險）：
+  1. Toxic waste - τ 洩露則系統崩潰
+  2. 參與者門檻 - 需足夠多誠實參與者
+  3. 儀式複雜度 - 組織成本高
+  4. 無法驗證銷毀 - 必須信任參與者
+
+風險緩解：
+  - 大規模 MPC（數千參與者）
+  - 多輪儀式
+  - 異構參與者（不同組織、地區）
+  - 物理銷毀儀式直播</code></pre>
+
+      <h2>完整協議</h2>
+
+      <h3>KZG.Setup 演算法</h3>
+
+      <pre><code>演算法：KZG.Setup(1^λ, d)
+
+輸入：
+  - 安全參數 λ
+  - 最大多項式次數 d
+
+輸出：
+  - srs：結構化參考字串
+
+步驟：
+
+1. 選擇配對友好曲線
+   (G₁, G₂, G_T, e, p) ← PairingSetup(1^λ)
+
+2. 選取生成元
+   G₁ ∈ G₁\{0}（G₁ 的生成元）
+   G₂ ∈ G₂\{0}（G₂ 的生成元）
+
+3. 選取秘密
+   τ ←$ F_p（均勻隨機選取）
+
+4. 計算 G₁ 元素
+   對 i = 0, ..., d：
+     [τⁱ]₁ = τⁱ · G₁
+
+5. 計算 G₂ 元素
+   [1]₂ = G₂
+   [τ]₂ = τ · G₂
+
+6. 銷毀秘密
+   secure_delete(τ)  // 關鍵步驟
+
+7. 輸出
+   srs = ([τ⁰]₁, [τ¹]₁, ..., [τᵈ]₁, [1]₂, [τ]₂)
+
+複雜度：
+  - 時間：O(d) 群運算
+  - 空間：O(d) 群元素
+  - 安全性：依賴 τ 的銷毀</code></pre>
+
+      <h3>KZG.Commit 演算法</h3>
+
+      <pre><code>演算法：KZG.Commit(srs, f(X))
+
+輸入：
+  - srs：結構化參考字串
+  - f(X) = Σᵢ cᵢXⁱ：多項式（係數形式）
+
+輸出：
+  - C：承諾（G₁ 元素）
+
+步驟：
+
+1. 解析多項式係數
+   (c₀, c₁, ..., c_n) ← coefficients(f)
+   確保 n ≤ d
+
+2. 計算多標量乘法（MSM）
+   C = Σᵢ cᵢ · [τⁱ]₁
+     = c₀·[τ⁰]₁ + c₁·[τ¹]₁ + ... + c_n·[τⁿ]₁
+     = [f(τ)]₁
+
+3. 輸出承諾
+   return C
+
+優化技術：
+
+Pippenger MSM 算法：
+  - 將係數分組處理
+  - 預計算窗口表
+  - 時間複雜度：O(n/log n) 群運算
+
+並行化：
+  - MSM 天然可並行
+  - GPU 加速：10-100x
+  - 多核 CPU：4-8x
+
+複雜度：
+  - 時間：O(n) 群運算，實際 O(n/log n)
+  - 空間：O(1)（輸出固定大小）</code></pre>
+
+      <h3>KZG.Open 演算法</h3>
+
+      <pre><code>演算法：KZG.Open(srs, f(X), z)
+
+輸入：
+  - srs：結構化參考字串
+  - f(X)：多項式
+  - z：求值點
+
+輸出：
+  - y：求值結果 f(z)
+  - π：開啟證明
+
+步驟：
+
+1. 計算求值
+   y = f(z)
+
+2. 計算商多項式
+   q(X) = (f(X) - y) / (X - z)
+
+   具體計算（係數形式）：
+   若 f(X) = Σᵢ cᵢXⁱ
+   令 f'(X) = f(X) - y = c₀' + c₁X + ... + c_nXⁿ
+   其中 c₀' = c₀ - y
+
+   使用綜合除法：
+   q(X) = q₀ + q₁X + ... + q_{n-1}X^{n-1}
+
+   遞推公式：
+   q_{n-1} = c_n
+   q_{i-1} = c_i + z · qᵢ （i = n-1, ..., 1）
+
+   驗證：c₀' + z · q₀ = 0 ⟺ f(z) = y
+
+3. 承諾商多項式
+   π = Commit(srs, q(X))
+     = [q(τ)]₁
+
+4. 輸出
+   return (y, π)
+
+複雜度：
+  - 商多項式計算：O(n)
+  - 承諾計算：O(n) MSM
+  - 總時間：O(n)
+  - 證明大小：1 個 G₁ 元素 = O(1)</code></pre>
+
+      <h3>KZG.Verify 演算法</h3>
+
+      <pre><code>演算法：KZG.Verify(srs, C, z, y, π)
+
+輸入：
+  - srs：結構化參考字串
+  - C：承諾
+  - z：求值點
+  - y：聲稱的求值
+  - π：開啟證明
+
+輸出：
+  - {accept, reject}
+
+步驟：
+
+1. 計算配對輸入
+   左側第一參數：C - [y]₁ = [f(τ) - y]₁
+   左側第二參數：[1]₂
+   右側第一參數：π = [q(τ)]₁
+   右側第二參數：[τ]₂ - [z]₂ = [τ - z]₂
+
+2. 執行配對檢查
+   check = (e(C - [y]₁, [1]₂) == e(π, [τ - z]₂))
+
+3. 等價形式（單配對檢查）
+   check = (e(C - [y]₁ - z·π, [1]₂) == e(π, [τ]₂))
+
+4. 決策
+   if check:
+     return accept
+   else:
+     return reject
+
+正確性驗證：
+  e(C - [y]₁, [1]₂) = e([f(τ) - y]₁, [1]₂)
+                     = e(G₁, G₂)^{f(τ) - y}
+
+  e(π, [τ - z]₂) = e([q(τ)]₁, [τ - z]₂)
+                  = e(G₁, G₂)^{q(τ)(τ - z)}
+
+  若 f(z) = y：
+    f(τ) - y = (τ - z) · q(τ)（多項式恆等式）
+    ⟹ 兩邊相等
+
+複雜度：
+  - 時間：2 次配對運算 = O(1)
+  - 實際時間：~3 ms（BLS12-381）</code></pre>
+
+      <h2>Powers of Tau 儀式</h2>
+
+      <h3>MPC 協議</h3>
+
+      <pre><code>Powers of Tau MPC 協議：
+
+目標：生成 SRS 且無人知道 τ
+
+協議流程：
+
+初始化：
+  srs₀ = ([1]₁, [1]₂)  // 平凡初始值
+
+第 i 輪（參與者 Pᵢ）：
+  1. 接收 srs_{i-1}
+  2. 選取秘密 τᵢ ←$ F_p
+  3. 計算 srs_i：
+     對每個 [τ^{j}]₁：
+       [τ^j]₁' = τᵢ^j · [τ^j]₁
+     對 [τ]₂：
+       [τ]₂' = τᵢ · [τ]₂
+  4. 發布 srs_i
+  5. 銷毀 τᵢ
+
+安全性論證：
+  最終 τ = τ₁ · τ₂ · ... · τ_n
+  若至少一個參與者誠實銷毀 τᵢ
+  則無人知道 τ
+
+驗證機制：
+  參與者發布隨機化證明
+  任何人可驗證過渡正確性</code></pre>
+
+      <h3>著名 Powers of Tau 儀式</h3>
 
       <table>
         <thead>
           <tr>
-            <th>曲線</th>
-            <th>安全級別</th>
-            <th>特點</th>
-            <th>應用</th>
+            <th>儀式</th>
+            <th>參與者數</th>
+            <th>最大次數</th>
+            <th>用途</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>BN254</strong></td>
-            <td>~100 bits</td>
-            <td>EVM 預編譯支援</td>
-            <td>以太坊智能合約驗證</td>
+            <td>Zcash Powers of Tau</td>
+            <td>~100</td>
+            <td>2²⁸</td>
+            <td>Zcash Sapling</td>
           </tr>
           <tr>
-            <td><strong>BLS12-381</strong></td>
-            <td>~128 bits</td>
-            <td>更高安全性</td>
-            <td>Zcash、Ethereum 2.0</td>
+            <td>Ethereum KZG Ceremony</td>
+            <td>~140,000</td>
+            <td>2¹⁶ (65536)</td>
+            <td>EIP-4844 (Proto-Danksharding)</td>
           </tr>
           <tr>
-            <td><strong>BLS12-377</strong></td>
-            <td>~128 bits</td>
-            <td>遞迴友好</td>
-            <td>Aleo</td>
+            <td>Perpetual Powers of Tau</td>
+            <td>持續增加</td>
+            <td>可擴展</td>
+            <td>通用用途</td>
+          </tr>
+          <tr>
+            <td>Hermez (Polygon)</td>
+            <td>~1,000</td>
+            <td>2²⁴</td>
+            <td>zkEVM</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>KZG 協議</h2>
+      <h3>SRS 驗證</h3>
 
-      <h3>可信設置（Trusted Setup）</h3>
+      <pre><code>SRS 正確性驗證：
 
-      <p>KZG 需要一次性的可信設置，生成結構化參考字串（SRS）<sup><a href="#ref-1">[1]</a></sup>：</p>
+驗證 srs 形式正確（來自單一 τ）：
 
-      <pre><code>Setup(1^λ, d) → SRS:
-  1. 選取秘密 τ ∈ F_p（toxic waste）
-  2. 計算 SRS = (
-       [1]_1, [τ]_1, [τ²]_1, ..., [τ^d]_1,
-       [1]_2, [τ]_2
-     )
-  3. 銷毀 τ（若 τ 洩露，協議不安全）
+配對檢查：
+  對所有 i ∈ {0, ..., d-1}：
+    e([τⁱ]₁, [τ]₂) = e([τ^{i+1}]₁, [1]₂)
 
-其中：
-  [x]_1 = x · G_1（G_1 的生成元）
-  [x]_2 = x · G_2（G_2 的生成元）
-  d = 支援的最大多項式次數</code></pre>
+展開：
+  e(τⁱ · G₁, τ · G₂) = e(τ^{i+1} · G₁, G₂)
+  e(G₁, G₂)^{τ^{i+1}} = e(G₁, G₂)^{τ^{i+1}} ✓
 
-      <div class="callout callout-warning">
-        <div class="callout-title">可信設置的安全性</div>
-        <p>若任何參與者保留 τ，他們可以偽造證明。因此，實務上使用多方計算（MPC）儀式，只要有一個參與者誠實銷毀其貢獻，協議即安全。著名的 Powers of Tau 儀式有數千名參與者。</p>
-      </div>
+此驗證確保：
+  - 所有 [τⁱ]₁ 來自同一 τ
+  - 無法用不一致的值偽造 SRS
 
-      <h3>承諾（Commit）</h3>
+複雜度：
+  - d 次配對運算
+  - 可使用隨機線性組合優化</code></pre>
 
-      <p>對多項式 \(f(X) = \sum_{i=0}^{d} c_i X^i\) 進行承諾<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <h2>批次開啟</h2>
 
-      <p class="math">$$C = \text{Commit}(f) = \sum_{i=0}^{d} c_i [\tau^i]_1 = [f(\tau)]_1$$</p>
+      <h3>同一多項式多點開啟</h3>
 
-      <p>承諾 \(C\) 是 \(\mathbb{G}_1\) 中的單一群元素（BN254 上為 32 bytes）。</p>
+      <pre><code>批次開啟：同一多項式，多個點
 
-      <h3>開啟證明（Open/Prove）</h3>
+問題：證明 f(z₁) = y₁, f(z₂) = y₂, ..., f(z_k) = y_k
 
-      <p>證明 \(f(z) = y\) 的過程<sup><a href="#ref-1">[1]</a></sup>：</p>
+單純方法：k 個獨立證明，大小 O(k)
 
-      <pre><code>Open(f, z) → π:
-  1. 計算商多項式 q(X) = (f(X) - y) / (X - z)
-     （若 f(z) = y，則 (X - z) 整除 (f(X) - y)）
+高效方法<sup><a href="#ref-2">[2]</a></sup>：
 
-  2. 計算證明 π = [q(τ)]_1 = Commit(q)
+1. 構造插值多項式
+   I(X) = 使用拉格朗日插值
+   使 I(zᵢ) = yᵢ 對所有 i
 
-證明大小：1 個 G_1 元素 = O(1)</code></pre>
+2. 定義消失多項式
+   Z(X) = ∏ᵢ (X - zᵢ)
 
-      <h3>驗證（Verify）</h3>
+3. 計算商多項式
+   若 f(zᵢ) = yᵢ 對所有 i：
+   q(X) = (f(X) - I(X)) / Z(X)
 
-      <p>驗證者檢查配對等式<sup><a href="#ref-1">[1]</a></sup>：</p>
+4. 證明
+   π = [q(τ)]₁
 
-      <p class="math">$$e(C - [y]_1, [1]_2) = e(\pi, [\tau]_2 - [z]_2)$$</p>
+5. 驗證
+   e(C - [I(τ)]₁, [1]₂) = e(π, [Z(τ)]₂)
 
-      <p>展開驗證邏輯：</p>
+優勢：
+  - 證明大小：O(1)（僅 1 個群元素）
+  - 驗證：需要 [Z(τ)]₂（預計算或 SRS 導出）</code></pre>
 
-      <pre><code>Verify(C, z, y, π) → {0, 1}:
-  左側 = e(C - [y]_1, [1]_2)
-       = e([f(τ) - y]_1, [1]_2)
-       = e([f(τ) - y]_1, G_2)
+      <h3>多個多項式同點開啟</h3>
 
-  右側 = e(π, [τ - z]_2)
-       = e([q(τ)]_1, [τ - z]_2)
+      <pre><code>批次開啟：多個多項式，同一點
 
-  由雙線性：
-    e([f(τ) - y]_1, G_2) = e([(τ-z)·q(τ)]_1, G_2)
-                         = e([q(τ)]_1, [τ-z]_2)
+問題：證明 f₁(z) = y₁, f₂(z) = y₂, ..., f_k(z) = y_k
+承諾：C₁ = [f₁(τ)]₁, ..., C_k = [f_k(τ)]₁
 
-  驗證通過 ⟺ f(τ) - y = (τ - z) · q(τ)
-            ⟺ f(z) = y（多項式除法性質）</code></pre>
+使用隨機線性組合：
+
+1. 驗證者發送隨機挑戰
+   γ ←$ F_p
+
+2. 組合多項式
+   f(X) = Σᵢ γⁱ · fᵢ(X)
+   y = Σᵢ γⁱ · yᵢ
+   C = Σᵢ γⁱ · Cᵢ
+
+3. 單一開啟
+   驗證 f(z) = y
+   使用標準 KZG 驗證
+
+4. 驗證
+   e(C - [y]₁, [1]₂) = e(π, [τ - z]₂)
+
+   其中 C = Σᵢ γⁱ · Cᵢ, y = Σᵢ γⁱ · yᵢ
+
+複雜度：
+  - 證明大小：O(1)
+  - 驗證時間：O(k) 群運算 + O(1) 配對</code></pre>
+
+      <h3>多項式多點批次開啟</h3>
+
+      <pre><code>通用批次開啟：多個多項式，不同點<sup><a href="#ref-2">[2]</a></sup>
+
+問題：證明 {fⱼ(zⱼ) = yⱼ}_{j=1}^{k}
+
+分組策略：
+1. 按開啟點分組
+   對每個唯一點 z，收集在該點開啟的所有多項式
+
+2. 每組內使用多多項式同點開啟
+
+3. 跨組使用隨機線性組合
+
+協議：
+  - 對每個唯一點 zᵢ：
+    組合該點的所有多項式和值
+
+  - 使用額外隨機數組合不同點的證明
+
+優化（SHPLONK）：
+  - 將所有組合為單一證明
+  - 使用巧妙的多項式構造
+  - 證明大小仍為 O(1)</code></pre>
+
+      <h2>度數界證明</h2>
+
+      <h3>證明多項式次數上界</h3>
+
+      <pre><code>度數界證明（Degree Bound Proof）：
+
+問題：證明 deg(f) ≤ m（其中 m < d）
+
+方法 1：移位承諾
+
+觀察：若 deg(f) ≤ m，則 τ^{d-m} · f(τ) = g(τ)
+其中 g(X) = X^{d-m} · f(X)，deg(g) ≤ d
+
+步驟：
+1. 計算 [f(τ)]₁（正常承諾）
+2. 計算 [τ^{d-m} · f(τ)]₁ = Commit(X^{d-m} · f(X))
+
+驗證：
+  e([f(τ)]₁, [τ^{d-m}]₂) = e([τ^{d-m} · f(τ)]₁, [1]₂)
+
+需要擴展 SRS：
+  srs_ext 包含 [τⁱ]₂ 對 i = 0, ..., d
+
+方法 2：直接構造
+
+若 SRS 僅包含 [τ⁰]₁, ..., [τᵐ]₁：
+  則只能承諾次數 ≤ m 的多項式
+  承諾本身即為度數界證明</code></pre>
+
+      <h2>安全性分析</h2>
+
+      <h3>綁定性證明</h3>
+
+      <pre><code>定理：KZG 綁定性
+
+在 q-SDH 假設下，KZG 是計算綁定的。
+
+證明概要（歸謬法）：
+
+假設敵手 A 可打破綁定性：
+  輸出 (f, z, y, π) 和 (f', z', y', π')
+  使 C = Commit(f) = Commit(f')
+  但 (z, y) ≠ (z', y') 且兩證明都有效
+
+則 [f(τ)]₁ = [f'(τ)]₁
+⟹ f(τ) = f'(τ)（離散對數）
+⟹ f = f'（τ 是隨機的，多項式唯一）
+
+矛盾：f = f' 但 f(z) ≠ f'(z') 或 y ≠ y'
+
+精確歸約：
+  可構造算法 B 使用 A 解決 q-SDH
+  B 模擬 SRS 並提取 A 的策略
+  成功機率與 A 相同</code></pre>
+
+      <h3>知識可靠性證明</h3>
+
+      <pre><code>定理：KZG 知識可靠性
+
+在 d-PKE 假設下，KZG 具有知識可靠性。
+
+d-PKE 假設（代數群模型變體）：
+  若 A 輸出 C ∈ G₁
+  則 A 隱式知道 (c₀, ..., c_d) 使 C = Σ cᵢ[τⁱ]₁
+
+提取器構造：
+  E 觀察 A 的係數輸出
+  重建 f(X) = Σ cᵢXⁱ
+
+論證：
+  若 A 產生有效證明 (C, z, y, π)
+  則由 d-PKE，A 知道 f 使 C = [f(τ)]₁
+  驗證通過 ⟹ f(z) = y
+  ⟹ E 成功提取滿足條件的 f</code></pre>
+
+      <h3>隱藏性與零知識</h3>
+
+      <pre><code>KZG 隱藏性分析：
+
+基本 KZG 不具備隱藏性：
+  - Commit 是確定性的
+  - 相同多項式產生相同承諾
+  - 可能洩露多項式資訊
+
+添加隱藏性（Pedersen 變體）：
+
+Setup 擴展：
+  增加獨立 SRS：{[hⁱ]₁}，h 獨立於 τ
+
+Commit 修改：
+  C = [f(τ)]₁ + r · [h(τ)]₁
+  其中 r ←$ F_p 是隨機遮罩
+
+Open 修改：
+  需額外證明 r 的一致性
+  使用額外配對檢查
+
+性質：
+  - 完美隱藏（統計隱藏）
+  - 計算綁定（與原版相同）
+
+代價：
+  - SRS 大小翻倍
+  - 證明大小增加</code></pre>
 
       <h2>複雜度分析</h2>
 
@@ -154,157 +746,130 @@
             <th>操作</th>
             <th>時間複雜度</th>
             <th>空間複雜度</th>
-            <th>說明</th>
+            <th>具體時間（d=2²⁰）</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>Setup</strong></td>
+            <td>Setup</td>
             <td>O(d)</td>
             <td>O(d)</td>
-            <td>一次性，可重用於所有次數 ≤ d 的多項式</td>
+            <td>~10 秒</td>
           </tr>
           <tr>
-            <td><strong>Commit</strong></td>
+            <td>Commit</td>
             <td>O(d)</td>
             <td>O(1)</td>
-            <td>多標量乘法（MSM）</td>
+            <td>~1 秒</td>
           </tr>
           <tr>
-            <td><strong>Open</strong></td>
+            <td>Open</td>
             <td>O(d)</td>
             <td>O(1)</td>
-            <td>商多項式計算 + MSM</td>
+            <td>~1 秒</td>
           </tr>
           <tr>
-            <td><strong>Verify</strong></td>
+            <td>Verify</td>
             <td>O(1)</td>
             <td>O(1)</td>
-            <td>2 次配對運算</td>
+            <td>~3 ms</td>
+          </tr>
+          <tr>
+            <td>Batch Verify（k 個）</td>
+            <td>O(k)</td>
+            <td>O(1)</td>
+            <td>~3 ms + k·0.1 ms</td>
           </tr>
         </tbody>
       </table>
 
-      <p>關鍵優勢：<strong>O(1) 驗證時間</strong>與<strong>O(1) 證明大小</strong>，這使 KZG 成為區塊鏈驗證的理想選擇。</p>
-
-      <h2>批次驗證</h2>
-
-      <p>KZG 支援高效的批次驗證，可同時驗證多個開啟證明<sup><a href="#ref-2">[2]</a></sup>：</p>
-
-      <h3>同一多項式多點開啟</h3>
-
-      <p>驗證 \(f(z_1) = y_1, f(z_2) = y_2, \ldots, f(z_k) = y_k\)：</p>
-
-      <pre><code>BatchOpen(f, {(z_i, y_i)}) → π:
-  1. 定義零化多項式 Z(X) = ∏(X - z_i)
-  2. 使用拉格朗日插值構造 I(X)，使 I(z_i) = y_i
-  3. 計算 q(X) = (f(X) - I(X)) / Z(X)
-  4. 返回 π = [q(τ)]_1
-
-BatchVerify：
-  e(C - [I(τ)]_1, [1]_2) = e(π, [Z(τ)]_2)</code></pre>
-
-      <h3>多個多項式單點開啟</h3>
-
-      <p>使用隨機線性組合：</p>
-
-      <pre><code>給定 (C_1, z, y_1), ..., (C_k, z, y_k) 和證明 π_1, ..., π_k
-驗證者選取隨機 r ∈ F_p
-檢查：
-  e(∑ r^i(C_i - [y_i]_1), [1]_2) = e(∑ r^i π_i, [τ-z]_2)</code></pre>
-
-      <h2>在 ZKML 中的應用</h2>
-
-      <h3>ZKTorch 的使用</h3>
-
-      <p>ZKTorch 選擇 KZG 作為預設承諾方案<sup><a href="#ref-3">[3]</a></sup>：</p>
+      <h3>證明大小</h3>
 
       <table>
         <thead>
           <tr>
-            <th>考量</th>
-            <th>KZG 優勢</th>
+            <th>曲線</th>
+            <th>承諾大小</th>
+            <th>證明大小</th>
+            <th>SRS 大小（d=2²⁰）</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>證明大小</td>
-            <td>~9 KB（固定），適合鏈上驗證</td>
+            <td>BN254</td>
+            <td>32 bytes</td>
+            <td>32 bytes</td>
+            <td>~32 MB</td>
           </tr>
           <tr>
-            <td>驗證時間</td>
-            <td>~3 ms，比 IPA 快 10-100 倍</td>
-          </tr>
-          <tr>
-            <td>證明聚合</td>
-            <td>高效的批次驗證支援並行累積</td>
+            <td>BLS12-381</td>
+            <td>48 bytes</td>
+            <td>48 bytes</td>
+            <td>~48 MB</td>
           </tr>
         </tbody>
       </table>
 
-      <h3>Halo2 with KZG</h3>
+      <h2>ZKML 應用</h2>
 
-      <p>Halo2 證明系統支援 KZG 後端<sup><a href="#ref-4">[4]</a></sup>：</p>
+      <h3>PLONK + KZG 組合</h3>
 
-      <pre><code>ZKML 配置選項：
-  backend = "halo2"
-  commitment_scheme = "kzg"  # 或 "ipa"
+      <pre><code>PLONK with KZG 在 ZKML：
 
-KZG 後端特點：
-  - 需要可信設置（使用現有 Powers of Tau）
-  - 證明較小（~10-20 KB）
-  - 驗證較快（~10 ms）
-  - 適合需要鏈上驗證的應用</code></pre>
+PLONK 需要多項式承諾：
+  - 電路約束多項式
+  - 見證多項式
+  - 商多項式
 
-      <h2>安全性分析</h2>
+KZG 提供：
+  - O(1) 證明大小 → 適合鏈上驗證
+  - O(1) 驗證時間 → 低 gas 成本
 
-      <h3>安全假設</h3>
+典型 ZKML 證明結構（ezkl）：
+  - 模型參數承諾：~48 bytes
+  - 輸入承諾：~48 bytes
+  - 執行證明：~10 KB
+  - 驗證成本：~300K gas
 
-      <p>KZG 的安全性基於以下困難問題<sup><a href="#ref-1">[1]</a></sup>：</p>
+對比 IPA 後端：
+  - 證明更小（10 KB vs 50 KB）
+  - 驗證更快（10 ms vs 200 ms）
+  - 需可信設置（使用現有 SRS）</code></pre>
 
-      <ul>
-        <li><strong>q-SDH（q-Strong Diffie-Hellman）假設</strong>：
-          給定 \((g, g^\tau, g^{\tau^2}, \ldots, g^{\tau^q})\)，難以計算 \((c, g^{1/(\tau+c)})\) 對任意 \(c\)</li>
-        <li><strong>配對假設</strong>：離散對數問題在 \(\mathbb{G}_1, \mathbb{G}_2, \mathbb{G}_T\) 中均困難</li>
-      </ul>
+      <h3>框架支援</h3>
 
-      <h3>綁定性（Binding）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>KZG 支援</th>
+            <th>曲線</th>
+            <th>特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ezkl</td>
+            <td>是（可選）</td>
+            <td>BN254</td>
+            <td>EVM 驗證優化</td>
+          </tr>
+          <tr>
+            <td>ZKTorch</td>
+            <td>是（預設）</td>
+            <td>BLS12-381</td>
+            <td>批次累積</td>
+          </tr>
+          <tr>
+            <td>Halo2</td>
+            <td>是（後端選項）</td>
+            <td>BN254/BLS12-381</td>
+            <td>靈活切換</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <p>承諾具有計算綁定性：攻擊者無法找到兩個不同的多項式 \(f \neq g\) 使得 \(\text{Commit}(f) = \text{Commit}(g)\)。</p>
-
-      <h3>隱藏性（Hiding）</h3>
-
-      <p>基本 KZG 不具備隱藏性（承諾是確定性的）。若需隱藏性，可使用 Pedersen 變體：</p>
-
-      <p class="math">$$C = [f(\tau)]_1 + r \cdot [h(\tau)]_1$$</p>
-
-      <p>其中 \(r\) 是隨機遮罩值，\(h\) 是另一組 SRS。</p>
-
-      <h2>實作考量</h2>
-
-      <h3>多標量乘法（MSM）優化</h3>
-
-      <p>承諾計算的瓶頸是 MSM。常用優化技術：</p>
-
-      <ul>
-        <li><strong>Pippenger 算法</strong>：將 O(n) 次獨立群運算降至 O(n/log n)</li>
-        <li><strong>並行化</strong>：MSM 天然可並行</li>
-        <li><strong>GPU 加速</strong>：現代 GPU 可實現 10-100 倍加速</li>
-      </ul>
-
-      <h3>SRS 管理</h3>
-
-      <pre><code>常用 Powers of Tau 儀式：
-  - Zcash Powers of Tau：支援 2^28 次
-  - Ethereum KZG Ceremony：支援 2^16 次
-  - Perpetual Powers of Tau：持續擴展
-
-使用建議：
-  - 下載預計算的 SRS（避免重複計算）
-  - 根據電路大小選擇適當的 SRS 規模
-  - 驗證 SRS 的正確性（使用配對檢查）</code></pre>
-
-      <h2>與 IPA 的比較</h2>
+      <h2>與其他承諾方案比較</h2>
 
       <table>
         <thead>
@@ -312,38 +877,51 @@ KZG 後端特點：
             <th>特性</th>
             <th>KZG</th>
             <th>IPA</th>
+            <th>FRI</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>可信設置</strong></td>
             <td>需要</td>
-            <td>不需要（透明）</td>
+            <td>不需要</td>
+            <td>不需要</td>
           </tr>
           <tr>
             <td><strong>證明大小</strong></td>
-            <td>O(1) ~ 48 bytes</td>
-            <td>O(log n) ~ 數百 bytes</td>
+            <td>O(1) ~ 48B</td>
+            <td>O(log n) ~ 數百B</td>
+            <td>O(log² n) ~ 數十KB</td>
           </tr>
           <tr>
             <td><strong>驗證時間</strong></td>
-            <td>O(1) ~ 3 ms</td>
-            <td>O(n) ~ 數百 ms</td>
+            <td>O(1) ~ 3ms</td>
+            <td>O(n) ~ 數百ms</td>
+            <td>O(log² n) ~ 10ms</td>
           </tr>
           <tr>
             <td><strong>證明時間</strong></td>
             <td>O(n)</td>
             <td>O(n)</td>
+            <td>O(n log n)</td>
           </tr>
           <tr>
             <td><strong>後量子安全</strong></td>
             <td>否</td>
             <td>否</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>批次驗證</strong></td>
+            <td>優秀</td>
+            <td>中等</td>
+            <td>中等</td>
           </tr>
           <tr>
             <td><strong>遞迴友好</strong></td>
-            <td>需要配對電路</td>
-            <td>更適合遞迴</td>
+            <td>中（配對昂貴）</td>
+            <td>優（無配對）</td>
+            <td>優（僅雜湊）</td>
           </tr>
         </tbody>
       </table>
@@ -352,8 +930,9 @@ KZG 後端特點：
 
       <ul>
         <li><a href="ipa.html">IPA 內積論證</a> - 透明設置的替代方案</li>
-        <li><a href="fri.html">FRI</a> - 基於雜湊的多項式承諾</li>
-        <li><a href="../halo2.html">Halo2</a> - 支援 KZG 的證明系統</li>
+        <li><a href="fri.html">FRI</a> - 基於雜湊的後量子安全多項式承諾</li>
+        <li><a href="../proof-systems/plonk.html">PLONK</a> - KZG 的主要應用場景</li>
+        <li><a href="../proof-systems/groth16.html">Groth16</a> - 另一種基於配對的 zkSNARK</li>
         <li><a href="../../frameworks/academic/zktorch.html">ZKTorch</a> - 使用 KZG 的 ZKML 框架</li>
       </ul>
 
@@ -369,12 +948,16 @@ KZG 後端特點：
             <a href="https://eprint.iacr.org/2020/081" target="_blank" rel="noopener">ePrint</a>
           </li>
           <li id="ref-3">
+            <cite>Gabizon, A., Williamson, Z. J., & Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR ePrint 2019/953.</cite>
+            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
             <cite>Chen, B.-J., Tang, L., & Kang, D. "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation." arXiv:2507.07031, 2025.</cite>
             <a href="https://arxiv.org/abs/2507.07031" target="_blank" rel="noopener">arXiv</a>
           </li>
-          <li id="ref-4">
-            <cite>Zcash Team. "The halo2 Book." 2024.</cite>
-            <a href="https://zcash.github.io/halo2/" target="_blank" rel="noopener">文檔</a>
+          <li id="ref-5">
+            <cite>Ethereum Foundation. "KZG Ceremony Specification." 2023.</cite>
+            <a href="https://ceremony.ethereum.org/" target="_blank" rel="noopener">Website</a>
           </li>
         </ol>
       </section>

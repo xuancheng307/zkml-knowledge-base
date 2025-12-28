@@ -34,6 +34,76 @@
         <p>FRI（Fast Reed-Solomon Interactive Oracle Proof of Proximity）是一種基於雜湊函數的多項式承諾方案，是 STARK 證明系統的核心組件<sup><a href="#ref-1">[1]</a></sup>。FRI 不需要可信設置，且具備後量子安全性，但證明大小較大。</p>
       </div>
 
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#formal-definitions">形式化定義</a></li>
+          <li><a href="#fri-protocol">FRI 協議</a></li>
+          <li><a href="#rs-folding">Reed-Solomon 折疊</a></li>
+          <li><a href="#query-complexity">查詢複雜度分析</a></li>
+          <li><a href="#soundness-analysis">Soundness 分析</a></li>
+          <li><a href="#deep-fri">DEEP-FRI 變體</a></li>
+          <li><a href="#security-proofs">安全性證明</a></li>
+          <li><a href="#zkml-applications">ZKML 應用</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="formal-definitions">形式化定義</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition 1：Reed-Solomon 編碼</div>
+        <p>給定有限域 \(\mathbb{F}\)、求值域 \(D \subset \mathbb{F}\)（\(|D| = n\)）和次數界限 \(d < n\)，Reed-Solomon 編碼定義為：</p>
+        <p>\[\text{RS}[\mathbb{F}, D, d] := \{(f(\omega^0), f(\omega^1), \ldots, f(\omega^{n-1})) : f \in \mathbb{F}[X], \deg(f) < d\}\]</p>
+        <p>其中 \(\omega\) 是 \(D\) 作為乘法子群的生成元。碼率為 \(\rho = d/n\)。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 2：相對 Hamming 距離</div>
+        <p>兩個向量 \(\mathbf{u}, \mathbf{v} \in \mathbb{F}^n\) 的相對 Hamming 距離定義為：</p>
+        <p>\[\Delta(\mathbf{u}, \mathbf{v}) := \frac{|\{i : u_i \neq v_i\}|}{n}\]</p>
+        <p>向量 \(\mathbf{u}\) 到碼 \(C\) 的距離定義為：\(\Delta(\mathbf{u}, C) := \min_{\mathbf{c} \in C} \Delta(\mathbf{u}, \mathbf{c})\)</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 3：\(\delta\)-接近性（\(\delta\)-Closeness）</div>
+        <p>函數 \(f: D \to \mathbb{F}\) 被稱為與 \(\text{RS}[\mathbb{F}, D, d]\) \(\delta\)-接近，若且唯若：</p>
+        <p>\[\exists p \in \mathbb{F}[X], \deg(p) < d : \Delta(f, p|_D) \leq \delta\]</p>
+        <p>其中 \(p|_D\) 表示 \(p\) 在 \(D\) 上的求值向量。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 4：Interactive Oracle Proof of Proximity (IOPP)</div>
+        <p>IOPP 是一個 IOP 協議，用於判定問題 \((C, \delta)\)-proximity：</p>
+        <ul>
+          <li><strong>完備性</strong>：若 \(\mathbf{u} \in C\)，誠實證明者總能使驗證者接受</li>
+          <li><strong>Soundness</strong>：若 \(\Delta(\mathbf{u}, C) > \delta\)，則對任意證明策略，驗證者以高機率拒絕</li>
+        </ul>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 5：Blow-up Factor（膨脹因子）</div>
+        <p>FRI 協議中的膨脹因子定義為：</p>
+        <p>\[\rho^{-1} = \frac{|D|}{d} = \frac{n}{d}\]</p>
+        <p>常見選擇為 \(\rho^{-1} \in \{2, 4, 8, 16\}\)。膨脹因子越大，soundness 越好但證明者工作量增加。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 6：Coset（陪集）結構</div>
+        <p>設 \(D = \langle \omega \rangle\) 是 \(\mathbb{F}^*\) 的乘法子群，定義：</p>
+        <ul>
+          <li>二次剩餘子群：\(D^{(1)} = \{x^2 : x \in D\} = \langle \omega^2 \rangle\)</li>
+          <li>陪集分解：\(D = D^{(1)} \cup \omega \cdot D^{(1)}\)（對 \(\pm\omega^i\) 配對）</li>
+        </ul>
+        <p>此結構使得折疊後的域大小減半。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 7：Merkle 承諾</div>
+        <p>對向量 \(\mathbf{v} = (v_0, \ldots, v_{n-1})\)，Merkle 樹承諾定義為：</p>
+        <p>\[\text{MT.Commit}(\mathbf{v}) := \text{root}(\text{BuildTree}(\{H(v_i)\}_{i=0}^{n-1}))\]</p>
+        <p>其中 \(H\) 是抗碰撞雜湊函數，開啟證明大小為 \(O(\log n)\) 個雜湊值。</p>
+      </div>
+
       <h2>核心思想</h2>
 
       <h3>Reed-Solomon 編碼</h3>
@@ -57,107 +127,294 @@
 
       <p>其中 \(\delta\)-接近表示：\(|\{x \in D : f(x) \neq p(x)\}| < \delta |D|\)</p>
 
-      <h2>FRI 協議</h2>
+      <h2 id="fri-protocol">FRI 協議</h2>
 
-      <h3>基本構造</h3>
+      <h3>協議概覽</h3>
 
-      <pre><code>FRI_Commit(f, D):
-  // f: 次數 ≤ d 的多項式
-  // D: 求值域（通常是乘法子群）
+      <p>FRI 協議分為兩個階段<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <ol>
+        <li><strong>承諾階段（Commit Phase）</strong>：證明者透過迭代折疊將多項式次數減半</li>
+        <li><strong>查詢階段（Query Phase）</strong>：驗證者抽樣檢查折疊的一致性</li>
+      </ol>
 
-  // 第 0 層：對整個域求值
-  f_0(x) = f(x) for x ∈ D
-  commitment_0 = MerkleTree(f_0)
+      <h3>Algorithm 1：FRI.Commit</h3>
 
-  // 迭代折疊
-  for i = 1 to log(d):
-    // 接收隨機挑戰
-    α_i = Hash(transcript)
+      <pre><code>FRI.Commit(f, D, ρ):
+  輸入：
+    - f ∈ F[X]：次數 < d 的多項式
+    - D ⊂ F：求值域，|D| = n = d/ρ（乘法子群）
+    - ρ：碼率（rate）
 
-    // 折疊：將 f 分解為奇偶部分
-    // f(x) = f_even(x²) + x · f_odd(x²)
-    // f'(x) = f_even(x) + α · f_odd(x)
-    f_i(x) = fold(f_{i-1}, α_i)
+  輸出：
+    - (C₀, C₁, ..., Cₖ)：各層 Merkle root
+    - f_final：最終常數值
+    - transcript：Fiat-Shamir 轉錄
 
-    // 在更小的域上求值
-    D_i = {x² : x ∈ D_{i-1}}
-    commitment_i = MerkleTree(f_i)
+  1. 初始化：
+     f⁽⁰⁾ := f
+     D⁽⁰⁾ := D
+     k := log₂(d)  // 折疊輪數
+     transcript := ∅
 
-  // 最終層：常數多項式
-  return (commitment_0, ..., commitment_k, f_final)</code></pre>
+  2. 對整個域求值並承諾：
+     評估向量 v⁽⁰⁾ := (f⁽⁰⁾(ω⁰), f⁽⁰⁾(ω¹), ..., f⁽⁰⁾(ω^{n-1}))
+     C₀ := MT.Commit(v⁽⁰⁾)
+     transcript := transcript || C₀
 
-      <h3>折疊過程</h3>
+  3. 迭代折疊（i = 1 to k）：
+     a. 生成隨機挑戰：
+        αᵢ := H(transcript)  // Fiat-Shamir
 
-      <p>FRI 的關鍵是多項式折疊<sup><a href="#ref-1">[1]</a></sup>：</p>
+     b. 計算折疊多項式：
+        對 f⁽ⁱ⁻¹⁾(X) = f_even(X²) + X · f_odd(X²)
+        f⁽ⁱ⁾(Y) := f_even(Y) + αᵢ · f_odd(Y)
 
-      <pre><code>fold(f, α):
-  // 將 f(x) 分解：
-  // f(x) = f_even(x²) + x · f_odd(x²)
+     c. 更新求值域：
+        D⁽ⁱ⁾ := {x² : x ∈ D⁽ⁱ⁻¹⁾}
+        注意：|D⁽ⁱ⁾| = |D⁽ⁱ⁻¹⁾|/2
 
-  // 例如：f(x) = c_0 + c_1·x + c_2·x² + c_3·x³
-  // f_even(y) = c_0 + c_2·y
-  // f_odd(y) = c_1 + c_3·y
+     d. 求值並承諾：
+        v⁽ⁱ⁾ := (f⁽ⁱ⁾(y) : y ∈ D⁽ⁱ⁾)
+        Cᵢ := MT.Commit(v⁽ⁱ⁾)
+        transcript := transcript || Cᵢ
 
-  // 折疊後：
-  f'(y) = f_even(y) + α · f_odd(y)
+  4. 最終層：
+     f_final := f⁽ᵏ⁾（常數多項式）
 
-  // 關鍵性質：
-  // deg(f') ≤ deg(f) / 2
-  // 若 f 是低次多項式，f' 也是
-  // 若 f 不是，折疊後更容易檢測</code></pre>
+  return (C₀, ..., Cₖ, f_final, transcript)</code></pre>
 
-      <h3>查詢階段</h3>
+      <h3>Algorithm 2：FRI.Query</h3>
 
-      <pre><code>FRI_Query(commitments, x, num_queries):
-  proofs = []
+      <pre><code>FRI.Query(commitments, transcript, λ):
+  輸入：
+    - commitments = (C₀, ..., Cₖ)：各層承諾
+    - transcript：之前的轉錄
+    - λ：安全參數（查詢次數）
 
-  for q = 1 to num_queries:
-    x_0 = sample_random(D)
-    query_proof = []
+  輸出：
+    - queries：λ 個查詢及其 Merkle 證明
 
-    for i = 0 to k-1:
-      // 查詢配對點
-      x_i = current_domain_point
-      -x_i = -x_i (共軛點)
+  1. 生成查詢點：
+     for q = 1 to λ:
+       // 使用 Fiat-Shamir 生成隨機起始點
+       s_q := H(transcript || q) mod |D⁽⁰⁾|
+       x₀⁽ᑫ⁾ := ω^{s_q}  // D⁽⁰⁾ 中的點
 
-      // 從 Merkle 樹獲取值和證明
-      (v_+, proof_+) = MerkleQuery(commitment_i, x_i)
-      (v_-, proof_-) = MerkleQuery(commitment_i, -x_i)
+  2. 對每個查詢收集路徑：
+     for q = 1 to λ:
+       path_q := []
+       x := x₀⁽ᑫ⁾
 
-      // 驗證者檢查折疊一致性
-      v_next = (v_+ + v_-)/2 + α_i · (v_+ - v_-)/(2·x_i)
+       for i = 0 to k-1:
+         // 查詢點及其「配對點」
+         x⁺ := x
+         x⁻ := -x  // 在乘法群中，-ω^j = ω^{j+n/2}
 
-      query_proof.append((v_+, v_-, proof_+, proof_-))
-      x_{i+1} = x_i²
+         // 獲取值和 Merkle 證明
+         (v⁺, π⁺) := MT.Open(Cᵢ, x⁺)
+         (v⁻, π⁻) := MT.Open(Cᵢ, x⁻)
 
-    proofs.append(query_proof)
+         path_q.append((v⁺, v⁻, π⁺, π⁻))
 
-  return proofs</code></pre>
+         // 移動到下一層
+         x := x²  // 對應 D⁽ⁱ⁺¹⁾ 中的點
 
-      <h3>驗證</h3>
+       queries.append((x₀⁽ᑫ⁾, path_q))
 
-      <pre><code>FRI_Verify(commitments, final_value, queries):
-  for each query in queries:
-    x_0 = query.start_point
+  return queries</code></pre>
 
-    for i = 0 to k-1:
-      (v_+, v_-, proof_+, proof_-) = query[i]
+      <h3>Algorithm 3：FRI.Verify</h3>
 
-      // 驗證 Merkle 證明
-      assert MerkleVerify(commitment_i, x_i, v_+, proof_+)
-      assert MerkleVerify(commitment_i, -x_i, v_-, proof_-)
+      <pre><code>FRI.Verify(commitments, f_final, queries, transcript):
+  輸入：
+    - commitments = (C₀, ..., Cₖ)
+    - f_final：聲稱的最終常數
+    - queries：λ 個查詢路徑
+    - transcript：Fiat-Shamir 轉錄
 
-      // 驗證折疊一致性
-      expected = (v_+ + v_-)/2 + α_i · (v_+ - v_-)/(2·x_i)
-      actual = query[i+1].v_+ (在 x_i² 處)
-      assert expected == actual
+  輸出：
+    - accept/reject
 
-    // 驗證最終值
-    assert query.final == final_value
+  1. 重建隨機挑戰：
+     for i = 1 to k:
+       αᵢ := H(transcript 前綴到 Cᵢ₋₁)
 
-  return true</code></pre>
+  2. 對每個查詢驗證：
+     for q = 1 to λ:
+       (x₀, path) := queries[q]
+       x := x₀
 
-      <h2>複雜度分析</h2>
+       for i = 0 to k-1:
+         (v⁺, v⁻, π⁺, π⁻) := path[i]
+
+         // 步驟 2a：驗證 Merkle 證明
+         if not MT.Verify(Cᵢ, x, v⁺, π⁺):
+           return reject
+         if not MT.Verify(Cᵢ, -x, v⁻, π⁻):
+           return reject
+
+         // 步驟 2b：驗證折疊一致性
+         // f(x) = f_even(x²) + x · f_odd(x²)
+         // f(-x) = f_even(x²) - x · f_odd(x²)
+         // 因此：
+         //   f_even(x²) = (f(x) + f(-x)) / 2
+         //   f_odd(x²) = (f(x) - f(-x)) / (2x)
+         // 折疊值：f'(x²) = f_even(x²) + α · f_odd(x²)
+
+         v_even := (v⁺ + v⁻) / 2
+         v_odd := (v⁺ - v⁻) / (2 · x)
+         expected := v_even + αᵢ₊₁ · v_odd
+
+         // 獲取下一層在 x² 處的值
+         if i < k-1:
+           actual := path[i+1].v⁺ 或 v⁻（取決於 x² 的位置）
+         else:
+           actual := f_final
+
+         if expected ≠ actual:
+           return reject
+
+         x := x²
+
+  return accept</code></pre>
+
+      <h2 id="rs-folding">Reed-Solomon 折疊</h2>
+
+      <h3>折疊的數學基礎</h3>
+
+      <p>FRI 的核心是多項式折疊操作<sup><a href="#ref-1">[1]</a></sup>。給定多項式 \(f(X)\)，可唯一分解為：</p>
+
+      <p>\[f(X) = f_{\text{even}}(X^2) + X \cdot f_{\text{odd}}(X^2)\]</p>
+
+      <p>其中：</p>
+      <ul>
+        <li>\(f_{\text{even}}(Y) = \sum_{i=0}^{d/2-1} c_{2i} \cdot Y^i\)（偶數係數）</li>
+        <li>\(f_{\text{odd}}(Y) = \sum_{i=0}^{d/2-1} c_{2i+1} \cdot Y^i\)（奇數係數）</li>
+      </ul>
+
+      <h3>折疊算子</h3>
+
+      <pre><code>FRI.Fold(f, α):
+  輸入：
+    - f(X) = Σᵢ cᵢXⁱ：次數 < d 的多項式
+    - α ∈ F：隨機折疊因子
+
+  輸出：
+    - f'(Y)：次數 < d/2 的多項式
+
+  1. 分解 f：
+     f_even(Y) := c₀ + c₂Y + c₄Y² + ...
+     f_odd(Y) := c₁ + c₃Y + c₅Y² + ...
+
+  2. 線性組合：
+     f'(Y) := f_even(Y) + α · f_odd(Y)
+
+  3. 次數保證：
+     deg(f') ≤ max(deg(f_even), deg(f_odd))
+            = ⌊deg(f)/2⌋
+
+  範例：
+    f(X) = 3 + 5X + 7X² + 2X³ + X⁴（deg = 4）
+    f_even(Y) = 3 + 7Y + Y²
+    f_odd(Y) = 5 + 2Y
+
+    取 α = 4：
+    f'(Y) = (3 + 7Y + Y²) + 4·(5 + 2Y)
+          = 23 + 15Y + Y²（deg = 2）</code></pre>
+
+      <h3>折疊與求值的關係</h3>
+
+      <p>關鍵觀察：給定 \(f(x)\) 和 \(f(-x)\)，可以在不知道多項式係數的情況下計算折疊值<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>從求值計算折疊：
+  已知：
+    f(x) = f_even(x²) + x · f_odd(x²)
+    f(-x) = f_even(x²) - x · f_odd(x²)
+
+  求解：
+    f_even(x²) = [f(x) + f(-x)] / 2
+    f_odd(x²) = [f(x) - f(-x)] / (2x)
+
+  折疊值：
+    f'(x²) = f_even(x²) + α · f_odd(x²)
+           = [f(x) + f(-x)]/2 + α · [f(x) - f(-x)]/(2x)
+           = [(1 + α/x)·f(x) + (1 - α/x)·f(-x)] / 2
+
+數值範例：
+  設 f(X) = 2 + 3X + X²（在 F₁₇ 上）
+  取 x = 4，則 -x = 13（在 F₁₇ 中）
+
+  f(4) = 2 + 12 + 16 = 30 ≡ 13 (mod 17)
+  f(13) = 2 + 39 + 169 = 210 ≡ 6 (mod 17)
+
+  f_even(16) = (13 + 6)/2 = 19/2 ≡ 19·9 ≡ 1 (mod 17)
+  f_odd(16) = (13 - 6)/(2·4) = 7/8 ≡ 7·15 ≡ 3 (mod 17)
+
+  取 α = 5：
+  f'(16) = 1 + 5·3 = 16</code></pre>
+
+      <h3>折疊正確性定理</h3>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 1：折疊保持低次性</div>
+        <p>設 \(f \in \mathbb{F}[X]\) 滿足 \(\deg(f) < d\)，\(\alpha \in \mathbb{F}\) 為任意域元素。則折疊結果 \(f' = \text{Fold}(f, \alpha)\) 滿足 \(\deg(f') < d/2\)。</p>
+      </div>
+
+      <p><strong>證明</strong>：由定義，\(f_{\text{even}}\) 和 \(f_{\text{odd}}\) 的次數均 \(\leq \lfloor(d-1)/2\rfloor < d/2\)。線性組合不增加次數。∎</p>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 2：折疊的可驗證性</div>
+        <p>對於 \(x \in D\) 和 \(-x \in D\)（其中 \(x^2 \in D'\)），折疊值 \(f'(x^2)\) 可由 \(f(x), f(-x), \alpha\) 唯一確定。</p>
+      </div>
+
+      <h3>域大小的遞減</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>輪次</th>
+            <th>域大小</th>
+            <th>多項式次數</th>
+            <th>承諾大小</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>\(n = d/\rho\)</td>
+            <td>\(< d\)</td>
+            <td>\(O(n)\)</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>\(n/2\)</td>
+            <td>\(< d/2\)</td>
+            <td>\(O(n/2)\)</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>\(n/4\)</td>
+            <td>\(< d/4\)</td>
+            <td>\(O(n/4)\)</td>
+          </tr>
+          <tr>
+            <td>\(\vdots\)</td>
+            <td>\(\vdots\)</td>
+            <td>\(\vdots\)</td>
+            <td>\(\vdots\)</td>
+          </tr>
+          <tr>
+            <td>\(\log_2 d\)</td>
+            <td>\(n/d = 1/\rho\)</td>
+            <td>常數</td>
+            <td>\(O(1)\)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="query-complexity">查詢複雜度分析</h2>
+
+      <h3>複雜度總覽</h3>
 
       <table>
         <thead>
@@ -171,209 +428,414 @@
         <tbody>
           <tr>
             <td><strong>Setup</strong></td>
-            <td>O(1)</td>
-            <td>O(1)</td>
+            <td>\(O(1)\)</td>
+            <td>\(O(1)\)</td>
             <td>完全透明，無需設置</td>
           </tr>
           <tr>
             <td><strong>Commit</strong></td>
-            <td>O(n log n)</td>
-            <td>O(n)</td>
+            <td>\(O(n \log n)\)</td>
+            <td>\(O(n)\)</td>
             <td>FFT + Merkle 樹建構</td>
           </tr>
           <tr>
             <td><strong>Prove</strong></td>
-            <td>O(n log n)</td>
-            <td>O(n)</td>
-            <td>log n 輪折疊 + 查詢</td>
+            <td>\(O(n \log n)\)</td>
+            <td>\(O(n)\)</td>
+            <td>\(\log n\) 輪折疊 + 查詢</td>
           </tr>
           <tr>
             <td><strong>Verify</strong></td>
-            <td>O(λ log² n)</td>
-            <td>O(log n)</td>
-            <td>λ = 安全參數（查詢數）</td>
+            <td>\(O(\lambda \log^2 n)\)</td>
+            <td>\(O(\log n)\)</td>
+            <td>\(\lambda\) = 安全參數（查詢數）</td>
           </tr>
           <tr>
             <td><strong>證明大小</strong></td>
             <td>-</td>
-            <td>O(λ log² n)</td>
+            <td>\(O(\lambda \log^2 n)\)</td>
             <td>較大，主要缺點</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>安全性參數</h2>
+      <h3>查詢數量與安全性</h3>
 
-      <h3>查詢數量</h3>
+      <p>FRI 的 soundness error 由查詢數量和碼參數決定<sup><a href="#ref-1">[1]</a></sup>：</p>
 
-      <p>安全性與查詢數量直接相關<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <div class="theorem">
+        <div class="theorem-title">Theorem 3：FRI Soundness Error</div>
+        <p>設 FRI 協議使用碼率 \(\rho\)，距離參數 \(\delta\)，執行 \(\lambda\) 次獨立查詢。則 soundness error 為：</p>
+        <p>\[\epsilon_{\text{sound}} \leq \left( \max\{\rho^{1/2}, 1 - \delta + \epsilon_0\} \right)^\lambda\]</p>
+        <p>其中 \(\epsilon_0\) 是與碼距相關的小常數。</p>
+      </div>
 
-      <pre><code>soundness_error ≈ (1 - δ + ε)^num_queries
+      <pre><code>查詢數量計算：
 
-其中：
-  δ = 接近性參數（通常 1/2 或 1/4）
-  ε = 碼率相關誤差
-  num_queries = 查詢數量
+給定目標安全等級 κ bits：
+  λ ≥ κ / log₂(1 / max{ρ^{1/2}, 1-δ+ε})
 
-典型配置：
-  - 80-bit 安全性：約 40 次查詢
-  - 128-bit 安全性：約 64 次查詢
+範例配置（ρ = 1/4，即 4x blowup）：
+  - 每次查詢貢獻 ≈ 2 bits 安全性
+  - 80-bit 安全：λ ≈ 40 次查詢
+  - 128-bit 安全：λ ≈ 64 次查詢
 
-證明大小影響：
-  每次查詢 ≈ 32 bytes × log(n) × 2（Merkle 路徑）
-  128-bit 安全，n = 2^20：
-    ≈ 64 × 32 × 20 × 2 ≈ 80 KB</code></pre>
+範例配置（ρ = 1/8，即 8x blowup）：
+  - 每次查詢貢獻 ≈ 2.5 bits 安全性
+  - 80-bit 安全：λ ≈ 32 次查詢
+  - 128-bit 安全：λ ≈ 52 次查詢</code></pre>
 
-      <h3>Blowup Factor</h3>
+      <h3>證明大小分析</h3>
 
-      <p>求值域大小與多項式次數的比值<sup><a href="#ref-2">[2]</a></sup>：</p>
+      <pre><code>證明大小 = 承諾 + 查詢路徑 + 最終值
 
-      <pre><code>blowup_factor = |D| / (d + 1)
+詳細分解：
+  1. 承諾階段：
+     - k = log₂(d) 個 Merkle root
+     - 每個 root: 32 bytes（256-bit hash）
+     - 總計：32k bytes
 
-常見選擇：
-  - 2x：高效率但安全性較低
-  - 4x：平衡選擇
-  - 8x：更高安全性
+  2. 查詢階段（每次查詢）：
+     - k 層，每層 2 個葉節點值
+     - 每層 2 條 Merkle 路徑，每條 log₂(n/2^i) 個雜湊
+     - 單次查詢：≈ 2k · (log₂(n) + log₂(n/2) + ... + 1) / k
+                ≈ 2k · log₂(n) 雜湊 = 64k log₂(n) bytes
 
-影響：
-  - 更大的 blowup → 更小的 δ → 更少查詢 → 更小證明
-  - 但需要更多計算和儲存</code></pre>
+  3. λ 次查詢總計：
+     - 64 · λ · k · log₂(n) bytes（可優化）
 
-      <h2>DEEP-FRI 變體</h2>
+  4. 最終常數值：O(1) bytes
 
-      <p>DEEP（Domain Extension for Elimination of Preprocessing）改進版本<sup><a href="#ref-2">[2]</a></sup>：</p>
+總證明大小（未優化）：
+  O(λ · log²(n)) bytes
 
-      <pre><code>DEEP-FRI 改進：
-  1. 在域外點進行查詢
-  2. 減少 blowup factor 需求
-  3. 更好的安全性分析
+數值範例（n = 2²⁰，λ = 64，k = 20）：
+  ≈ 64 × 20 × 20 × 32 = 819,200 bytes ≈ 800 KB
 
-協議變化：
-  - 驗證者選取隨機點 z ∉ D
-  - 證明者提供 f(z) 及一致性證明
-  - 將問題轉化為接近性測試
+優化後（使用 Merkle cap）：
+  ≈ 80-150 KB（減少 80-90%）</code></pre>
 
-優勢：
-  - 4x blowup 可達 2x blowup 的效果
-  - 證明大小減少約 50%</code></pre>
+      <h3>Blowup Factor 權衡</h3>
 
-      <h2>在 STARK 中的應用</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>\(\rho^{-1}\)（Blowup）</th>
+            <th>每查詢安全 bits</th>
+            <th>128-bit 需查詢數</th>
+            <th>證明者開銷</th>
+            <th>證明大小</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2×</td>
+            <td>~1.4</td>
+            <td>~91</td>
+            <td>低</td>
+            <td>最大</td>
+          </tr>
+          <tr>
+            <td>4×</td>
+            <td>~2.0</td>
+            <td>~64</td>
+            <td>中</td>
+            <td>中</td>
+          </tr>
+          <tr>
+            <td>8×</td>
+            <td>~2.5</td>
+            <td>~52</td>
+            <td>高</td>
+            <td>較小</td>
+          </tr>
+          <tr>
+            <td>16×</td>
+            <td>~3.0</td>
+            <td>~43</td>
+            <td>很高</td>
+            <td>小</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <h3>STARK 架構</h3>
+      <h2 id="soundness-analysis">Soundness 分析</h2>
 
-      <p>FRI 是 STARK 證明系統的核心<sup><a href="#ref-3">[3]</a></sup>：</p>
+      <h3>Soundness 直觀理解</h3>
 
-      <pre><code>STARK 證明流程：
-  1. 算術化：將計算轉換為多項式約束
-     - 執行軌跡 → 軌跡多項式 T(x)
-     - 約束 → 組合多項式 C(x)
+      <p>FRI 的 soundness 來自兩個關鍵觀察<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <ol>
+        <li><strong>距離放大</strong>：若 \(f\) 遠離低次多項式，折疊後距離不會減少太多</li>
+        <li><strong>局部一致性</strong>：惡意證明者無法同時欺騙所有查詢點</li>
+      </ol>
 
-  2. 多項式承諾：使用 FRI
-     - 對 T(x), C(x) 進行 FRI 承諾
+      <h3>Johnson Bound</h3>
 
-  3. 查詢：
-     - 驗證者隨機選取查詢點
-     - 證明者提供 FRI 證明
+      <div class="definition">
+        <div class="definition-title">Definition 8：Johnson Bound</div>
+        <p>對於 \([n, k, d]_q\) Reed-Solomon 碼（碼長 \(n\)，維度 \(k\)，最小距離 \(d = n - k + 1\)），Johnson 半徑定義為：</p>
+        <p>\[\delta_J := 1 - \sqrt{\rho} = 1 - \sqrt{k/n}\]</p>
+        <p>在此半徑內，任意點的鄰居數有界。</p>
+      </div>
 
-  4. 驗證：
-     - 檢查約束滿足性
-     - 驗證 FRI 證明
+      <h3>Correlated Agreement 定理</h3>
 
-FRI 在 STARK 中的角色：
-  - 證明 C(x) = T(x) · Z(x) / V(x) 是低次多項式
-  - 這確保了軌跡滿足所有約束</code></pre>
+      <div class="theorem">
+        <div class="theorem-title">Theorem 4：Correlated Agreement</div>
+        <p>設 \(f^{(0)}\) 是提交的初始函數，\(f^{(1)}, \ldots, f^{(k)}\) 是折疊後的函數。若 FRI 驗證者以機率 \(\geq \epsilon\) 接受，則存在多項式 \(p^{(0)}, \ldots, p^{(k)}\) 使得：</p>
+        <ol>
+          <li>\(\deg(p^{(i)}) < d/2^i\)（次數遞減）</li>
+          <li>\(p^{(i+1)} = \text{Fold}(p^{(i)}, \alpha_i)\)（折疊一致）</li>
+          <li>\(\Pr_{x \in D^{(i)}}[f^{(i)}(x) = p^{(i)}(x)] \geq 1 - \delta + \epsilon'\)（高一致性）</li>
+        </ol>
+        <p>其中 \(\epsilon' = O(\epsilon / \lambda)\) 取決於查詢數。</p>
+      </div>
 
-      <h3>ZKML 相關系統</h3>
+      <h3>Soundness 證明框架</h3>
+
+      <pre><code>Soundness 證明思路：
+
+反證法：假設 f⁽⁰⁾ 距離 RS[F, D, d] 超過 δ
+
+1. 折疊分析：
+   - 每次折疊，若 f⁽ⁱ⁾ 遠離 RS[F, D⁽ⁱ⁾, d/2ⁱ]
+   - 則 f⁽ⁱ⁺¹⁾ 以高機率仍遠離 RS[F, D⁽ⁱ⁺¹⁾, d/2^{i+1}]
+
+2. 距離衰減引理：
+   Δ(f⁽ⁱ⁺¹⁾, RS) ≥ g(Δ(f⁽ⁱ⁾, RS))
+   其中 g 是某個漸進衰減函數
+
+3. 查詢檢測：
+   - 單次查詢檢測到不一致的機率 ≥ Δ(f⁽ⁱ⁾, RS)
+   - λ 次獨立查詢後，全部逃過的機率 ≤ (1 - Δ)^λ
+
+4. 結合各層：
+   - 總 soundness error = Π_i (1 - Δᵢ)^λ
+   - 由距離衰減引理，這被 (max{ρ^{1/2}, 1-δ})^λ 控制</code></pre>
+
+      <h3>完備性證明</h3>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 5：FRI 完備性</div>
+        <p>若 \(f \in \text{RS}[\mathbb{F}, D, d]\)（即 \(f\) 是次數 \(< d\) 的多項式在 \(D\) 上的求值），則誠實證明者產生的證明總是被驗證者接受。</p>
+      </div>
+
+      <p><strong>證明</strong>：</p>
+      <ol>
+        <li>由 Theorem 1，每次折疊保持低次性：\(\deg(f^{(i)}) < d/2^i\)</li>
+        <li>折疊公式的代數正確性確保一致性檢查通過</li>
+        <li>Merkle 證明由誠實構建，必定正確</li>
+        <li>因此驗證者總是接受。∎</li>
+      </ol>
+
+      <h2 id="deep-fri">DEEP-FRI 變體</h2>
+
+      <p>DEEP（Domain Extension for Elimination of Preprocessing）是 FRI 的重要改進<sup><a href="#ref-2">[2]</a></sup>，透過在域外採樣增強 soundness。</p>
+
+      <h3>DEEP-FRI 動機</h3>
+
+      <p>標準 FRI 的限制：</p>
+      <ul>
+        <li>soundness 依賴 Johnson bound，需要較大 blowup factor</li>
+        <li>對某些「壞」函數，可能需要更多查詢</li>
+        <li>批次開啟多個多項式時效率不佳</li>
+      </ul>
+
+      <h3>DEEP-FRI 協議</h3>
+
+      <pre><code>DEEP-FRI.Prove(f, D, z):
+  輸入：
+    - f：待證明的多項式
+    - D：求值域
+    - z ∉ D：域外隨機點（由 Fiat-Shamir 生成）
+
+  1. 計算域外求值：
+     y := f(z)
+     證明者發送 y
+
+  2. 構造商多項式：
+     g(X) := [f(X) - y] / (X - z)
+
+     關鍵性質：
+     - 若 f 是次數 < d 的多項式，則 g 是次數 < d-1 的多項式
+     - 若 f 在某些點「作弊」，則 g 在那些點會產生非多項式值
+
+  3. 對 g 執行標準 FRI：
+     FRI.Prove(g, D)
+
+DEEP-FRI.Verify(commitments, y, z, proof):
+  1. 驗證商多項式的 FRI 證明
+  2. 對每個查詢點 x，檢查：
+     f(x) = g(x) · (x - z) + y
+
+優勢分析：
+  - 域外採樣消除了 Johnson bound 的依賴
+  - 2x blowup 即可達到與標準 FRI 4x blowup 相同的安全性
+  - 證明大小減少 ~40-50%</code></pre>
+
+      <h3>批次多項式開啟</h3>
+
+      <pre><code>批次 DEEP-FRI：同時開啟 f₁, f₂, ..., fₘ 在點 z
+
+1. 證明者發送各 yᵢ = fᵢ(z)
+
+2. 驗證者發送隨機線性組合係數 β₁, ..., βₘ
+
+3. 構造組合多項式：
+   F(X) := Σᵢ βᵢ · fᵢ(X)
+   Y := Σᵢ βᵢ · yᵢ
+
+4. 對商多項式執行 FRI：
+   G(X) := [F(X) - Y] / (X - z)
+
+效率：
+  - m 個多項式只需一次 FRI 證明
+  - 額外開銷：m 個域元素（各 yᵢ）</code></pre>
+
+      <h2 id="security-proofs">安全性證明</h2>
+
+      <h3>安全假設</h3>
+
+      <p>FRI 僅依賴以下加密假設：</p>
+
+      <div class="definition">
+        <div class="definition-title">Definition 9：抗碰撞雜湊函數（CRHF）</div>
+        <p>函數 \(H: \{0,1\}^* \to \{0,1\}^\kappa\) 是抗碰撞的，若對於所有 PPT 敵手 \(\mathcal{A}\)：</p>
+        <p>\[\Pr[(x, x') \leftarrow \mathcal{A}(1^\kappa) : x \neq x' \land H(x) = H(x')] \leq \text{negl}(\kappa)\]</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 10：隨機預言機（Random Oracle）</div>
+        <p>在隨機預言機模型中，雜湊函數 \(H\) 被建模為一個理想化的隨機函數。Fiat-Shamir 變換在此模型下將互動協議轉換為非互動協議。</p>
+      </div>
+
+      <h3>Theorem 6：FRI 安全性定理</h3>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 6：FRI IOP 安全性</div>
+        <p>在隨機預言機模型中，FRI 是一個安全的 RS-IOPP：</p>
+        <ul>
+          <li><strong>完備性</strong>：完美（\(\epsilon_c = 0\)）</li>
+          <li><strong>Soundness</strong>：\(\epsilon_s \leq (\max\{\sqrt{\rho}, 1-\delta\})^\lambda + q_H \cdot 2^{-\kappa}\)</li>
+          <li><strong>知識提取</strong>：存在 PPT 提取器可從接受的證明重構多項式</li>
+        </ul>
+        <p>其中 \(q_H\) 是敵手的雜湊查詢數，\(\kappa\) 是雜湊輸出長度。</p>
+      </div>
+
+      <h3>後量子安全性分析</h3>
+
+      <pre><code>FRI 的後量子安全性：
+
+1. 雜湊函數安全性：
+   - 經典：SHA-256 提供 256-bit 碰撞抗性
+   - 量子：Grover 算法將碰撞抗性降至 128-bit
+   - 解決：使用 SHA-512 或更長雜湊
+
+2. Fiat-Shamir 安全性：
+   - 在量子隨機預言機模型（QROM）中仍然安全
+   - 需要增加查詢數以補償
+
+3. 參數調整：
+   - 雜湊長度：256 → 512 bits
+   - 查詢數：保持或略增
+   - 證明大小增加：~1.5-2x
+
+4. 與基於群的方案比較：
+   ┌──────────────┬────────────────┬───────────────┐
+   │ 方案         │ 經典安全       │ 後量子安全    │
+   ├──────────────┼────────────────┼───────────────┤
+   │ FRI          │ 128-bit        │ 128-bit*      │
+   │ KZG          │ 128-bit        │ 已破解        │
+   │ IPA          │ 128-bit        │ 已破解        │
+   └──────────────┴────────────────┴───────────────┘
+   * 需調整參數</code></pre>
+
+      <h2 id="zkml-applications">ZKML 應用</h2>
+
+      <h3>FRI 在 ZKML 系統中的角色</h3>
+
+      <p>FRI 作為 STARK 的核心組件，在 ZKML 系統中發揮重要作用：</p>
 
       <table>
         <thead>
           <tr>
             <th>系統</th>
             <th>FRI 使用</th>
-            <th>特點</th>
+            <th>ZKML 特點</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>RISC Zero</strong></td>
             <td>核心承諾</td>
-            <td>zkVM 執行軌跡驗證</td>
+            <td>zkVM 支援任意 ML 推論</td>
           </tr>
           <tr>
             <td><strong>Cairo/StarkNet</strong></td>
             <td>核心承諾</td>
-            <td>智能合約執行證明</td>
+            <td>原生支援定點數運算</td>
           </tr>
           <tr>
             <td><strong>Polygon Miden</strong></td>
             <td>核心承諾</td>
-            <td>遞迴 STARK</td>
+            <td>遞迴 STARK 支援大模型</td>
+          </tr>
+          <tr>
+            <td><strong>zkCNN</strong></td>
+            <td>間接使用</td>
+            <td>CNN 推論驗證</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>後量子安全性</h2>
+      <h3>ZKML 場景優勢</h3>
 
-      <h3>安全假設</h3>
+      <pre><code>FRI 在 ZKML 的優勢：
 
-      <p>FRI 僅依賴雜湊函數的安全性<sup><a href="#ref-1">[1]</a></sup>：</p>
+1. 透明設置：
+   - 無需可信設置，適合去中心化 AI 服務
+   - 模型更新不需重新執行 ceremony
 
-      <ul>
-        <li><strong>抗碰撞性</strong>：難以找到 \(x \neq y\) 使 \(H(x) = H(y)\)</li>
-        <li><strong>抗原像性</strong>：給定 \(h\)，難以找到 \(x\) 使 \(H(x) = h\)</li>
-        <li><strong>隨機預言機模型</strong>：Fiat-Shamir 變換的安全性</li>
-      </ul>
+2. 後量子安全：
+   - 長期 AI 模型驗證（10+ 年）
+   - 政府/金融等高安全要求場景
 
-      <h3>量子安全分析</h3>
+3. 大電路友好：
+   - 證明時間隨電路大小準線性增長
+   - 適合大型 ML 模型（百萬級參數）
 
-      <pre><code>經典安全 vs 後量子安全：
+4. 實際應用：
+   - 圖像分類驗證
+   - 自然語言處理驗證
+   - 推薦系統公平性證明
 
-雜湊函數（如 SHA-256）：
-  - 經典：256-bit 安全
-  - 量子：128-bit 安全（Grover 算法）
+限制：
+   - 證明大小較大（數十 KB ~ 數百 KB）
+   - 需要更多頻寬傳輸
+   - 適合鏈下驗證或 L2 場景</code></pre>
 
-FRI 影響：
-  - 增加雜湊輸出長度（256 → 512 bits）
-  - 或增加查詢次數
-  - 證明大小約增加 2 倍
+      <h3>效能優化技術</h3>
 
-與 KZG/IPA 比較：
-  - KZG/IPA：基於橢圓曲線，不抗量子
-  - FRI：僅需調整參數即可抗量子</code></pre>
+      <pre><code>ZKML 專用優化：
 
-      <h2>效能優化</h2>
+1. 並行 FFT：
+   - ML 中大量相似計算
+   - GPU 加速 NTT 運算
+   - 實現 10-100x 加速
 
-      <h3>FFT 優化</h3>
+2. Merkle 樹優化：
+   - 使用 Merkle cap 減少證明大小
+   - SIMD 雜湊加速
+   - 批次處理節點
 
-      <pre><code>FRI 大量使用 FFT：
+3. 域選擇：
+   - Goldilocks 域（64-bit prime）
+   - Baby Bear 域（31-bit prime）
+   - 適合 CPU 原生運算
 
-標準 FFT：O(n log n)
-
-優化技術：
-  1. NTT（Number Theoretic Transform）
-     - 使用有限域而非複數
-     - 避免浮點誤差
-
-  2. 並行化
-     - FFT 天然可並行
-     - GPU 加速可達 10-100x
-
-  3. 快取優化
-     - 改善記憶體存取模式
-     - 減少 cache miss</code></pre>
-
-      <h3>Merkle 樹優化</h3>
-
-      <pre><code>Cap 高度優化：
-  - 預先公開 Merkle 樹頂部
-  - 減少每次查詢的證明大小
-
-  標準 Merkle 路徑：log(n) 個雜湊
-  Cap 高度 = k：log(n) - k 個雜湊
-
-位元組對齊：
-  - 使用 SIMD 指令加速雜湊
-  - 批次處理 Merkle 節點</code></pre>
+4. 證明聚合：
+   - 遞迴 STARK：多層模型分段證明
+   - 跨層聚合減少總證明大小</code></pre>
 
       <h2>與其他方案的比較</h2>
 

@@ -34,7 +34,76 @@
         <p>PLONKish 是 PLONK 及其變體（如 Halo2、UltraPLONK）使用的算術化格式，透過自定義門（custom gates）和查表（lookup arguments）提供比 R1CS 更靈活的約束表達能力<sup><a href="#ref-1">[1]</a></sup>。AIR（Algebraic Intermediate Representation）是 STARK 系統使用的類似概念。</p>
       </div>
 
-      <h2>PLONKish 基礎</h2>
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#formal-definitions">形式化定義</a></li>
+          <li><a href="#plonkish-basics">PLONKish 基礎</a></li>
+          <li><a href="#custom-gates">自定義門</a></li>
+          <li><a href="#copy-constraints">複製約束</a></li>
+          <li><a href="#selector-polynomials">選擇器多項式</a></li>
+          <li><a href="#plookup">Plookup 查表論證</a></li>
+          <li><a href="#air">AIR 算術化</a></li>
+          <li><a href="#zkml-applications">ZKML 應用</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="formal-definitions">形式化定義</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition 1：PLONKish 算術化</div>
+        <p>PLONKish 算術化是一個元組 \(\mathcal{C} = (n, k, \mathbf{f}, \mathbf{q}, \mathcal{G}, \sigma)\)：</p>
+        <ul>
+          <li>\(n\)：表格行數（\(n = 2^k\) 為 2 的冪次）</li>
+          <li>\(k\)：列數，分為 advice columns \(k_a\)、instance columns \(k_i\)、fixed columns \(k_f\)</li>
+          <li>\(\mathbf{f} = (f_1, \ldots, f_{k_f})\)：固定列的值</li>
+          <li>\(\mathbf{q} = (q_1, \ldots, q_s)\)：選擇器多項式</li>
+          <li>\(\mathcal{G} = \{G_1, \ldots, G_m\}\)：門約束多項式集合</li>
+          <li>\(\sigma\)：複製約束排列</li>
+        </ul>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 2：門約束（Gate Constraint）</div>
+        <p>門約束 \(G\) 是一個多變量多項式：</p>
+        <p>\[G(a_1(X), \ldots, a_{k_a}(X), q_1(X), \ldots, q_s(X)) = 0\]</p>
+        <p>其中 \(a_i(X)\) 是 advice 多項式，\(q_j(X)\) 是選擇器多項式。約束在所有 \(\omega^i\)（\(i \in [0, n)\)）處必須成立。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 3：Rotation</div>
+        <p>Rotation 允許門約束存取相鄰行的值。對於 advice 多項式 \(a(X)\)：</p>
+        <ul>
+          <li>\(\text{Rotation}(0)\)：當前行，\(a(\omega^i)\)</li>
+          <li>\(\text{Rotation}(1)\)：下一行，\(a(\omega^{i+1})\)</li>
+          <li>\(\text{Rotation}(-1)\)：前一行，\(a(\omega^{i-1})\)</li>
+        </ul>
+        <p>驗證時透過 \(a(\omega \cdot X)\) 或 \(a(\omega^{-1} \cdot X)\) 實現。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 4：複製約束（Copy Constraint）</div>
+        <p>複製約束是一組等式 \(\{(i_1, j_1) = (i_2, j_2)\}\)，表示 row \(i_1\) 的 column \(j_1\) 必須等於 row \(i_2\) 的 column \(j_2\)。這些約束透過排列 \(\sigma: [n \cdot k_a] \to [n \cdot k_a]\) 編碼。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 5：選擇器多項式（Selector Polynomial）</div>
+        <p>選擇器 \(q(X)\) 是一個固定多項式，值域為 \(\{0, 1\}\)（或更一般的 \(\mathbb{F}\)）。在 row \(i\)：</p>
+        <ul>
+          <li>\(q(\omega^i) = 1\)：門約束在該行啟用</li>
+          <li>\(q(\omega^i) = 0\)：門約束在該行禁用</li>
+        </ul>
+        <p>這允許同一電路包含多種不同的門類型。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 6：Vanishing 多項式</div>
+        <p>給定域 \(H = \{\omega^0, \omega^1, \ldots, \omega^{n-1}\}\)，Vanishing 多項式定義為：</p>
+        <p>\[Z_H(X) := \prod_{i=0}^{n-1}(X - \omega^i) = X^n - 1\]</p>
+        <p>門約束 \(G(X) = 0 \mod Z_H(X)\) 等價於 \(G(\omega^i) = 0\) 對所有 \(i\) 成立。</p>
+      </div>
+
+      <h2 id="plonkish-basics">PLONKish 基礎</h2>
 
       <h3>表格結構</h3>
 
@@ -78,13 +147,32 @@
   常數門：q_L = 1, q_C = -k, 其他 = 0
     → a - k = 0 → a = k</code></pre>
 
-      <h3>自定義門（Custom Gates）</h3>
+      <h2 id="custom-gates">自定義門（Custom Gates）</h2>
+
+      <h3>門設計原則</h3>
 
       <p>PLONKish 擴展允許更複雜的門<sup><a href="#ref-2">[2]</a></sup>：</p>
 
-      <pre><code>Halo2 自定義門範例：
+      <pre><code>門設計考量：
 
-// 三元乘法門：a · b · c = d
+1. 門次數（Gate Degree）：
+   - 門約束是多項式，其次數影響證明效率
+   - 次數越高 → 需要更大的求值域 → 證明更慢
+   - 典型限制：次數 ≤ 5-7
+
+2. 寬度（Width）：
+   - 門使用的 column 數量
+   - 更寬的門需要更多 column commitment
+   - 權衡：寬度 vs 深度（行數）
+
+3. Rotation 使用：
+   - 存取相鄰行增加靈活性
+   - 但也增加約束複雜度
+   - 典型限制：Rotation ∈ [-2, 2]</code></pre>
+
+      <h3>Halo2 自定義門範例</h3>
+
+      <pre><code>// 三元乘法門：a · b · c = d
 meta.create_gate("triple_mul", |meta| {
     let a = meta.query_advice(advice[0], Rotation::cur());
     let b = meta.query_advice(advice[1], Rotation::cur());
@@ -95,12 +183,72 @@ meta.create_gate("triple_mul", |meta| {
     vec![s * (a * b * c - d)]
 });
 
-優勢：
-  - 單一約束完成多步計算
-  - 減少行數，提升效率
-  - 可針對特定計算模式優化</code></pre>
+// 條件選擇門：out = cond ? a : b
+meta.create_gate("conditional_select", |meta| {
+    let cond = meta.query_advice(advice[0], Rotation::cur());
+    let a = meta.query_advice(advice[1], Rotation::cur());
+    let b = meta.query_advice(advice[2], Rotation::cur());
+    let out = meta.query_advice(advice[3], Rotation::cur());
+    let s = meta.query_selector(s_cond);
 
-      <h2>複製約束（Copy Constraints）</h2>
+    // out = cond * a + (1 - cond) * b
+    // 展開：out - cond*a - b + cond*b = 0
+    //       out - b - cond*(a - b) = 0
+    vec![s * (out - b - cond * (a.clone() - b.clone()))]
+});
+
+// 跨行累加門（用於 MAC 操作）
+meta.create_gate("accumulate", |meta| {
+    let prev = meta.query_advice(acc, Rotation::prev());
+    let curr = meta.query_advice(acc, Rotation::cur());
+    let a = meta.query_advice(input_a, Rotation::cur());
+    let b = meta.query_advice(input_b, Rotation::cur());
+    let s = meta.query_selector(s_acc);
+
+    // curr = prev + a * b
+    vec![s * (curr - prev - a * b)]
+});</code></pre>
+
+      <h3>門效率比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>運算</th>
+            <th>標準門（行數）</th>
+            <th>自定義門（行數）</th>
+            <th>次數</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>\(a \cdot b \cdot c\)</td>
+            <td>2</td>
+            <td>1</td>
+            <td>3</td>
+          </tr>
+          <tr>
+            <td>\(a + b \cdot c\)</td>
+            <td>2</td>
+            <td>1</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td>條件選擇</td>
+            <td>3</td>
+            <td>1</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td>Poseidon 輪函數</td>
+            <td>~15</td>
+            <td>1-2</td>
+            <td>5</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="copy-constraints">複製約束（Copy Constraints）</h2>
 
       <h3>排列論證</h3>
 

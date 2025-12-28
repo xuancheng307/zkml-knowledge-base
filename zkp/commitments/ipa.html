@@ -31,111 +31,515 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>IPA（Inner Product Argument）是一種不需要可信設置的多項式承諾方案，源自 Bulletproofs 協議<sup><a href="#ref-1">[1]</a></sup>。透過遞迴折疊技術，IPA 實現了 O(log n) 的證明大小，是 Halo 和 Halo2 證明系統的核心組件<sup><a href="#ref-2">[2]</a></sup>。</p>
+        <p>IPA（Inner Product Argument）是一種不需要可信設置的多項式承諾方案，源自 Bulletproofs 協議<sup><a href="#ref-1">[1]</a></sup>。透過遞迴折疊技術，IPA 實現了 O(log n) 的證明大小，是 Halo 和 Halo2 證明系統的核心組件<sup><a href="#ref-2">[2]</a></sup>。其核心創新在於將 O(n) 的見證壓縮為 O(log n) 的證明，同時保持透明設置。</p>
       </div>
 
-      <h2>數學基礎</h2>
+      <h2>形式定義</h2>
 
-      <h3>Pedersen 向量承諾</h3>
+      <h3>定義 1：Pedersen 向量承諾</h3>
 
-      <p>IPA 建立在 Pedersen 向量承諾之上。給定向量 \(\mathbf{a} = (a_1, \ldots, a_n)\) 和隨機生成元 \(\mathbf{G} = (G_1, \ldots, G_n)\)<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <p>IPA 建立在 Pedersen 向量承諾之上<sup><a href="#ref-1">[1]</a></sup>：</p>
 
-      <p class="math">$$C = \langle \mathbf{a}, \mathbf{G} \rangle = \sum_{i=1}^{n} a_i \cdot G_i$$</p>
+      <pre><code>定義：Pedersen 向量承諾（Pedersen Vector Commitment）
 
-      <p>可選地加入遮罩值 \(r\) 以獲得隱藏性：</p>
+給定橢圓曲線群 G，階為 p。
+設 G = (G₁, G₂, ..., G_n) 和 H = (H₁, H₂, ..., H_n) 為獨立隨機生成元。
 
-      <p class="math">$$C = \langle \mathbf{a}, \mathbf{G} \rangle + r \cdot H$$</p>
+對向量 a = (a₁, a₂, ..., a_n) ∈ F_p^n：
 
-      <h3>內積關係</h3>
+Commit(G, a) = Σᵢ aᵢ · Gᵢ = ⟨a, G⟩
 
-      <p>IPA 的目標是證明<sup><a href="#ref-1">[1]</a></sup>：</p>
+帶遮罩版本（Hiding）：
+Commit(G, H, a, r) = ⟨a, G⟩ + r · H_blind
 
-      <blockquote>
-        給定承諾 \(P\)、向量 \(\mathbf{G}, \mathbf{H}\)，以及公開值 \(c\)，<br>
-        存在向量 \(\mathbf{a}, \mathbf{b}\) 使得：<br>
-        1. \(P = \langle \mathbf{a}, \mathbf{G} \rangle + \langle \mathbf{b}, \mathbf{H} \rangle + \langle \mathbf{a}, \mathbf{b} \rangle \cdot U\)<br>
-        2. \(\langle \mathbf{a}, \mathbf{b} \rangle = c\)
-      </blockquote>
+其中 r ←$ F_p 是隨機遮罩，H_blind 是獨立生成元。
 
-      <h3>與多項式的聯繫</h3>
+性質：
+  - 計算綁定：基於離散對數假設
+  - 完美隱藏：r 隨機時，統計隱藏
+  - 加法同態：Commit(a) + Commit(b) = Commit(a + b)</code></pre>
 
-      <p>多項式求值可以表示為內積。對於多項式 \(f(X) = \sum_{i=0}^{n-1} c_i X^i\) 在點 \(z\) 的求值：</p>
+      <h3>定義 2：內積關係</h3>
 
-      <p class="math">$$f(z) = \langle \mathbf{c}, (1, z, z^2, \ldots, z^{n-1}) \rangle = \langle \mathbf{c}, \mathbf{z} \rangle$$</p>
+      <p>IPA 證明的核心目標<sup><a href="#ref-1">[1]</a></sup>：</p>
 
-      <p>這將多項式承諾問題轉化為內積論證。</p>
+      <pre><code>定義：內積關係（Inner Product Relation）
 
-      <h2>IPA 協議</h2>
+關係 R_IP 定義為：
 
-      <h3>遞迴折疊</h3>
+R_IP = {
+  (P, c; a, b) :
+    P = ⟨a, G⟩ + ⟨b, H⟩ + c · U
+    ∧ ⟨a, b⟩ = c
+}
 
-      <p>IPA 的核心是一個遞迴折疊過程，每輪將向量長度減半<sup><a href="#ref-1">[1]</a></sup>：</p>
+其中：
+  - P ∈ G：承諾點
+  - c ∈ F_p：內積值（公開）
+  - a, b ∈ F_p^n：見證向量（私密）
+  - G, H ∈ G^n：生成元向量
+  - U ∈ G：內積綁定生成元
 
-      <pre><code>IPA_Prove(G, H, U, P, a, b):
-  n = len(a)
-  if n == 1:
-    return (a[0], b[0])  // 基礎情況
+目標：
+  證明者知道 (a, b) 使得：
+  1. P 由 a, b 正確計算
+  2. ⟨a, b⟩ = c
 
-  n' = n / 2
+證明大小目標：O(log n) 而非 O(n)</code></pre>
+
+      <h3>定義 3：多項式求值作為內積</h3>
+
+      <p>多項式求值可轉化為內積：</p>
+
+      <pre><code>定義：多項式求值的內積表示
+
+多項式 f(X) = Σᵢ cᵢ Xⁱ，次數 < n。
+求值點 z ∈ F_p。
+
+定義向量：
+  a = (c₀, c₁, ..., c_{n-1})  // 係數
+  b = (1, z, z², ..., z^{n-1}) // 冪次
+
+則：
+  f(z) = ⟨a, b⟩
+
+多項式承諾應用：
+  1. 承諾 C = Commit(G, a) = ⟨a, G⟩
+  2. 證明 f(z) = y，即 ⟨a, b⟩ = y
+  3. 使用 IPA 證明內積關係
+
+轉換：
+  P = C + ⟨b, H⟩ + y · U
+  證明 (P, y; a, b) ∈ R_IP</code></pre>
+
+      <h3>定義 4：遞迴折疊</h3>
+
+      <p>IPA 的核心技術<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>定義：向量折疊（Vector Folding）
+
+給定挑戰 x ∈ F_p 和向量 a = (a_L, a_R)，|a_L| = |a_R| = n/2。
+
+折疊操作：
+  a' = a_L + x · a_R
+
+性質：
+  - |a'| = n/2（長度減半）
+  - 若 a_L, a_R 固定，a' 唯一確定
+
+生成元折疊：
+  G' = G_L + x⁻¹ · G_R
+
+折疊後承諾一致性：
+  若 P = ⟨a, G⟩ 且 x 正確選取
+  則 ⟨a', G'⟩ 與 P 相關（經過調整）
+
+遞迴應用：
+  k = log₂(n) 輪後，向量長度變為 1</code></pre>
+
+      <h3>定義 5：離散對數假設</h3>
+
+      <p>IPA 的安全基礎：</p>
+
+      <pre><code>定義：離散對數假設（Discrete Logarithm Assumption）
+
+給定循環群 G，階為 p，生成元 g。
+
+離散對數問題：
+  給定 g 和 h = g^a，計算 a。
+
+DL 假設：對任何 PPT 敵手 A：
+  Pr[A(g, g^a) = a] ≤ negl(λ)
+
+IPA 依賴的變體：
+
+向量 DL（Vector DL）：
+  給定 (G₁, ..., G_n) 和 C = Σ aᵢGᵢ
+  難以找到 (a₁, ..., a_n)
+
+與配對假設對比：
+  - IPA：僅需 DL（較弱假設）
+  - KZG：需 q-SDH + 配對（較強假設）</code></pre>
+
+      <h2>為什麼選擇 IPA？</h2>
+
+      <h3>設計動機</h3>
+
+      <pre><code>IPA 設計動機：
+
+1. 消除可信設置
+   問題：KZG 需要 Powers of Tau 儀式
+         - 組織成本高
+         - 需信任至少一個參與者誠實
+   IPA 解決方案：
+         - 設置僅需公開隨機性
+         - 無 toxic waste
+         - 完全透明
+
+2. 壓縮見證大小
+   問題：樸素方法需發送整個向量 O(n)
+   IPA 解決方案：
+         - 遞迴折疊壓縮
+         - O(log n) 證明大小
+         - 每輪發送 2 個群元素
+
+3. 支援高效遞迴
+   問題：KZG 驗證需配對運算
+         - 配對電路複雜
+         - 遞迴成本高
+   IPA 解決方案：
+         - 驗證僅需群運算
+         - 電路友好
+         - 適合 2-cycle 曲線</code></pre>
+
+      <h3>與 Bulletproofs 的關係</h3>
+
+      <pre><code>Bulletproofs 與 IPA：
+
+Bulletproofs 協議<sup>[1]</sup>：
+  - 用於範圍證明和算術電路
+  - IPA 是其核心子協議
+
+IPA 在 Bulletproofs 中的角色：
+  1. 範圍證明歸約到內積
+     證明 v ∈ [0, 2^n)
+     → 證明 ⟨a, b⟩ = δ 對特定 a, b
+
+  2. 算術電路歸約
+     電路滿足性
+     → 內積關係
+
+  3. 聚合證明
+     多個範圍證明
+     → 批次內積論證
+
+Bulletproofs 創新：
+  - O(log n) 範圍證明
+  - 無可信設置
+  - 機密交易應用
+
+演化：
+  Bulletproofs (2018) → Halo (2019) → Halo2 (2020+)</code></pre>
+
+      <h2>完整協議</h2>
+
+      <h3>IPA.Setup 演算法</h3>
+
+      <pre><code>演算法：IPA.Setup(1^λ, n)
+
+輸入：
+  - 安全參數 λ
+  - 向量長度 n（通常為 2 的冪次）
+
+輸出：
+  - pp：公共參數
+
+步驟：
+
+1. 選擇橢圓曲線
+   (G, p, g) ← CurveSetup(1^λ)
+   確保 |G| = p 為大素數
+
+2. 生成隨機生成元（使用 nothing-up-my-sleeve）
+   seed ← "IPA-Setup-v1"
+
+   對 i = 1, ..., n：
+     G_i ← HashToGroup(seed || "G" || i)
+     H_i ← HashToGroup(seed || "H" || i)
+
+   U ← HashToGroup(seed || "U")
+
+3. 輸出
+   pp = (G, H, U)
+   其中 G = (G₁, ..., G_n)，H = (H₁, ..., H_n)
+
+透明性保證：
+  - 任何人可重現相同的 pp
+  - 無秘密參數
+  - 可公開驗證
+
+複雜度：
+  - 時間：O(n) 雜湊到群運算
+  - 空間：O(n) 群元素</code></pre>
+
+      <h3>IPA.Commit 演算法</h3>
+
+      <pre><code>演算法：IPA.Commit(pp, a)
+
+輸入：
+  - pp = (G, H, U)：公共參數
+  - a = (a₁, ..., a_n)：向量
+
+輸出：
+  - C：承諾
+
+步驟：
+
+1. 計算向量承諾
+   C = Σᵢ aᵢ · Gᵢ = ⟨a, G⟩
+
+2. （可選）添加遮罩
+   若需要隱藏性：
+     r ←$ F_p
+     C = ⟨a, G⟩ + r · H_blind
+
+3. 輸出
+   return C
+
+多項式承諾變體：
+  對多項式 f(X) = Σᵢ cᵢXⁱ：
+  C = Commit(pp, (c₀, c₁, ..., c_{n-1}))
+
+複雜度：
+  - 時間：O(n) 群運算（MSM）
+  - 空間：O(1) 輸出</code></pre>
+
+      <h3>IPA.Prove 演算法</h3>
+
+      <pre><code>演算法：IPA.Prove(pp, P, a, b, c)
+
+輸入：
+  - pp = (G, H, U)：公共參數
+  - P = ⟨a, G⟩ + ⟨b, H⟩ + c · U：承諾
+  - a, b：見證向量
+  - c = ⟨a, b⟩：內積值
+
+輸出：
+  - π：IPA 證明
+
+步驟：
+
+初始化：
+  n ← len(a)
+  k ← log₂(n)
+  transcript ← []
+  proof ← []
+
+遞迴折疊（共 k 輪）：
+
+FOR round = 1 TO k:
+  n' ← n / 2
 
   // 分割向量
-  a_L, a_R = a[:n'], a[n':]
-  b_L, b_R = b[:n'], b[n':]
-  G_L, G_R = G[:n'], G[n':]
-  H_L, H_R = H[:n'], H[n':]
+  a_L, a_R ← a[0:n'], a[n':n]
+  b_L, b_R ← b[0:n'], b[n':n]
+  G_L, G_R ← G[0:n'], G[n':n]
+  H_L, H_R ← H[0:n'], H[n':n]
 
   // 計算交叉項
-  L = <a_L, G_R> + <b_R, H_L> + <a_L, b_R> · U
-  R = <a_R, G_L> + <b_L, H_R> + <a_R, b_L> · U
+  c_L ← ⟨a_L, b_R⟩
+  c_R ← ⟨a_R, b_L⟩
+
+  L ← ⟨a_L, G_R⟩ + ⟨b_R, H_L⟩ + c_L · U
+  R ← ⟨a_R, G_L⟩ + ⟨b_L, H_R⟩ + c_R · U
+
+  proof.append((L, R))
 
   // Fiat-Shamir 挑戰
-  x = Hash(transcript, L, R)
+  transcript.append((L, R))
+  x ← Hash(transcript)
+  x_inv ← x⁻¹ mod p
 
-  // 折疊
+  // 折疊向量
+  a ← a_L + x · a_R
+  b ← x_inv · b_L + b_R
+
+  // 折疊生成元
+  G ← G_L + x_inv · G_R
+  H ← x · H_L + H_R
+
+  // 更新承諾（隱式）
+  // P' = x² · L + P + x⁻² · R
+
+  n ← n'
+
+// 最終值
+proof.append((a[0], b[0]))
+
+return π = proof</code></pre>
+
+      <h3>IPA.Verify 演算法</h3>
+
+      <pre><code>演算法：IPA.Verify(pp, P, c, π)
+
+輸入：
+  - pp = (G, H, U)：公共參數
+  - P：承諾
+  - c：聲稱的內積值
+  - π = [(L₁, R₁), ..., (L_k, R_k), (a_final, b_final)]：證明
+
+輸出：
+  - {accept, reject}
+
+步驟：
+
+1. 解析證明
+   k ← len(π) - 1
+   n ← 2^k
+
+   LR_pairs ← π[0:k]
+   (a_final, b_final) ← π[k]
+
+2. 重建挑戰
+   transcript ← []
+   x ← []
+
+   FOR i = 1 TO k:
+     (L_i, R_i) ← LR_pairs[i-1]
+     transcript.append((L_i, R_i))
+     x[i] ← Hash(transcript)
+
+3. 計算最終生成元
+   // 標量向量 s
+   s ← [1] * n
+   FOR i = 1 TO k:
+     FOR j = 0 TO n-1:
+       IF bit(j, k-i) == 1:
+         s[j] *= x[i]
+       ELSE:
+         s[j] *= x[i]⁻¹
+
+   G_final ← ⟨s, G⟩
+   H_final ← ⟨s⁻¹, H⟩
+
+4. 計算調整後的承諾
+   P' ← P
+   FOR i = 1 TO k:
+     P' ← x[i]² · L_i + P' + x[i]⁻² · R_i
+
+5. 驗證
+   expected ← a_final · G_final + b_final · H_final + (a_final · b_final) · U
+
+   IF P' == expected AND a_final · b_final == c:
+     return accept
+   ELSE:
+     return reject
+
+複雜度分析：
+  - 步驟 3（計算 s）：O(n)（瓶頸）
+  - 步驟 3（計算 G_final）：O(n) MSM
+  - 步驟 4：O(k) = O(log n)
+  - 總驗證時間：O(n)</code></pre>
+
+      <h2>遞迴折疊詳解</h2>
+
+      <h3>折疊正確性</h3>
+
+      <pre><code>遞迴折疊正確性證明：
+
+初始狀態：
+  P = ⟨a, G⟩ + ⟨b, H⟩ + c · U
+  其中 c = ⟨a, b⟩
+
+分割後：
+  P = ⟨a_L, G_L⟩ + ⟨a_R, G_R⟩ + ⟨b_L, H_L⟩ + ⟨b_R, H_R⟩ + c · U
+
+定義交叉項：
+  L = ⟨a_L, G_R⟩ + ⟨b_R, H_L⟩ + ⟨a_L, b_R⟩ · U
+  R = ⟨a_R, G_L⟩ + ⟨b_L, H_R⟩ + ⟨a_R, b_L⟩ · U
+
+給定挑戰 x，定義折疊：
   a' = a_L + x · a_R
-  b' = x^(-1) · b_L + b_R
-  G' = G_L + x^(-1) · G_R
+  b' = x⁻¹ · b_L + b_R
+  G' = G_L + x⁻¹ · G_R
   H' = x · H_L + H_R
-  P' = L · x² + P + R · x^(-2)
 
-  // 遞迴
-  return (L, R) ++ IPA_Prove(G', H', U, P', a', b')</code></pre>
+計算 ⟨a', G'⟩：
+  = ⟨a_L + x·a_R, G_L + x⁻¹·G_R⟩
+  = ⟨a_L, G_L⟩ + x⁻¹⟨a_L, G_R⟩ + x⟨a_R, G_L⟩ + ⟨a_R, G_R⟩
 
-      <h3>驗證過程</h3>
+類似地計算其他項...
 
-      <pre><code>IPA_Verify(G, H, U, P, c, proof):
-  // proof = [(L_1, R_1), ..., (L_k, R_k), (a, b)]
-  // 其中 k = log₂(n)
+最終：
+  P' = x²·L + P + x⁻²·R
+     = ⟨a', G'⟩ + ⟨b', H'⟩ + c' · U
 
-  n = len(G)
-  transcript = []
+其中 c' = ⟨a', b'⟩（可驗證）</code></pre>
 
-  for i in 1..k:
-    L_i, R_i = proof[i]
-    x_i = Hash(transcript, L_i, R_i)
-    transcript.append(x_i)
+      <h3>折疊過程視覺化</h3>
 
-  // 計算最終生成元
-  s = [1] * n
-  for i in 1..k:
-    for j in 0..n-1:
-      if bit(j, k-i) == 1:
-        s[j] *= x_i
-      else:
-        s[j] *= x_i^(-1)
+      <pre><code>IPA 折疊過程示例（n=8）：
 
-  G_final = <s, G>
-  H_final = <s^(-1), H>
+第 0 輪（初始）：
+  a = [a₀, a₁, a₂, a₃, a₄, a₅, a₆, a₇]  長度 8
+  G = [G₀, G₁, G₂, G₃, G₄, G₅, G₆, G₇]
 
-  // 計算最終承諾
-  P_final = P
-  for i in 1..k:
-    P_final += x_i² · L_i + x_i^(-2) · R_i
+第 1 輪（x₁ 挑戰後）：
+  a' = [a₀+x₁a₄, a₁+x₁a₅, a₂+x₁a₆, a₃+x₁a₇]  長度 4
+  輸出 (L₁, R₁)
 
-  // 驗證
-  a, b = proof.final
-  return P_final == a · G_final + b · H_final + (a·b) · U
-     AND a · b == c</code></pre>
+第 2 輪（x₂ 挑戰後）：
+  a'' = [a'₀+x₂a'₂, a'₁+x₂a'₃]  長度 2
+  輸出 (L₂, R₂)
+
+第 3 輪（x₃ 挑戰後）：
+  a''' = [a''₀+x₃a''₁]  長度 1
+  輸出 (L₃, R₃, a_final)
+
+證明結構：
+  π = [(L₁,R₁), (L₂,R₂), (L₃,R₃), a_final, b_final]
+  大小：2k + 2 = 2log₂(n) + 2 群元素</code></pre>
+
+      <h2>Halo 累積方案</h2>
+
+      <h3>延遲驗證</h3>
+
+      <p>Halo 引入累積方案攤銷驗證成本<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>累積方案（Accumulation Scheme）：
+
+問題：IPA 驗證需 O(n)，遞迴時成本累積
+
+Halo 解決方案：延遲 O(n) 部分
+
+觀察：IPA 驗證可分為兩部分
+  1. O(log n) 部分：計算挑戰、驗證 LR 結構
+  2. O(n) 部分：計算 G_final、H_final
+
+累積策略：
+  - 立即執行 O(log n) 部分
+  - 累積 O(n) 部分到「累積器」
+  - 最終只執行一次 O(n) 計算
+
+累積器結構：
+  Acc = (P_acc, challenges_acc)
+
+累積步驟：
+  Acc' = Accumulate(Acc, new_proof)
+  使用隨機線性組合合併
+
+最終驗證：
+  - 對累積器執行單次 O(n) 驗證
+  - m 個證明攤銷後：O(n/m) 每個</code></pre>
+
+      <h3>遞迴證明結構</h3>
+
+      <pre><code>Halo2 遞迴結構：
+
+內層證明：
+  π_inner 證明「計算 f(x) = y 正確」
+
+外層證明：
+  π_outer 證明「π_inner 的驗證正確」
+
+IPA 遞迴優勢：
+  驗證電路 = O(log n) 群運算 + O(n) MSM
+
+  但 MSM 可累積！
+
+  外層電路僅需：
+  1. 重建挑戰 x₁, ..., x_k  — O(k) 雜湊
+  2. 驗證 LR 結構 — O(k) 群運算
+  3. 更新累積器 — O(1)
+
+  不需在電路內執行 O(n) MSM
+
+對比 KZG 遞迴：
+  KZG 驗證 = 2 配對
+  配對電路 ≈ 數百萬約束
+
+  IPA 驗證電路 ≈ 數萬約束
+  → IPA 更適合深度遞迴</code></pre>
 
       <h2>複雜度分析</h2>
 
@@ -145,7 +549,7 @@
             <th>操作</th>
             <th>時間複雜度</th>
             <th>空間複雜度</th>
-            <th>說明</th>
+            <th>具體時間（n=2²⁰）</th>
           </tr>
         </thead>
         <tbody>
@@ -153,229 +557,208 @@
             <td><strong>Setup</strong></td>
             <td>O(n)</td>
             <td>O(n)</td>
-            <td>生成隨機生成元（透明）</td>
+            <td>~10 秒</td>
           </tr>
           <tr>
             <td><strong>Commit</strong></td>
             <td>O(n)</td>
             <td>O(1)</td>
-            <td>多標量乘法</td>
+            <td>~1 秒</td>
           </tr>
           <tr>
             <td><strong>Prove</strong></td>
             <td>O(n)</td>
             <td>O(log n)</td>
-            <td>log n 輪，每輪 O(n/2^i)</td>
+            <td>~5 秒</td>
           </tr>
           <tr>
             <td><strong>Verify</strong></td>
             <td>O(n)</td>
             <td>O(log n)</td>
-            <td>需計算 s 向量</td>
+            <td>~200 ms</td>
+          </tr>
+          <tr>
+            <td><strong>Verify（累積後）</strong></td>
+            <td>O(log n)</td>
+            <td>O(log n)</td>
+            <td>~5 ms</td>
           </tr>
         </tbody>
       </table>
 
-      <div class="callout callout-warning">
-        <div class="callout-title">驗證時間是主要缺點</div>
-        <p>IPA 的驗證時間為 O(n)，這是相比 KZG 的 O(1) 驗證的主要劣勢。在 ZKML 中，這意味著驗證大型模型電路需要更長時間。</p>
-      </div>
+      <h3>證明大小分析</h3>
 
-      <h2>Halo 優化：累積方案</h2>
+      <pre><code>IPA 證明結構：
 
-      <p>Halo 引入了累積方案（accumulation scheme）來攤銷 IPA 驗證成本<sup><a href="#ref-2">[2]</a></sup>：</p>
+證明組成：
+  - k = log₂(n) 對 (L, R)
+  - 1 個最終 a 值
+  - 1 個最終 b 值
 
-      <h3>延遲驗證</h3>
+每個群元素大小：
+  - Pasta curves：32 bytes（壓縮）
+  - Curve25519：32 bytes
 
-      <pre><code>核心思想：
-  不立即執行完整驗證，而是累積多個證明到單一"累積器"
-  最終只需一次完整驗證
+每個域元素大小：
+  - 32 bytes
 
-累積過程：
-  1. 收到新證明 π
-  2. 提取挑戰值 x_1, ..., x_k
-  3. 計算部分承諾 P_partial
-  4. 與現有累積器合併
+總證明大小：
+  |π| = 2k × 32 + 2 × 32
+      = 64(k + 1) bytes
+      = 64(log₂(n) + 1) bytes
 
-最終驗證：
-  - 對合併後的累積器執行一次 O(n) 驗證
-  - 若有 m 個證明，攤銷成本為 O(n/m) 每個</code></pre>
+範例：
+  n = 2¹⁰ (1K)：  |π| = 64 × 11 = 704 bytes
+  n = 2¹⁶ (65K)： |π| = 64 × 17 = 1088 bytes
+  n = 2²⁰ (1M)：  |π| = 64 × 21 = 1344 bytes
+  n = 2²⁴ (16M)： |π| = 64 × 25 = 1600 bytes</code></pre>
 
-      <h3>遞迴證明</h3>
+      <h2>安全性分析</h2>
 
-      <p>Halo2 利用 IPA 的結構實現高效遞迴<sup><a href="#ref-3">[3]</a></sup>：</p>
+      <h3>完備性</h3>
 
-      <pre><code>遞迴構造：
-  1. 內層證明 π_inner 證明計算正確性
-  2. 外層證明 π_outer 證明「π_inner 的驗證是正確的」
+      <pre><code>定理：IPA 完備性
 
-IPA 遞迴優勢：
-  - 不需要配對電路（相比 KZG）
-  - 驗證電路複雜度：O(log n) 群運算
-  - 適合橢圓曲線循環（如 Pasta curves）</code></pre>
+若證明者誠實執行協議，驗證者總是接受。
 
-      <h2>透明設置的意義</h2>
+證明：歸納法
 
-      <h3>無可信設置</h3>
+基礎情況（n=1）：
+  P = a · G + b · H + (a·b) · U
+  驗證者檢查：P == a·G + b·H + (a·b)·U ✓
 
-      <p>IPA 的設置完全透明<sup><a href="#ref-1">[1]</a></sup>：</p>
+歸納步驟：
+  假設 n/2 時成立
 
-      <pre><code>TransparentSetup(security_param, n):
-  // 使用公開隨機性生成生成元
-  seed = Hash("IPA-Setup")
-  G = [HashToGroup(seed, i) for i in 1..n]
-  H = [HashToGroup(seed, n+i) for i in 1..n]
-  U = HashToGroup(seed, 2n+1)
+  證明者計算 L, R 正確
+  折疊後 P' = x²L + P + x⁻²R
+  由折疊正確性，(P', a', b') 滿足關係
 
-  return (G, H, U)
+  由歸納假設，n/2 時驗證通過
+  因此 n 時也通過 ✓</code></pre>
 
-安全性：
-  - 無 toxic waste
-  - 無需信任任何人
-  - 設置可公開驗證</code></pre>
+      <h3>可靠性</h3>
 
-      <h3>應用考量</h3>
+      <pre><code>定理：IPA 可靠性
 
-      <table>
-        <thead>
-          <tr>
-            <th>場景</th>
-            <th>IPA 適用性</th>
-            <th>原因</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>去中心化應用</td>
-            <td>高</td>
-            <td>無需協調可信設置儀式</td>
-          </tr>
-          <tr>
-            <td>高頻驗證</td>
-            <td>低</td>
-            <td>O(n) 驗證成本過高</td>
-          </tr>
-          <tr>
-            <td>遞迴證明</td>
-            <td>高</td>
-            <td>驗證電路較簡單</td>
-          </tr>
-          <tr>
-            <td>鏈上驗證</td>
-            <td>中</td>
-            <td>證明較大但無需可信設置</td>
-          </tr>
-        </tbody>
-      </table>
+若敵手能產生被接受的假證明，則可破解離散對數。
 
-      <h2>在 ZKML 中的應用</h2>
+證明概要（歸約）：
 
-      <h3>Halo2 證明系統</h3>
+假設敵手 A 可產生假證明：
+  ∃ (P, c, π) 使 Verify 接受但 (P, c) ∉ L_IP
 
-      <p>Halo2 原生支援 IPA 作為承諾方案<sup><a href="#ref-3">[3]</a></sup>：</p>
+構造 DL 解題器 B：
+  B 模擬 IPA 驗證過程
+  使用 A 的證明提取矛盾
 
-      <pre><code>ZKML 配置：
-  backend = "halo2"
-  commitment_scheme = "ipa"  # Pasta curves
+關鍵觀察：
+  若 ⟨a, b⟩ ≠ c 但證明通過
+  則可提取兩組不同的 a, b 表示
+  → 離散對數關係
 
-Pasta Curves：
-  - Pallas: y² = x³ + 5 over F_p
-  - Vesta: y² = x³ + 5 over F_q
-  - 其中 p = |Vesta| 且 q = |Pallas|（循環關係）
+Soundness error：
+  ≤ k · |F|⁻¹ + negl(λ)
 
-用於 ZKML 的考量：
-  - 適合需要遞迴驗證的場景
-  - 大型模型可能驗證較慢
-  - 證明大小：O(log n)，約數百 bytes</code></pre>
+  其中 k = log₂(n)，|F| = 群的階
 
-      <h3>EZKL 的選擇</h3>
+對於 256-bit 曲線：
+  soundness error ≤ 2⁻²⁵⁰ （可忽略）</code></pre>
 
-      <p>EZKL 預設使用 IPA（透過 Halo2）<sup><a href="#ref-4">[4]</a></sup>：</p>
+      <h3>零知識性</h3>
+
+      <pre><code>IPA 零知識分析：
+
+基本 IPA 不是零知識的：
+  - (L, R) 洩露部分 a, b 資訊
+  - 最終 (a_final, b_final) 直接暴露
+
+添加零知識（Bulletproofs 方法）：
+
+1. 添加遮罩
+   a' = a + r_a
+   b' = b + r_b
+
+   選擇 r_a, r_b 使：
+   ⟨a', b'⟩ = ⟨a, b⟩ + 調整項
+
+2. 交叉項遮罩
+   L, R 也添加隨機化
+
+3. 統計隱藏
+   最終揭示的值被隨機化
+
+定理（ZK-IPA）：
+  帶遮罩的 IPA 是完美零知識的。
+
+Halo2 應用：
+  PLONK 層面處理零知識
+  IPA 層面可不需額外遮罩</code></pre>
+
+      <h2>ZKML 應用</h2>
+
+      <h3>Halo2 + IPA 在 ZKML</h3>
+
+      <pre><code>Halo2 IPA 後端用於 ZKML：
+
+優點：
+  1. 無可信設置
+     - 模型更新無需重新儀式
+     - 去中心化部署友好
+
+  2. 遞迴證明聚合
+     - 批次推論一次驗證
+     - 分佈式證明聚合
+
+  3. 較小的證明（vs STARK）
+     - O(log n) vs O(log² n)
+     - 適合儲存
+
+缺點：
+  1. O(n) 驗證時間
+     - 大型模型驗證慢
+     - 不適合高頻驗證
+
+  2. 非後量子安全
+     - 同 KZG
+
+適用場景：
+  - 離線驗證
+  - 批次累積後驗證
+  - 遞迴證明應用</code></pre>
+
+      <h3>EZKL 的 IPA 使用</h3>
 
       <table>
         <thead>
           <tr>
             <th>EZKL 模式</th>
             <th>承諾方案</th>
-            <th>適用場景</th>
+            <th>驗證時間</th>
+            <th>證明大小</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td>預設</td>
+            <td>預設（IPA）</td>
             <td>IPA + Pasta</td>
-            <td>通用 ML 推理驗證</td>
+            <td>~200 ms</td>
+            <td>~1.5 KB</td>
           </tr>
           <tr>
-            <td>EVM 部署</td>
+            <td>EVM（KZG）</td>
             <td>KZG + BN254</td>
-            <td>以太坊智能合約驗證</td>
+            <td>~10 ms</td>
+            <td>~10 KB</td>
           </tr>
           <tr>
-            <td>遞迴模式</td>
+            <td>遞迴聚合</td>
             <td>IPA</td>
-            <td>聚合多個推理證明</td>
+            <td>~5 ms（累積後）</td>
+            <td>~3 KB</td>
           </tr>
         </tbody>
       </table>
-
-      <h2>優化技術</h2>
-
-      <h3>批次驗證</h3>
-
-      <p>多個 IPA 證明可以批次驗證<sup><a href="#ref-1">[1]</a></sup>：</p>
-
-      <pre><code>BatchVerify(proofs):
-  // 使用隨機線性組合
-  r_1, ..., r_m = Random(m)
-
-  // 合併承諾
-  P_combined = Σ r_i · P_i
-  G_combined = same G (若使用相同設置)
-
-  // 合併證明組件
-  for each round k:
-    L_k = Σ r_i · L_{i,k}
-    R_k = Σ r_i · R_{i,k}
-
-  // 單次驗證
-  return Verify(P_combined, combined_proof)
-
-效益：
-  - m 個證明的驗證成本 ≈ 1.5 × 單個證明
-  - 大幅攤銷 O(n) 驗證成本</code></pre>
-
-      <h3>預計算優化</h3>
-
-      <pre><code>標量向量 s 的預計算：
-
-s_j = Π_{i: bit(j,i)=1} x_i · Π_{i: bit(j,i)=0} x_i^(-1)
-
-優化：
-  1. 計算 x_i · x_i^(-1) 對
-  2. 使用二進制分解結構
-  3. 並行計算 s 的各分量
-
-複雜度：O(n) → O(n) 但常數因子更小</code></pre>
-
-      <h2>安全性分析</h2>
-
-      <h3>安全假設</h3>
-
-      <p>IPA 的安全性基於離散對數假設<sup><a href="#ref-1">[1]</a></sup>：</p>
-
-      <ul>
-        <li><strong>離散對數假設（DL）</strong>：給定 \(G\) 和 \(aG\)，難以計算 \(a\)</li>
-        <li><strong>向量離散對數</strong>：給定 \(\{G_i\}\) 和 \(\sum a_i G_i\)，難以計算 \(\{a_i\}\)</li>
-      </ul>
-
-      <h3>綁定性證明</h3>
-
-      <p>若攻擊者能找到兩組不同的 \((\mathbf{a}, \mathbf{b})\) 和 \((\mathbf{a}', \mathbf{b}')\) 對應同一承諾，則可提取離散對數。</p>
-
-      <h3>知識可靠性</h3>
-
-      <p>使用 Fiat-Shamir 變換時，需要隨機預言機模型。遞迴折疊過程確保攻擊者無法找到滿足驗證的假證明。</p>
 
       <h2>與 KZG 的比較</h2>
 
@@ -391,27 +774,32 @@ s_j = Π_{i: bit(j,i)=1} x_i · Π_{i: bit(j,i)=0} x_i^(-1)
           <tr>
             <td><strong>可信設置</strong></td>
             <td>不需要（透明）</td>
-            <td>需要（可信第三方）</td>
+            <td>需要（Powers of Tau）</td>
           </tr>
           <tr>
             <td><strong>證明大小</strong></td>
-            <td>O(log n) ~ 數百 bytes</td>
+            <td>O(log n) ~ 1-2 KB</td>
             <td>O(1) ~ 48 bytes</td>
           </tr>
           <tr>
             <td><strong>驗證時間</strong></td>
-            <td>O(n) ~ 數百 ms</td>
+            <td>O(n) ~ 200 ms</td>
             <td>O(1) ~ 3 ms</td>
           </tr>
           <tr>
             <td><strong>證明時間</strong></td>
-            <td>O(n)</td>
-            <td>O(n)</td>
+            <td>O(n) ~ 5 秒</td>
+            <td>O(n) ~ 2 秒</td>
           </tr>
           <tr>
-            <td><strong>遞迴效率</strong></td>
-            <td>高（簡單驗證電路）</td>
-            <td>低（需配對電路）</td>
+            <td><strong>遞迴電路大小</strong></td>
+            <td>~50K 約束</td>
+            <td>~5M 約束</td>
+          </tr>
+          <tr>
+            <td><strong>批次效率</strong></td>
+            <td>優秀（累積）</td>
+            <td>優秀（隨機組合）</td>
           </tr>
           <tr>
             <td><strong>安全假設</strong></td>
@@ -423,11 +811,6 @@ s_j = Π_{i: bit(j,i)=1} x_i · Π_{i: bit(j,i)=0} x_i^(-1)
             <td>否</td>
             <td>否</td>
           </tr>
-          <tr>
-            <td><strong>批次驗證</strong></td>
-            <td>有效</td>
-            <td>非常有效</td>
-          </tr>
         </tbody>
       </table>
 
@@ -435,34 +818,72 @@ s_j = Π_{i: bit(j,i)=1} x_i · Π_{i: bit(j,i)=0} x_i^(-1)
 
       <h3>曲線選擇</h3>
 
-      <pre><code>常用曲線：
-  - Pasta curves (Pallas/Vesta)：Halo2 預設
-  - Curve25519：高效能實現
-  - secp256k1：與比特幣相容
+      <pre><code>IPA 常用曲線：
 
-選擇因素：
-  - 遞迴需求 → Pasta curves
-  - 效能優先 → Curve25519
-  - 區塊鏈相容 → 原生曲線</code></pre>
+1. Pasta Curves（Halo2 預設）
+   Pallas: y² = x³ + 5 over F_p
+   Vesta: y² = x³ + 5 over F_q
 
-      <h3>記憶體管理</h3>
+   特性：
+   - 2-cycle：p = |Vesta|, q = |Pallas|
+   - 適合高效遞迴
+   - ~128-bit 安全
 
-      <pre><code>IPA 證明過程的記憶體需求：
-  - 向量 a, b：O(n)
-  - 生成元 G, H：O(n)（可能預計算）
-  - 遞迴過程：O(log n) 個 (L, R) 對
+2. Curve25519
+   y² = x³ + 486662x² + x
 
-優化策略：
-  - 流式計算 s 向量
-  - 延遲載入生成元
-  - 並行折疊運算</code></pre>
+   特性：
+   - 極高效能
+   - 廣泛實現
+   - 不形成 2-cycle
+
+3. secp256k1
+   y² = x³ + 7
+
+   特性：
+   - 比特幣/以太坊相容
+   - 良好實現支援
+
+選擇指南：
+  - 遞迴應用 → Pasta curves
+  - 最高效能 → Curve25519
+  - 區塊鏈相容 → secp256k1</code></pre>
+
+      <h3>MSM 優化</h3>
+
+      <pre><code>多標量乘法優化（驗證瓶頸）：
+
+問題：
+  計算 G_final = ⟨s, G⟩ 需 O(n) 群運算
+
+Pippenger 算法：
+  - 將標量分組（窗口大小 w）
+  - 預計算桶
+  - 時間：O(n/log n)
+
+Straus 算法：
+  - 類似同時雙倍法
+  - 適合小 n
+
+並行化：
+  - MSM 天然可並行
+  - GPU 加速：10-100x
+
+預計算生成元：
+  若 G 固定，可預計算倍點表
+  空間換時間
+
+實際效能：
+  CPU (單核)：~200 ms (n=2²⁰)
+  CPU (8 核)：~40 ms
+  GPU (RTX 4090)：~5 ms</code></pre>
 
       <h2>相關頁面</h2>
 
       <ul>
-        <li><a href="kzg.html">KZG 多項式承諾</a> - 需要可信設置的替代方案</li>
-        <li><a href="fri.html">FRI</a> - 基於雜湊的多項式承諾</li>
-        <li><a href="../halo2.html">Halo2</a> - 使用 IPA 的證明系統</li>
+        <li><a href="kzg.html">KZG 多項式承諾</a> - 需要可信設置的 O(1) 方案</li>
+        <li><a href="fri.html">FRI</a> - 基於雜湊的後量子多項式承諾</li>
+        <li><a href="../proof-systems/halo2.html">Halo2</a> - 使用 IPA 的證明系統</li>
         <li><a href="../../frameworks/tools/ezkl.html">EZKL</a> - 預設使用 IPA 的 ZKML 框架</li>
       </ul>
 
@@ -484,6 +905,10 @@ s_j = Π_{i: bit(j,i)=1} x_i · Π_{i: bit(j,i)=0} x_i^(-1)
           <li id="ref-4">
             <cite>zkonduit. "EZKL Documentation." 2024.</cite>
             <a href="https://docs.ezkl.xyz/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-5">
+            <cite>Bootle, J., Cerulli, A., Chaidos, P., Groth, J., & Petit, C. "Efficient Zero-Knowledge Arguments for Arithmetic Circuits in the Discrete Log Setting." EUROCRYPT 2016.</cite>
+            <a href="https://doi.org/10.1007/978-3-662-49896-5_12" target="_blank" rel="noopener">DOI</a>
           </li>
         </ol>
       </section>
