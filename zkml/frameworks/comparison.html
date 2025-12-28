@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>框架橫向比較 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="framework-comparison">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>框架橫向比較</h1>
+
+      <div class="placeholder-content">
+        <div class="icon">📊</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>ZKML 框架比較表</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>後端</th>
+            <th>支援模型</th>
+            <th>特點</th>
+            <th>年份</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ZKML</td>
+            <td>halo2</td>
+            <td>ResNet, DistilGPT-2</td>
+            <td>首套完整系統</td>
+            <td>2024</td>
+          </tr>
+          <tr>
+            <td>ZKTorch</td>
+            <td>-</td>
+            <td>CNN/RNN/Transformer</td>
+            <td>平行累積加速</td>
+            <td>2025</td>
+          </tr>
+          <tr>
+            <td>EZKL</td>
+            <td>halo2</td>
+            <td>ONNX 模型</td>
+            <td>實務工具、一鍵生成</td>
+            <td>2023+</td>
+          </tr>
+          <tr>
+            <td>zkLLM</td>
+            <td>-</td>
+            <td>LLM</td>
+            <td>大型語言模型專用</td>
+            <td>2024</td>
+          </tr>
+          <tr>
+            <td>RISC Zero</td>
+            <td>STARK</td>
+            <td>通用 RISC-V</td>
+            <td>zkVM 方式</td>
+            <td>2023+</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>選擇建議</h2>
+      <ul>
+        <li><strong>快速原型</strong>：EZKL（ONNX 一鍵轉換）</li>
+        <li><strong>生產環境</strong>：ZKML / ZKTorch</li>
+        <li><strong>LLM 應用</strong>：zkLLM</li>
+        <li><strong>通用計算</strong>：RISC Zero</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

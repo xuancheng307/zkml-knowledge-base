@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>溢位與精度風險 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="overflow">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>溢位與精度風險</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁對應論文 §5.3「溢位與精度風險分析」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">⚠️</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>預計涵蓋內容</h2>
+
+      <h3>溢位風險來源</h3>
+      <ul>
+        <li>定點數乘法累積</li>
+        <li>bit-width 不足</li>
+        <li>深層網路的數值累積</li>
+      </ul>
+
+      <h3>精度損失問題</h3>
+      <ul>
+        <li>量化造成的精度損失</li>
+        <li>非線性函數近似誤差</li>
+        <li>截斷 (truncation) 策略</li>
+      </ul>
+
+      <h3>風險評估指標</h3>
+      <ul>
+        <li>Top-1 Accuracy Drop</li>
+        <li>最大絕對誤差</li>
+        <li>相對誤差分布</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">Auto-Tuning 約束</div>
+        <p>Auto-tuning 工具必須確保選出的配置不會造成溢位，同時維持可接受的精度損失範圍。</p>
+      </div>
+
+      <h3>防護策略</h3>
+      <ul>
+        <li>動態範圍分析</li>
+        <li>安全 bit-width 計算</li>
+        <li>配置空間約束</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

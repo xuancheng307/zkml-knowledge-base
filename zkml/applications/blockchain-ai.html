@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>區塊鏈可驗證 AI - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="blockchain-ai">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>區塊鏈可驗證 AI</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁對應論文 §3.1「區塊鏈上的可驗證 AI 推論」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">⛓️</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>應用場景</h2>
+
+      <h3>隱私 KYC / 風險評分</h3>
+      <ul>
+        <li>模型計算風險分數</li>
+        <li>僅公開結果與 ZK 證明</li>
+        <li>不洩漏敏感資訊</li>
+      </ul>
+
+      <h3>去中心化預言機</h3>
+      <ul>
+        <li>第三方節點用私有模型生成預測</li>
+        <li>附 ZK 證明供鏈上驗證</li>
+      </ul>
+
+      <h3>ZK Rollup / L2 決策</h3>
+      <ul>
+        <li>Rollup sequencer 用 AI 做排序、風險判斷</li>
+        <li>透過 ZK 防止作弊</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">配置重要性</div>
+        <p>錯誤的 ZKML 配置（如 bit 過大導致證明時間 10 分鐘）會讓系統不可用。自動產生合理配置的工具對開發者極其重要。</p>
+      </div>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

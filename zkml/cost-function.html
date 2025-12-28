@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cost Function 設計 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="cost-function">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Cost Function 設計</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文核心章節</div>
+        <p>本頁對應論文 §5.3「Cost Function 設計」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">📐</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>預計涵蓋內容</h2>
+
+      <h3>單目標 Cost Function</h3>
+      <p>基本形式：</p>
+      <pre><code>cost(c) = prover_time(c) + λ₁ · 𝟙[acc(c) < threshold] + λ₂ · gas(c)</code></pre>
+
+      <h3>多目標最佳化</h3>
+      <ul>
+        <li>只保留 acc ≥ 門檻的 config</li>
+        <li>對剩餘 config 做 Pareto 分析</li>
+        <li>找出 Pareto Frontier 上的最佳配置</li>
+      </ul>
+
+      <h3>權重選擇策略</h3>
+      <ul>
+        <li>根據應用場景調整 λ 值</li>
+        <li>區塊鏈應用：重視 gas</li>
+        <li>即時推論：重視 prover_time</li>
+        <li>資源受限：重視 RAM</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

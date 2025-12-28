@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>雲端 ML 第三方驗證 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="cloud-verify">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>雲端 ML 第三方驗證</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁對應論文 §3.2「雲端 ML 服務的第三方驗證」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">☁️</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>Auto-Tuning 工具的價值</h2>
+      <ul>
+        <li>根據客戶需求自動找到適合配置
+          <ul>
+            <li>Top-1 drop ≤ 0.5%</li>
+            <li>latency ≤ 5s</li>
+          </ul>
+        </li>
+        <li>讓 ZKML 變成「可參數化的 trade-off」，而非黑箱開關</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

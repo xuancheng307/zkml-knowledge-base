@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZK 成本指標 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="cost-metrics">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>ZK 成本指標</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文核心章節</div>
+        <p>本頁對應論文 RQ1「量化-成本關係」中的成本定義</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">📊</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>ZK 成本指標定義</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>說明</th>
+            <th>單位</th>
+            <th>重要性</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>constraints</strong></td>
+            <td>電路約束數量</td>
+            <td>個數</td>
+            <td>決定電路規模</td>
+          </tr>
+          <tr>
+            <td><strong>prover_time</strong></td>
+            <td>證明生成時間</td>
+            <td>秒</td>
+            <td>實用性關鍵</td>
+          </tr>
+          <tr>
+            <td><strong>RAM_peak</strong></td>
+            <td>峰值記憶體使用</td>
+            <td>GB</td>
+            <td>硬體需求</td>
+          </tr>
+          <tr>
+            <td><strong>proof_size</strong></td>
+            <td>證明大小</td>
+            <td>KB</td>
+            <td>傳輸/儲存成本</td>
+          </tr>
+          <tr>
+            <td><strong>verify_time</strong></td>
+            <td>驗證時間</td>
+            <td>毫秒</td>
+            <td>通常很快</td>
+          </tr>
+          <tr>
+            <td><strong>on-chain gas</strong></td>
+            <td>鏈上驗證 gas</td>
+            <td>gas units</td>
+            <td>區塊鏈應用關鍵</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>精度相關指標</h2>
+      <ul>
+        <li><strong>Top-1 Accuracy</strong>：模型準確率</li>
+        <li><strong>ECE (Expected Calibration Error)</strong>：校準誤差</li>
+        <li><strong>AURC (Area Under Risk-Coverage)</strong>：風險覆蓋曲線下面積</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

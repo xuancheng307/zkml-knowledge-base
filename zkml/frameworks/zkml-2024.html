@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKML (EuroSys 2024) - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="zkml-2024">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>ZKML (EuroSys 2024)</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文參考文獻 [1]</div>
+        <p>Chen et al., "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs," EuroSys, 2024.</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">📄</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>預計涵蓋內容</h2>
+
+      <h3>系統特點</h3>
+      <ul>
+        <li>首套支援 ResNet、DistilGPT-2、Twitter 推薦模型的系統</li>
+        <li>基於 halo2 編譯器</li>
+        <li>將現實 ML 模型編譯成 SNARK 電路</li>
+      </ul>
+
+      <h3>技術架構</h3>
+      <ul>
+        <li>模型導入流程</li>
+        <li>電路生成策略</li>
+        <li>最佳化技術</li>
+      </ul>
+
+      <h3>效能數據</h3>
+      <ul>
+        <li>支援模型規模</li>
+        <li>Proving time</li>
+        <li>Memory 使用</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

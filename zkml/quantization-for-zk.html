@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZK 專用量化 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="quant-for-zk">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>ZK 專用量化</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文核心章節</div>
+        <p>本頁對應論文 §1.2「量化困境：從浮點世界到有限域」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">🔢</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>預計涵蓋內容</h2>
+      <ul>
+        <li><strong>浮點 → 定點 → 有限域</strong>：轉換流程圖</li>
+        <li><strong>bit-width 選擇</strong>：8-bit / 6-bit / 4-bit 的 trade-off</li>
+        <li><strong>scale_mode</strong>：per-tensor vs per-channel 量化</li>
+        <li><strong>量化兩難</strong>：
+          <ul>
+            <li>位元寬太大 → 電路約束數、記憶體與證明時間爆炸</li>
+            <li>位元寬太小 → 模型準確率、校準與魯棒性嚴重下降</li>
+          </ul>
+        </li>
+        <li><strong>ZK-friendly 量化策略</strong>：與傳統 ML 量化的差異</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

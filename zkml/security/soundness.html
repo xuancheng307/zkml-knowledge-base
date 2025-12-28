@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soundness 分析 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="soundness">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Soundness 分析</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁對應論文 §5.2「Soundness 與 Completeness 分析」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">🛡️</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>預計涵蓋內容</h2>
+
+      <h3>Soundness 定義</h3>
+      <ul>
+        <li>計算健全性 (Computational Soundness)</li>
+        <li>統計健全性 (Statistical Soundness)</li>
+        <li>Perfect Soundness</li>
+      </ul>
+
+      <h3>ZKML 中的 Soundness 挑戰</h3>
+      <ul>
+        <li>量化誤差對 Soundness 的影響</li>
+        <li>浮點到定點轉換的風險</li>
+        <li>近似計算的安全性保證</li>
+      </ul>
+
+      <h3>RQ4 研究問題</h3>
+      <div class="callout callout-warning">
+        <div class="callout-title">研究問題</div>
+        <p>auto-tuning 產生的配置是否能保證 soundness 不被破壞？需要什麼樣的安全邊界設計？</p>
+      </div>
+
+      <h3>安全邊界設計</h3>
+      <ul>
+        <li>bit-width 下限保證</li>
+        <li>overflow 防護機制</li>
+        <li>配置空間的安全約束</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

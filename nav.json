@@ -106,6 +106,17 @@
           ]
         },
         {
+          "id": "quantization-config",
+          "title": "量化與配置",
+          "badge": "論文核心",
+          "items": [
+            { "id": "quant-for-zk", "title": "ZK 專用量化", "path": "/zkml/quantization-for-zk.html", "status": "placeholder" },
+            { "id": "config-space", "title": "配置空間與調參", "path": "/zkml/configuration-space.html", "status": "placeholder" },
+            { "id": "cost-metrics", "title": "ZK 成本指標", "path": "/zkml/cost-metrics.html", "status": "placeholder" },
+            { "id": "cost-function", "title": "Cost Function 設計", "path": "/zkml/cost-function.html", "status": "placeholder" }
+          ]
+        },
+        {
           "id": "technical",
           "title": "技術細節",
           "items": [
@@ -118,10 +129,31 @@
           "id": "frameworks",
           "title": "框架與工具",
           "items": [
+            { "id": "zkml-2024", "title": "ZKML (EuroSys 2024)", "path": "/zkml/frameworks/zkml-2024.html", "status": "placeholder" },
+            { "id": "zktorch", "title": "ZKTorch (2025)", "path": "/zkml/frameworks/zktorch.html", "status": "placeholder" },
             { "id": "ezkl", "title": "EZKL", "path": "/zkml/frameworks/ezkl.html", "status": "placeholder" },
             { "id": "zkllm", "title": "zkLLM", "path": "/zkml/frameworks/zkllm.html", "status": "placeholder" },
             { "id": "opml", "title": "OPML", "path": "/zkml/frameworks/opml.html", "status": "placeholder" },
-            { "id": "risc-zero", "title": "RISC Zero", "path": "/zkml/frameworks/risc-zero.html", "status": "placeholder" }
+            { "id": "risc-zero", "title": "RISC Zero", "path": "/zkml/frameworks/risc-zero.html", "status": "placeholder" },
+            { "id": "framework-comparison", "title": "框架橫向比較", "path": "/zkml/frameworks/comparison.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "applications",
+          "title": "應用場景",
+          "items": [
+            { "id": "blockchain-ai", "title": "區塊鏈可驗證 AI", "path": "/zkml/applications/blockchain-ai.html", "status": "placeholder" },
+            { "id": "cloud-verify", "title": "雲端 ML 第三方驗證", "path": "/zkml/applications/cloud-verification.html", "status": "placeholder" },
+            { "id": "zk-rollup", "title": "ZK Rollup / L2 決策", "path": "/zkml/applications/zk-rollup.html", "status": "placeholder" }
+          ]
+        },
+        {
+          "id": "security",
+          "title": "安全性分析",
+          "items": [
+            { "id": "zk-relation", "title": "ZK Relation 定義", "path": "/zkml/security/zk-relation.html", "status": "placeholder" },
+            { "id": "soundness", "title": "量化與 Soundness", "path": "/zkml/security/soundness.html", "status": "placeholder" },
+            { "id": "overflow", "title": "Overflow 與 Wrap-around", "path": "/zkml/security/overflow.html", "status": "placeholder" }
           ]
         },
         { "id": "benchmarks", "title": "效能比較", "path": "/zkml/benchmarks.html", "status": "placeholder" },

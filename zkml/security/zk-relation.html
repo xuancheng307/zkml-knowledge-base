@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZK 關係式安全 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="zk-relation">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>ZK 關係式安全</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁對應論文 §5.1「ZK 關係式與電路約束」</p>
+      </div>
+
+      <div class="placeholder-content">
+        <div class="icon">🔐</div>
+        <p>本頁內容正在撰寫中...</p>
+      </div>
+
+      <h2>預計涵蓋內容</h2>
+
+      <h3>ZK 關係式定義</h3>
+      <ul>
+        <li>R(x, w) 關係式結構</li>
+        <li>公開輸入 x 與私密見證 w</li>
+        <li>電路約束的形式化描述</li>
+      </ul>
+
+      <h3>ZKML 中的關係式</h3>
+      <ul>
+        <li>神經網路推論的電路表示</li>
+        <li>量化運算的約束轉換</li>
+        <li>非線性運算的 ZK-friendly 近似</li>
+      </ul>
+
+      <h3>安全性要求</h3>
+      <ul>
+        <li>完備性 (Completeness)</li>
+        <li>健全性 (Soundness)</li>
+        <li>零知識性 (Zero-Knowledge)</li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>
