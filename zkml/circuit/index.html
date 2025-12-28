@@ -234,8 +234,8 @@
           <tr>
             <td>Div(x, y)</td>
             <td>\(\lfloor x/y \rfloor\)</td>
-            <td>\(x = q \cdot y + r, 0 \leq r < y\)</td>
-            <td>4</td>
+            <td>\(x = q \cdot y + r\)，需配合 range check 確保 \(0 \leq r < y\) 且 \(q \geq 0\)</td>
+            <td>4+</td>
           </tr>
           <tr>
             <td>DivRound(x, y)</td>
@@ -361,7 +361,7 @@
         </tbody>
       </table>
 
-      <p>ZKTorch 的編譯器將 ML 層自動轉譯為 basic blocks 的組合。其中 13 種 blocks 支援平行累積，可利用 Merkle 樹歸約實現 \(O(\log N)\) 的證明時間複雜度<sup><a href="#ref-2">[2]</a></sup>。</p>
+      <p>ZKTorch 的編譯器將 ML 層自動轉譯為 basic blocks 的組合。其中 13 種 blocks 支援平行累積，可利用二元樹式平行歸約（parallel tree reduction，基於 Mira accumulation scheme 的平行延伸）實現 \(O(\log N)\) 深度的證明組合<sup><a href="#ref-2">[2]</a></sup>。注意：此處 \(O(\log N)\) 指的是樹深度（可平行化的關鍵路徑），總計算工作量仍為 \(O(N)\)。</p>
 
       <h2>Sumcheck 協議（zkCNN）</h2>
 

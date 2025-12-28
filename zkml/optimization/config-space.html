@@ -201,6 +201,8 @@ def SMBO(f, M0, T, acquisition_fn):
 
     for t in range(1, T + 1):
         # 1. 優化獲取函數找下一個評估點
+        # argmin 表示「使獲取函數值最小的 x」，
+        # 因最小化獲取函數對應最有探索/利用價值的配置
         x_star = argmin(acquisition_fn(x, M[t-1]))
 
         # 2. 評估目標函數 (昂貴步驟)

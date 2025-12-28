@@ -125,7 +125,7 @@
           <tr>
             <td>查表建構</td>
             <td>建立 lookup table</td>
-            <td>O(2<sup>k</sup>)</td>
+            <td>O(2<sup>k</sup>)<sup>†</sup></td>
           </tr>
           <tr>
             <td>商多項式計算</td>
@@ -134,6 +134,7 @@
           </tr>
         </tbody>
       </table>
+      <p><small><sup>†</sup> 此處 \(k\) 指的是 <code>logrows</code>（電路評估域大小 \(2^k\)），而非 <code>lookup_bits</code>（單一查表的輸入位寬）。實際查表開銷還取決於查表次數與表格行數的交互作用。</small></p>
 
       <h3>FFT 成本估算</h3>
       <p>FFT 成本可由以下公式估算<sup><a href="#ref-1">[1]</a></sup>：</p>
@@ -278,7 +279,7 @@
             <td>81.3M</td>
             <td>188.9M</td>
             <td>3651.7 s</td>
-            <td>18.70 s</td>
+            <td>18.70 s<sup>‡</sup></td>
             <td>28.1 KB</td>
           </tr>
           <tr>
@@ -291,6 +292,7 @@
           </tr>
         </tbody>
       </table>
+      <p><small><sup>‡</sup> GPT-2 驗證時間為秒級（而非毫秒），因該模型需拆分為多個子電路分別證明，驗證時須遍歷所有子證明。此數值來自原論文 Table 5。</small></p>
 
       <h3>ZKML (IPA 後端) 效能</h3>
       <table>
