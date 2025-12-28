@@ -4,6 +4,33 @@
 
 畢業論文配套技術文獻站，涵蓋 Zero-Knowledge Machine Learning (ZKML) 相關知識。
 
+## AI 內容生成規範
+
+本知識庫的內容主要由 AI 協助生成。為確保學術嚴謹性與一致性，所有 AI agent 必須遵守 **[CLAUDE.md](./CLAUDE.md)** 中定義的規範。
+
+### 核心要求
+
+1. **權威文獻支撐**：所有技術內容必須引用學術論文、白皮書或官方文檔
+2. **參考文獻區塊**：每個頁面底部必須包含完整的參考文獻列表
+3. **禁止來源**：不可引用部落格、Medium、論壇等非權威來源
+4. **術語一致**：遵循 CLAUDE.md 中定義的統一術語
+
+### 參考文獻格式
+
+```html
+<section class="references">
+  <h2>參考文獻</h2>
+  <ol>
+    <li id="ref-1">
+      <cite>作者名. "論文標題." 會議/期刊名, 年份.</cite>
+      <a href="https://arxiv.org/abs/xxxx.xxxxx" target="_blank">arXiv</a>
+    </li>
+  </ol>
+</section>
+```
+
+詳細規範請參閱 [CLAUDE.md](./CLAUDE.md)。
+
 ## 快速開始
 
 ### 本機開發

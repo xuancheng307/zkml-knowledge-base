@@ -337,3 +337,66 @@ mjx-container[display="true"] {
   background-color: var(--color-accent);
   border-radius: var(--radius-sm);
 }
+
+/* === References Section === */
+.references {
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 2px solid var(--color-border);
+}
+
+.references h2 {
+  font-size: var(--font-size-xl);
+  margin-top: 0;
+  margin-bottom: var(--space-4);
+}
+
+.references ol {
+  padding-left: var(--space-6);
+  counter-reset: ref-counter;
+  list-style: none;
+}
+
+.references ol li {
+  position: relative;
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+.references ol li::before {
+  content: "[" counter(ref-counter) "]";
+  counter-increment: ref-counter;
+  position: absolute;
+  left: calc(-1 * var(--space-6));
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.references cite {
+  font-style: normal;
+  display: block;
+  margin-bottom: var(--space-1);
+}
+
+.references a {
+  font-size: var(--font-size-xs);
+  margin-right: var(--space-2);
+  color: var(--color-accent);
+}
+
+.references a:hover {
+  text-decoration: underline;
+}
+
+/* Inline citation superscript */
+article sup a {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+article sup a:hover {
+  text-decoration: underline;
+}
