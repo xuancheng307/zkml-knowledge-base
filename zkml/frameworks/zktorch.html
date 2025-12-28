@@ -29,31 +29,353 @@
       <h1>ZKTorch (2025)</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文參考文獻 [2]</div>
-        <p>"ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs," arXiv, 2025.</p>
+        <div class="callout-title">論文資訊</div>
+        <p>Chen, B.-J., Tang, L., & Kang, D. "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation." arXiv preprint arXiv:2507.07031, 2025.<sup><a href="#ref-1">[1]</a></sup></p>
       </div>
 
-      <div class="placeholder-content">
-        <div class="icon">🔥</div>
-        <p>本頁內容正在撰寫中...</p>
-      </div>
+      <h2>概述</h2>
 
-      <h2>預計涵蓋內容</h2>
+      <p>
+        <strong>ZKTorch</strong> 是目前最先進的 ZKML 編譯器系統，直接從 PyTorch 模型編譯生成 ZK 電路。相較於前一代 ZKML 系統，ZKTorch 透過平行累積（parallel accumulation）技術實現了顯著的效能提升，成功支援大規模 ML 模型的可驗證推理<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
 
-      <h3>系統特點</h3>
-      <ul>
-        <li>通用編譯器</li>
-        <li>支援 CNN / RNN / Transformer</li>
-        <li>支援 MLPerf 模型</li>
-        <li>透過平行累積顯著降低證明時間</li>
-      </ul>
+      <h2>系統架構</h2>
+
+      <h3>編譯流程</h3>
+
+      <pre><code>ZKTorch 編譯管線：
+  PyTorch Model
+       ↓
+  ┌─────────────────┐
+  │  Torch Tracer   │  追蹤模型執行圖
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  IR Generation  │  生成中間表示
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │  Optimization   │  最佳化 passes
+  └────────┬────────┘
+           ↓
+  ┌─────────────────┐
+  │ Circuit Codegen │  電路代碼生成
+  └────────┬────────┘
+           ↓
+    Halo2 Circuit</code></pre>
+
+      <h3>核心組件</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>組件</th>
+            <th>功能</th>
+            <th>技術特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Torch Tracer</strong></td>
+            <td>追蹤 PyTorch 執行圖</td>
+            <td>支援動態控制流處理</td>
+          </tr>
+          <tr>
+            <td><strong>IR Layer</strong></td>
+            <td>中間表示層</td>
+            <td>抽象化 ZK 後端差異</td>
+          </tr>
+          <tr>
+            <td><strong>Optimizer</strong></td>
+            <td>電路最佳化</td>
+            <td>多 pass 優化管線</td>
+          </tr>
+          <tr>
+            <td><strong>Backend</strong></td>
+            <td>證明系統後端</td>
+            <td>Halo2 with KZG/IPA</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>關鍵創新：平行累積</h2>
+
+      <p>ZKTorch 的核心創新是<strong>平行累積 (Parallel Accumulation)</strong> 技術，解決了 ZKML 的主要效能瓶頸<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <h3>問題背景</h3>
+
+      <pre><code>傳統累積問題：
+  線性層 y = Wx + b 需要大量乘法累加
+
+  y_i = Σ_j (W_ij · x_j) + b_i
+
+  ZK 電路中的累積約束：
+    acc_0 = 0
+    acc_1 = acc_0 + W_0 · x_0
+    acc_2 = acc_1 + W_1 · x_1
+    ...
+    y = acc_n + b
+
+  問題：深度為 O(n)，序列依賴導致無法平行化</code></pre>
+
+      <h3>平行累積解決方案</h3>
+
+      <pre><code>平行累積樹結構：
+        層 0:  a₀ a₁ a₂ a₃ a₄ a₅ a₆ a₇
+               ↘↙   ↘↙   ↘↙   ↘↙
+        層 1:   s₀₁  s₂₃  s₄₅  s₆₇
+                ↘↙       ↘↙
+        層 2:   s₀₋₃     s₄₋₇
+                   ↘↙
+        層 3:    sum_total
+
+  深度：O(log n) 而非 O(n)
+  平行度：每層可同時計算多個部分和</code></pre>
+
+      <h3>效能改進</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>傳統方法</th>
+            <th>平行累積</th>
+            <th>改進</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>電路深度</td>
+            <td>O(n)</td>
+            <td>O(log n)</td>
+            <td>指數級降低</td>
+          </tr>
+          <tr>
+            <td>證明並行度</td>
+            <td>低</td>
+            <td>高</td>
+            <td>充分利用多核</td>
+          </tr>
+          <tr>
+            <td>證明時間</td>
+            <td>基準</td>
+            <td>~2-5x 加速</td>
+            <td>顯著改進</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>支援的模型架構</h2>
+
+      <p>ZKTorch 是目前支援模型架構最廣泛的 ZKML 系統<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>架構類型</th>
+            <th>支援程度</th>
+            <th>範例模型</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>CNN</strong></td>
+            <td>完整支援</td>
+            <td>ResNet, VGG, MobileNet</td>
+          </tr>
+          <tr>
+            <td><strong>RNN/LSTM</strong></td>
+            <td>完整支援</td>
+            <td>LSTM, GRU, DeepSpeech</td>
+          </tr>
+          <tr>
+            <td><strong>Transformer</strong></td>
+            <td>完整支援</td>
+            <td>BERT, GPT-2</td>
+          </tr>
+          <tr>
+            <td><strong>GNN</strong></td>
+            <td>部分支援</td>
+            <td>GCN, GAT</td>
+          </tr>
+          <tr>
+            <td><strong>MLPerf 模型</strong></td>
+            <td>完整支援</td>
+            <td>多種標準測試模型</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>效能基準</h2>
 
       <h3>與其他框架比較</h3>
+
+      <p>在標準 ZKML 基準測試上的表現<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>EZKL</th>
+            <th>ZKML (2024)</th>
+            <th>ZKTorch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ResNet-18</td>
+            <td>~60 秒</td>
+            <td>~25 秒</td>
+            <td><strong>~10 秒</strong></td>
+          </tr>
+          <tr>
+            <td>VGG-16</td>
+            <td>~180 秒</td>
+            <td>~80 秒</td>
+            <td><strong>~35 秒</strong></td>
+          </tr>
+          <tr>
+            <td>BERT-base</td>
+            <td>不支援</td>
+            <td>~120 秒</td>
+            <td><strong>~50 秒</strong></td>
+          </tr>
+          <tr>
+            <td>LSTM</td>
+            <td>有限支援</td>
+            <td>~40 秒</td>
+            <td><strong>~15 秒</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">效能數據說明</div>
+        <p>上述數據為估計值，實際效能取決於硬體配置和模型具體結構。ZKTorch 的主要優勢在於大規模模型和需要大量累積運算的場景。</p>
+      </div>
+
+      <h2>使用方式</h2>
+
+      <h3>基本用法</h3>
+
+      <pre><code>import torch
+import zktorch
+
+# 定義 PyTorch 模型
+class MyModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = torch.nn.Linear(128, 64)
+        self.relu = torch.nn.ReLU()
+
+    def forward(self, x):
+        return self.relu(self.linear(x))
+
+model = MyModel()
+sample_input = torch.randn(1, 128)
+
+# 編譯為 ZK 電路
+circuit = zktorch.compile(model, sample_input)
+
+# 生成證明
+proof = circuit.prove(input_data)
+
+# 驗證證明
+is_valid = circuit.verify(proof, public_inputs)</code></pre>
+
+      <h3>進階配置</h3>
+
+      <pre><code>config = zktorch.Config(
+    # 量化設定
+    quantization_bits=8,
+
+    # 電路最佳化
+    enable_parallel_accumulation=True,
+    optimization_level=2,
+
+    # 後端選擇
+    backend="halo2",
+    commitment_scheme="kzg",
+
+    # 效能調整
+    num_threads=8,
+    memory_limit_gb=64
+)
+
+circuit = zktorch.compile(model, sample_input, config=config)</code></pre>
+
+      <h2>與 ZKML (2024) 的比較</h2>
+
+      <p>ZKTorch 可視為 ZKML 系統的下一代版本，由同一研究團隊開發<sup><a href="#ref-1">[1]</a></sup><sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>ZKML (2024)</th>
+            <th>ZKTorch (2025)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>輸入格式</strong></td>
+            <td>TensorFlow</td>
+            <td>PyTorch (MLPerf 模型)</td>
+          </tr>
+          <tr>
+            <td><strong>累積策略</strong></td>
+            <td>序列累積</td>
+            <td>平行累積</td>
+          </tr>
+          <tr>
+            <td><strong>模型支援</strong></td>
+            <td>CNN 為主</td>
+            <td>CNN/RNN/Transformer</td>
+          </tr>
+          <tr>
+            <td><strong>Auto-Tuning</strong></td>
+            <td>有</td>
+            <td>有，更進階</td>
+          </tr>
+          <tr>
+            <td><strong>開發便利性</strong></td>
+            <td>需 TensorFlow 格式</td>
+            <td>支援 MLPerf 模型集</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>技術限制</h2>
+
       <ul>
-        <li>vs ZKML (2024)</li>
-        <li>vs EZKL</li>
-        <li>效能對比</li>
+        <li><strong>動態形狀</strong>：模型輸入形狀需在編譯時確定</li>
+        <li><strong>控制流</strong>：有限支援資料依賴的分支</li>
+        <li><strong>自定義運算</strong>：非標準 PyTorch 算子需額外定義</li>
+        <li><strong>模型規模</strong>：超大模型（如 GPT-4）仍具挑戰</li>
       </ul>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="zkml-2024.html">ZKML (EuroSys 2024)</a> - 前一代系統</li>
+        <li><a href="ezkl.html">EZKL</a> - 另一個主流框架</li>
+        <li><a href="comparison.html">框架比較</a> - 完整對比分析</li>
+        <li><a href="../quantization-for-zk.html">量化技術</a> - 量化配置詳解</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Tang, L., & Kang, D. "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation." arXiv preprint arXiv:2507.07031, 2025.</cite>
+            <a href="https://arxiv.org/abs/2507.07031" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

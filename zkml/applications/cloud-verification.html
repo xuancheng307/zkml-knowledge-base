@@ -29,25 +29,318 @@
       <h1>雲端 ML 第三方驗證</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文章節</div>
-        <p>本頁對應論文 §3.2「雲端 ML 服務的第三方驗證」</p>
+        <div class="callout-title">應用場景</div>
+        <p>本頁說明如何使用 ZKML 技術驗證雲端機器學習服務 (MLaaS) 的計算正確性，讓使用者無需信任服務提供者即可確認推理結果的有效性<sup><a href="#ref-1">[1]</a></sup>。</p>
       </div>
 
-      <div class="placeholder-content">
-        <div class="icon">☁️</div>
-        <p>本頁內容正在撰寫中...</p>
-      </div>
+      <h2>問題背景</h2>
 
-      <h2>Auto-Tuning 工具的價值</h2>
+      <p>
+        <strong>機器學習即服務 (Machine Learning as a Service, MLaaS)</strong> 已成為企業部署 AI 的主流方式。AWS SageMaker、Google Vertex AI、Azure ML 等平台讓使用者無需自建基礎設施即可使用強大的 ML 模型<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
+
+      <p>然而，這種模式存在根本的信任問題：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>問題</th>
+            <th>說明</th>
+            <th>潛在風險</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>模型正確性</strong></td>
+            <td>無法驗證服務商是否使用宣稱的模型</td>
+            <td>使用較差模型以節省成本</td>
+          </tr>
+          <tr>
+            <td><strong>計算完整性</strong></td>
+            <td>無法確認推理過程是否被篡改</td>
+            <td>惡意修改輸出結果</td>
+          </tr>
+          <tr>
+            <td><strong>資源濫用</strong></td>
+            <td>無法驗證是否真正執行完整推理</td>
+            <td>省略計算步驟、使用快取</td>
+          </tr>
+          <tr>
+            <td><strong>模型替換</strong></td>
+            <td>難以偵測服務商悄悄更換模型</td>
+            <td>效能退化、行為改變</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>ZKML 解決方案</h2>
+
+      <p>ZKML 讓 MLaaS 提供者生成推理正確性的密碼學證明<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>傳統 MLaaS 流程：
+  使用者 → 輸入 x → 雲端服務 → 輸出 y → 使用者（無法驗證）
+
+ZKML 驗證流程：
+  1. 服務商發布模型承諾 C(W)
+  2. 使用者提交輸入 x
+  3. 服務商執行推理 y = f(x; W)
+  4. 服務商生成證明 π
+  5. 使用者驗證 Verify(C(W), x, y, π) = 1
+
+保證：
+  - 輸出 y 確實由模型 W 對輸入 x 計算得出
+  - 無法偽造證明（健全性）
+  - 不洩露模型參數 W（零知識性）</code></pre>
+
+      <h2>架構設計</h2>
+
+      <h3>系統組件</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>組件</th>
+            <th>角色</th>
+            <th>責任</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>模型提供者</strong></td>
+            <td>證明者</td>
+            <td>執行推理、生成證明</td>
+          </tr>
+          <tr>
+            <td><strong>服務使用者</strong></td>
+            <td>驗證者</td>
+            <td>驗證證明、確認結果</td>
+          </tr>
+          <tr>
+            <td><strong>模型註冊中心</strong></td>
+            <td>公證方</td>
+            <td>儲存模型承諾、提供驗證金鑰</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>工作流程</h3>
+
+      <pre><code>階段 1：模型註冊（一次性）
+  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+  │ 模型提供者   │────→│ ZKML 編譯   │────→│ 註冊中心    │
+  │ (訓練模型)   │     │ (量化+電路) │     │ (儲存承諾)  │
+  └─────────────┘     └─────────────┘     └─────────────┘
+
+階段 2：推理服務（每次請求）
+  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+  │ 使用者      │────→│ 雲端服務    │────→│ 使用者      │
+  │ (提交輸入)  │     │ (推理+證明) │     │ (驗證證明)  │
+  └─────────────┘     └─────────────┘     └─────────────┘</code></pre>
+
+      <h2>實作考量</h2>
+
+      <h3>1. 模型承諾方案</h3>
+
+      <p>模型參數的承諾方式影響安全性與效能<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>承諾方式</th>
+            <th>特點</th>
+            <th>適用場景</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>雜湊承諾</strong></td>
+            <td>簡單、快速、綁定性強</td>
+            <td>一般應用</td>
+          </tr>
+          <tr>
+            <td><strong>Merkle 樹</strong></td>
+            <td>支援部分揭示、可驗證更新</td>
+            <td>大型模型、漸進式驗證</td>
+          </tr>
+          <tr>
+            <td><strong>KZG 多項式承諾</strong></td>
+            <td>與 ZK 證明系統整合、批次驗證</td>
+            <td>高效能需求</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>2. 服務等級協議 (SLA)</h3>
+
+      <p>ZKML 驗證應納入 SLA 條款：</p>
+
       <ul>
-        <li>根據客戶需求自動找到適合配置
-          <ul>
-            <li>Top-1 drop ≤ 0.5%</li>
-            <li>latency ≤ 5s</li>
-          </ul>
-        </li>
-        <li>讓 ZKML 變成「可參數化的 trade-off」，而非黑箱開關</li>
+        <li><strong>證明生成時間</strong>：推理延遲 + 證明時間的上限</li>
+        <li><strong>準確率保證</strong>：量化配置對應的最大精度損失</li>
+        <li><strong>驗證可用性</strong>：驗證服務的 uptime 保證</li>
+        <li><strong>模型版本控制</strong>：模型更新的通知與遷移機制</li>
       </ul>
+
+      <h3>3. 成本模型</h3>
+
+      <p>ZKML 引入額外成本，需要合理定價<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>成本項目</th>
+            <th>傳統 MLaaS</th>
+            <th>ZKML MLaaS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>推理計算</td>
+            <td>~10-100 ms</td>
+            <td>~10-100 ms</td>
+          </tr>
+          <tr>
+            <td>證明生成</td>
+            <td>-</td>
+            <td>~10-100 秒（可平行）</td>
+          </tr>
+          <tr>
+            <td>驗證</td>
+            <td>-</td>
+            <td>~10-100 ms</td>
+          </tr>
+          <tr>
+            <td>額外儲存</td>
+            <td>-</td>
+            <td>證明金鑰、承諾</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Auto-Tuning 的價值</h2>
+
+      <p>ZKML 的 Auto-Tuning 框架對雲端驗證場景特別重要<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <h3>客製化配置</h3>
+
+      <p>根據客戶需求自動找到適合的配置：</p>
+
+      <pre><code>客戶需求規格範例：
+  - Top-1 準確率下降 ≤ 0.5%
+  - 證明生成延遲 ≤ 5 秒
+  - 峰值記憶體 ≤ 64 GB
+
+Auto-Tuning 輸出：
+  配置 = {
+    bit_width: 8,
+    logrows: 20,
+    lookup_bits: 16,
+    ...
+  }
+  預估效能 = {
+    accuracy_drop: 0.3%,
+    proving_time: 4.2 秒,
+    peak_memory: 58 GB
+  }</code></pre>
+
+      <h3>Pareto 前沿選擇</h3>
+
+      <p>讓客戶在多目標間做取捨：</p>
+
+      <ul>
+        <li><strong>高準確率模式</strong>：優先保證模型準確率，接受較長證明時間</li>
+        <li><strong>低延遲模式</strong>：優先快速證明，接受少量精度損失</li>
+        <li><strong>低記憶體模式</strong>：適應硬體限制，接受其他指標折衷</li>
+      </ul>
+
+      <h2>應用案例</h2>
+
+      <h3>1. 金融風控審計</h3>
+
+      <p>銀行使用第三方 AI 信用評分服務，監管機構可驗證評分模型確實被正確執行：</p>
+
+      <ul>
+        <li>確保使用經核准的模型版本</li>
+        <li>驗證輸入資料未被篡改</li>
+        <li>提供可追溯的審計軌跡</li>
+      </ul>
+
+      <h3>2. 醫療診斷驗證</h3>
+
+      <p>醫院使用雲端 AI 輔助診斷，需要確保計算正確性：</p>
+
+      <ul>
+        <li>驗證診斷結果來自認證模型</li>
+        <li>保護病患資料隱私</li>
+        <li>滿足醫療法規合規要求</li>
+      </ul>
+
+      <h3>3. 內容審核平台</h3>
+
+      <p>社群平台使用 AI 內容審核，需要證明審核決策的公正性：</p>
+
+      <ul>
+        <li>證明使用一致的審核標準</li>
+        <li>提供申訴時的驗證依據</li>
+        <li>增加平台透明度</li>
+      </ul>
+
+      <h2>挑戰與限制</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>挑戰</th>
+            <th>說明</th>
+            <th>可能解決方案</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>證明開銷</strong></td>
+            <td>證明生成時間遠超推理時間</td>
+            <td>批次證明、非同步驗證</td>
+          </tr>
+          <tr>
+            <td><strong>模型規模</strong></td>
+            <td>大型模型（如 GPT-4）仍難以支援</td>
+            <td>zkLLM 專門優化、模型蒸餾</td>
+          </tr>
+          <tr>
+            <td><strong>動態模型</strong></td>
+            <td>模型更新需要重新設置</td>
+            <td>增量更新、版本化承諾</td>
+          </tr>
+          <tr>
+            <td><strong>隱私輸入</strong></td>
+            <td>使用者輸入可能需要保密</td>
+            <td>結合 MPC 或客戶端證明</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="blockchain-ai.html">區塊鏈可驗證 AI</a> - 鏈上 AI 應用</li>
+        <li><a href="../configuration-space.html">配置空間與調參</a> - Auto-Tuning 詳解</li>
+        <li><a href="../cost-metrics.html">ZK 成本指標</a> - 效能評估</li>
+        <li><a href="../frameworks/comparison.html">框架比較</a> - 選擇適合的工具</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Peng, Z., Wang, T., Zhao, C., et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OPML - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="opml">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>OPML（Optimistic ML）</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>OPML 是一種樂觀驗證（Optimistic Verification）方案，用於區塊鏈環境下的 ML 推理驗證<sup><a href="#ref-1">[1]</a></sup>。與 ZKML 不同，OPML 假設計算結果默認正確，僅在有爭議時才產生證明，大幅降低正常情況的開銷。</p>
+      </div>
+
+      <h2>設計理念</h2>
+
+      <h3>樂觀 vs 零知識</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>ZKML</th>
+            <th>OPML</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>預設假設</strong></td>
+            <td>不信任，需證明</td>
+            <td>信任，除非被挑戰</td>
+          </tr>
+          <tr>
+            <td><strong>證明生成</strong></td>
+            <td>每次推理</td>
+            <td>僅爭議時</td>
+          </tr>
+          <tr>
+            <td><strong>正常開銷</strong></td>
+            <td>高（證明生成）</td>
+            <td>低（承諾即可）</td>
+          </tr>
+          <tr>
+            <td><strong>延遲</strong></td>
+            <td>證明時間</td>
+            <td>挑戰期</td>
+          </tr>
+          <tr>
+            <td><strong>安全模型</strong></td>
+            <td>密碼學保證</td>
+            <td>經濟激勵</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>適用場景</h3>
+
+      <pre><code>OPML 適合：
+  - 鏈上 AI 應用（有經濟懲罰機制）
+  - 高頻推理（無法負擔每次 ZK 證明）
+  - 結果可容忍延遲的場景
+
+ZKML 更適合：
+  - 需要即時驗證
+  - 無懲罰機制的環境
+  - 隱私敏感場景</code></pre>
+
+      <h2>協議設計</h2>
+
+      <h3>基本流程</h3>
+
+      <pre><code>OPML 協議步驟：
+
+1. 提交階段
+   - 執行者運行 ML 推理
+   - 計算輸出承諾 H(output)
+   - 提交 (input_hash, output_hash, bond)
+
+2. 挑戰期
+   - 任何人可驗證並挑戰
+   - 挑戰者需質押保證金
+   - 期限：通常 7 天（可配置）
+
+3a. 無挑戰路徑
+   - 挑戰期結束
+   - 結果自動確認
+   - 執行者取回保證金
+
+3b. 有挑戰路徑
+   - 進入互動式證明遊戲
+   - 二分查找爭議點
+   - 鏈上驗證單步執行</code></pre>
+
+      <h3>互動式證明</h3>
+
+      <pre><code>爭議解決（類似 Optimistic Rollup）：
+
+二分協議：
+  1. 執行者提交完整執行軌跡承諾
+  2. 挑戰者指定不同意的區間
+  3. 執行者細分該區間
+  4. 重複直到單一指令
+
+單步驗證：
+  - 鏈上執行該指令
+  - 比較結果與承諾
+  - 確定誰正確
+
+複雜度：
+  - 輪次：O(log n)，n = 總指令數
+  - 每輪：O(1) 鏈上成本</code></pre>
+
+      <h2>ML 特化設計</h2>
+
+      <h3>計算軌跡結構</h3>
+
+      <pre><code>ML 推理軌跡：
+
+層級結構：
+  Layer 0: input → hidden_1
+  Layer 1: hidden_1 → hidden_2
+  ...
+  Layer N: hidden_N → output
+
+軌跡承諾：
+  C_0 = Hash(input)
+  C_1 = Hash(hidden_1)
+  ...
+  C_N = Hash(output)
+
+  root = MerkleRoot(C_0, C_1, ..., C_N)
+
+挑戰策略：
+  1. 首先定位錯誤層（O(log L)輪）
+  2. 然後定位層內錯誤操作
+  3. 最終驗證單一乘加操作</code></pre>
+
+      <h3>激活函數處理</h3>
+
+      <pre><code>非線性函數的軌跡：
+
+ReLU 軌跡：
+  input: [a_1, a_2, ..., a_n]
+  output: [max(0,a_1), max(0,a_2), ...]
+
+  每個 ReLU 是一個可驗證的步驟
+  鏈上驗證：比較並選擇
+
+Softmax 軌跡：
+  step 1: exp 計算（可用查表）
+  step 2: 求和
+  step 3: 除法
+  step 4: 輸出
+
+  每步都可獨立驗證</code></pre>
+
+      <h2>經濟機制</h2>
+
+      <h3>保證金設計</h3>
+
+      <pre><code>質押機制：
+
+執行者保證金：
+  - 金額 > 作弊收益
+  - 若被證明錯誤，沒收保證金
+
+挑戰者保證金：
+  - 防止垃圾挑戰
+  - 挑戰失敗則沒收
+
+獎勵分配（錯誤被發現時）：
+  - 挑戰者獲得部分保證金（激勵監督）
+  - 協議獲得部分（防止串通）
+  - 用戶獲得補償
+
+參數範例：
+  執行者保證金：1 ETH
+  挑戰者保證金：0.1 ETH
+  挑戰成功獎勵：0.5 ETH</code></pre>
+
+      <h3>攻擊與防禦</h3>
+
+      <pre><code>潛在攻擊：
+
+1. 搶跑攻擊
+   攻擊：看到正確挑戰後搶先提交
+   防禦：commit-reveal 機制
+
+2. 延遲攻擊
+   攻擊：故意拖延挑戰期
+   防禦：時間限制 + 罰款
+
+3. 資源耗盡
+   攻擊：大量無效挑戰
+   防禦：挑戰者保證金 + 輪次限制
+
+4. 串通攻擊
+   攻擊：執行者與挑戰者勾結
+   防禦：多方挑戰 + 保證金銷毀</code></pre>
+
+      <h2>實現方案</h2>
+
+      <h3>ORA Protocol</h3>
+
+      <p>ORA（以前稱為 Hyper Oracle）是 OPML 的主要實現<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>ORA 架構：
+
+opML Node：
+  - 執行 ML 推理
+  - 生成執行軌跡
+  - 提交結果承諾
+
+Verifier Network：
+  - 驗證結果
+  - 提出挑戰
+  - 經濟激勵參與
+
+On-chain Contracts：
+  - 管理質押
+  - 仲裁爭議
+  - 執行懲罰
+
+支援模型：
+  - LLaMA 系列
+  - Stable Diffusion
+  - 通用 ONNX 模型</code></pre>
+
+      <h3>Giza Protocol</h3>
+
+      <pre><code>Giza 方案：
+
+混合架構：
+  - 優先使用 OPML
+  - 可選 ZK 證明（高價值交易）
+
+特點：
+  - 支援 Cairo 語言
+  - 與 Starknet 整合
+  - 漸進式去中心化</code></pre>
+
+      <h2>與 ZKML 的結合</h2>
+
+      <h3>混合方案</h3>
+
+      <pre><code>分層驗證：
+
+層級 1：OPML（低成本）
+  - 正常情況只提交承諾
+  - 適合大多數交易
+
+層級 2：ZK 證明（挑戰時）
+  - 被挑戰時生成 ZK 證明
+  - 比互動式證明更快最終確定
+
+優勢：
+  - 正常情況：OPML 的低成本
+  - 爭議情況：ZK 的快速解決
+
+實現挑戰：
+  - 需要保持 OPML 和 ZK 電路一致
+  - ZK 證明時間限制</code></pre>
+
+      <h3>zkOPML</h3>
+
+      <pre><code>概念：使用 ZK 加速爭議解決
+
+傳統 OPML 爭議：
+  - O(log n) 輪互動
+  - 每輪需要區塊確認
+  - 總時間：數天
+
+zkOPML：
+  - 挑戰時生成 ZK 證明
+  - 單輪驗證
+  - 時間：證明生成時間
+
+適用條件：
+  - 證明生成時間 < 挑戰期
+  - 有足夠計算資源
+  - 模型規模適中</code></pre>
+
+      <h2>性能比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>OPML</th>
+            <th>ZKML</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>正常延遲</strong></td>
+            <td>~推理時間</td>
+            <td>~證明時間</td>
+          </tr>
+          <tr>
+            <td><strong>爭議延遲</strong></td>
+            <td>數天</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td><strong>計算成本</strong></td>
+            <td>1x（正常）</td>
+            <td>100-1000x</td>
+          </tr>
+          <tr>
+            <td><strong>鏈上成本</strong></td>
+            <td>低（承諾）</td>
+            <td>低（驗證）</td>
+          </tr>
+          <tr>
+            <td><strong>安全假設</strong></td>
+            <td>經濟理性</td>
+            <td>密碼學</td>
+          </tr>
+          <tr>
+            <td><strong>隱私保護</strong></td>
+            <td>有限</td>
+            <td>可實現</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>局限性</h2>
+
+      <h3>挑戰期問題</h3>
+
+      <pre><code>延遲瓶頸：
+  - 標準挑戰期：7 天
+  - 不適合即時應用
+
+縮短挑戰期的風險：
+  - 挑戰者可能沒時間發現錯誤
+  - 需要更高保證金
+
+解決方案：
+  - 快速通道（高保證金）
+  - 白名單執行者
+  - 混合 ZK 方案</code></pre>
+
+      <h3>驗證者激勵</h3>
+
+      <pre><code>問題：誰來驗證？
+
+困境：
+  - 驗證成本 > 0
+  - 大多數時候無獎勵
+  - 理性行為者可能不驗證
+
+解決方案：
+  1. 驗證獎勵（即使無錯誤）
+  2. 強制驗證者網路
+  3. 隨機抽樣驗證
+
+ORA 的方法：
+  - 驗證者質押參與
+  - 隨機選擇驗證任務
+  - 長期參與獎勵</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="comparison.html">框架橫向比較</a> - OPML vs ZKML 詳細比較</li>
+        <li><a href="risc-zero.html">RISC Zero</a> - 另一種驗證方案</li>
+        <li><a href="../applications/blockchain-ai.html">區塊鏈可驗證 AI</a> - 應用場景</li>
+        <li><a href="../applications/zk-rollup.html">ZK Rollup / L2 決策</a> - 相關 L2 技術</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>ORA Protocol. "opML: Optimistic Machine Learning on Blockchain." 2024.</cite>
+            <a href="https://docs.ora.io/doc/opml/introduction" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-2">
+            <cite>Arbitrum. "Inside Arbitrum Nitro." 2022.</cite>
+            <a href="https://github.com/OffchainLabs/nitro" target="_blank" rel="noopener">GitHub</a>
+          </li>
+          <li id="ref-3">
+            <cite>Optimism. "Optimistic Rollup." 2024.</cite>
+            <a href="https://community.optimism.io/docs/protocol/" target="_blank" rel="noopener">文檔</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

@@ -28,11 +28,370 @@
     <article>
       <h1>機器學習總覽</h1>
 
-      <div class="placeholder-content">
-        <div class="icon">🧠</div>
-        <p>本頁內容正在撰寫中...</p>
-        <p>預計涵蓋：ML 基礎知識地圖、與 ZKML 相關的 ML 概念、為什麼 ML 推理對 ZK 是挑戰。</p>
+      <div class="callout callout-info">
+        <div class="callout-title">導讀說明</div>
+        <p>本區塊說明 ZKML 相關的機器學習概念。重點在於理解為什麼 ML 推理對 ZK 證明系統構成挑戰，以及如何克服這些挑戰。</p>
       </div>
+
+      <h2>機器學習推理流程</h2>
+
+      <p>
+        <strong>機器學習推理 (Inference)</strong> 是使用訓練好的模型對新輸入進行預測的過程。對於神經網路而言，推理本質上是一連串的矩陣運算和非線性變換<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>神經網路推理：y = f(x; W)
+
+前向傳播過程：
+  h₀ = x                           // 輸入
+  h₁ = σ(W₁ · h₀ + b₁)            // 隱藏層 1
+  h₂ = σ(W₂ · h₁ + b₂)            // 隱藏層 2
+  ...
+  y = softmax(Wₙ · hₙ₋₁ + bₙ)      // 輸出層
+
+其中：
+  Wᵢ = 權重矩陣
+  bᵢ = 偏差向量
+  σ  = 激活函數（ReLU, GELU 等）</code></pre>
+
+      <h2>為什麼 ML 對 ZK 是挑戰？</h2>
+
+      <p>ML 推理與 ZK 證明系統之間存在根本性的不匹配<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>機器學習</th>
+            <th>ZK 證明</th>
+            <th>衝突</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>數值表示</strong></td>
+            <td>32/16-bit 浮點數</td>
+            <td>有限域元素</td>
+            <td>需要量化轉換</td>
+          </tr>
+          <tr>
+            <td><strong>非線性</strong></td>
+            <td>ReLU, GELU, Softmax</td>
+            <td>線性算術約束</td>
+            <td>需要查表或近似</td>
+          </tr>
+          <tr>
+            <td><strong>計算規模</strong></td>
+            <td>數十億次運算</td>
+            <td>每次運算產生約束</td>
+            <td>巨大電路規模</td>
+          </tr>
+          <tr>
+            <td><strong>除法</strong></td>
+            <td>頻繁使用</td>
+            <td>需要模逆運算</td>
+            <td>高約束成本</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">核心挑戰</div>
+        <p>一個 ResNet-18 模型包含約 1100 萬參數，單次推理涉及數億次乘法和加法。若直接轉換為 ZK 電路，證明生成可能需要數小時甚至更久<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>ZKML 相關的 ML 概念</h2>
+
+      <h3>1. 神經網路層類型</h3>
+
+      <p>不同類型的層在 ZK 電路中有不同的成本特徵<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>層類型</th>
+            <th>運算</th>
+            <th>ZK 成本</th>
+            <th>處理方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>全連接層</strong></td>
+            <td>y = Wx + b</td>
+            <td>O(n·m) 約束</td>
+            <td>直接矩陣乘法</td>
+          </tr>
+          <tr>
+            <td><strong>卷積層</strong></td>
+            <td>y = W ∗ x + b</td>
+            <td>O(H·W·C·K²)</td>
+            <td>im2col 展開或 FFT</td>
+          </tr>
+          <tr>
+            <td><strong>ReLU</strong></td>
+            <td>max(0, x)</td>
+            <td>O(n) lookups</td>
+            <td>符號位檢查或查表</td>
+          </tr>
+          <tr>
+            <td><strong>Softmax</strong></td>
+            <td>exp(xᵢ)/Σexp(xⱼ)</td>
+            <td>極高</td>
+            <td>通常省略或近似</td>
+          </tr>
+          <tr>
+            <td><strong>BatchNorm</strong></td>
+            <td>(x-μ)/σ·γ+β</td>
+            <td>-</td>
+            <td>摺疊入前層權重</td>
+          </tr>
+          <tr>
+            <td><strong>Pooling</strong></td>
+            <td>max/avg</td>
+            <td>O(n)</td>
+            <td>比較或累加</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>2. 激活函數</h3>
+
+      <p>激活函數引入非線性，是 ML 模型表達能力的關鍵，但對 ZK 是重大挑戰：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>激活函數</th>
+            <th>定義</th>
+            <th>ZK 友好度</th>
+            <th>處理策略</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ReLU</strong></td>
+            <td>max(0, x)</td>
+            <td>中</td>
+            <td>符號位分解或查表</td>
+          </tr>
+          <tr>
+            <td><strong>ReLU6</strong></td>
+            <td>min(max(0, x), 6)</td>
+            <td>較高</td>
+            <td>有界，更易量化</td>
+          </tr>
+          <tr>
+            <td><strong>Sigmoid</strong></td>
+            <td>1/(1+e⁻ˣ)</td>
+            <td>低</td>
+            <td>查表或多項式近似</td>
+          </tr>
+          <tr>
+            <td><strong>GELU</strong></td>
+            <td>x·Φ(x)</td>
+            <td>低</td>
+            <td>查表或 ReLU 替代</td>
+          </tr>
+          <tr>
+            <td><strong>SiLU/Swish</strong></td>
+            <td>x·σ(x)</td>
+            <td>低</td>
+            <td>查表</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3. 常見模型架構</h3>
+
+      <p>ZKML 系統支援的主流架構<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>架構</th>
+            <th>參數量</th>
+            <th>主要運算</th>
+            <th>ZKML 支援</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>MLP</strong></td>
+            <td>~1M</td>
+            <td>全連接</td>
+            <td>完整支援</td>
+          </tr>
+          <tr>
+            <td><strong>CNN (ResNet, VGG)</strong></td>
+            <td>11-138M</td>
+            <td>卷積、BatchNorm</td>
+            <td>ZKML、EZKL 支援</td>
+          </tr>
+          <tr>
+            <td><strong>MobileNet</strong></td>
+            <td>~3M</td>
+            <td>深度可分離卷積</td>
+            <td>輕量級首選</td>
+          </tr>
+          <tr>
+            <td><strong>Transformer</strong></td>
+            <td>數百M~數十B</td>
+            <td>注意力、FFN</td>
+            <td>部分支援（zkLLM）</td>
+          </tr>
+          <tr>
+            <td><strong>RNN/LSTM</strong></td>
+            <td>~10M</td>
+            <td>遞迴、門控</td>
+            <td>ZKTorch 支援</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>量化 (Quantization)</h2>
+
+      <p>量化是將浮點數模型轉換為低位元整數表示的技術，對 ZKML 至關重要<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>量化映射：
+  r = S(q - Z)
+
+其中：
+  r = 原始浮點值
+  q = 量化整數值
+  S = 縮放因子 (scale)
+  Z = 零點 (zero-point)
+
+常見位寬：
+  INT8:  最常用，準確率損失小
+  INT4:  激進量化，小模型可用
+  INT16: 高精度需求</code></pre>
+
+      <h3>量化方法</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>說明</th>
+            <th>優缺點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>PTQ</strong></td>
+            <td>訓練後量化</td>
+            <td>快速但可能損失精度</td>
+          </tr>
+          <tr>
+            <td><strong>QAT</strong></td>
+            <td>量化感知訓練</td>
+            <td>精度最佳但需重新訓練</td>
+          </tr>
+          <tr>
+            <td><strong>Per-tensor</strong></td>
+            <td>整個張量共用 S, Z</td>
+            <td>簡單但精度較低</td>
+          </tr>
+          <tr>
+            <td><strong>Per-channel</strong></td>
+            <td>每通道獨立 S, Z</td>
+            <td>精度高但參數多</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>模型表示格式</h2>
+
+      <h3>ONNX</h3>
+
+      <p>
+        <strong>Open Neural Network Exchange (ONNX)</strong> 是機器學習模型的開放標準格式，被 EZKL 和 ZKML 等框架廣泛使用：
+      </p>
+
+      <ul>
+        <li>支援主流框架匯出（PyTorch、TensorFlow、Keras）</li>
+        <li>定義標準運算符集 (opset)</li>
+        <li>圖形化表示計算流程</li>
+        <li>ZKML 框架解析 ONNX 生成電路</li>
+      </ul>
+
+      <pre><code>ONNX 工作流程：
+  PyTorch Model → torch.onnx.export() → model.onnx → EZKL/ZKML → ZK Circuit</code></pre>
+
+      <h2>推理優化技術</h2>
+
+      <p>除了量化，還有其他技術可降低 ZKML 成本：</p>
+
+      <h3>剪枝 (Pruning)</h3>
+      <p>移除不重要的權重或神經元，減少計算量：</p>
+      <ul>
+        <li><strong>非結構化剪枝</strong>：移除單個權重（稀疏矩陣）</li>
+        <li><strong>結構化剪枝</strong>：移除整個通道或層（更易加速）</li>
+      </ul>
+
+      <h3>知識蒸餾 (Knowledge Distillation)</h3>
+      <p>用小模型（學生）模仿大模型（教師）的行為，獲得更高效的推理模型。</p>
+
+      <h3>運算符融合 (Operator Fusion)</h3>
+      <p>將多個連續運算合併為單一運算，減少中間結果儲存：</p>
+      <pre><code>融合前：Conv → BatchNorm → ReLU（3 個運算）
+融合後：Conv_BN_ReLU（1 個運算）</code></pre>
+
+      <h2>ZKML 的 ML 設計建議</h2>
+
+      <p>設計 ZK 友好的 ML 模型時應考慮<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ol>
+        <li><strong>使用 ReLU 而非 GELU</strong>：ReLU 的分段線性特性更易電路化</li>
+        <li><strong>優先使用 ReLU6</strong>：有界激活函數更易量化</li>
+        <li><strong>避免 Softmax</strong>：使用 argmax 或省略最終層正規化</li>
+        <li><strong>BatchNorm 摺疊</strong>：推理時將 BN 參數併入權重</li>
+        <li><strong>限制模型深度</strong>：每層都增加電路約束</li>
+        <li><strong>考慮 MobileNet</strong>：深度可分離卷積更高效</li>
+      </ol>
+
+      <h2>學習路徑建議</h2>
+
+      <h3>ML 背景讀者</h3>
+      <ol>
+        <li><a href="optimization/quantization.html">量化</a> - 理解 PTQ 與 QAT</li>
+        <li><a href="/zkml-knowledge-base/zkml/quantization-for-zk.html">ZK 專用量化</a> - 量化如何影響電路</li>
+        <li><a href="/zkml-knowledge-base/zkml/model-to-circuit.html">模型到電路轉換</a> - 核心轉換流程</li>
+      </ol>
+
+      <h3>密碼學背景讀者</h3>
+      <ol>
+        <li><a href="neural-networks.html">神經網路基礎</a> - 理解前向傳播</li>
+        <li><a href="activations.html">激活函數</a> - 非線性的來源</li>
+        <li><a href="optimization/quantization.html">量化</a> - 浮點到整數的轉換</li>
+      </ol>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="/zkml-knowledge-base/zkml/quantization-for-zk.html">ZK 專用量化</a> - 量化配置詳解</li>
+        <li><a href="/zkml-knowledge-base/zkml/model-to-circuit.html">模型到電路轉換</a> - ML 與 ZK 的橋樑</li>
+        <li><a href="/zkml-knowledge-base/zkml/frameworks/ezkl.html">EZKL</a> - 支援 ONNX 的 ZKML 框架</li>
+        <li><a href="/zkml-knowledge-base/crypto/index.html">密碼學總覽</a> - ZK 證明系統基礎</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Jacob, B., Kligys, S., Chen, B., et al. "Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference." CVPR 2018.</cite>
+            <a href="https://arxiv.org/abs/1712.05877" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-3">
+            <cite>Peng, Z., Wang, T., Zhao, C., et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

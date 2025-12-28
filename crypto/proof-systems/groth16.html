@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Groth16 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="groth16">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Groth16</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>Groth16 是目前最高效的 zk-SNARK 證明系統之一，由 Jens Groth 於 2016 年提出<sup><a href="#ref-1">[1]</a></sup>。它具有最小的證明大小（3 個群元素，~192 bytes）和最快的驗證時間（3 次配對），是區塊鏈應用的首選方案。</p>
+      </div>
+
+      <h2>系統特性</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Groth16</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>192 bytes</td>
+            <td>3 個群元素（2G₁ + 1G₂）</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td>~3 ms</td>
+            <td>3 次配對運算</td>
+          </tr>
+          <tr>
+            <td><strong>證明時間</strong></td>
+            <td>O(n log n)</td>
+            <td>n = 電路大小</td>
+          </tr>
+          <tr>
+            <td><strong>可信設置</strong></td>
+            <td>電路特定</td>
+            <td>每個電路需獨立設置</td>
+          </tr>
+          <tr>
+            <td><strong>安全假設</strong></td>
+            <td>q-PKE + 配對</td>
+            <td>強假設</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>數學基礎</h2>
+
+      <h3>R1CS 到 QAP</h3>
+
+      <p>Groth16 基於 QAP（Quadratic Arithmetic Program）<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>從 R1CS 到 QAP：
+
+R1CS 約束：(Aw) ∘ (Bw) = Cw
+
+QAP 轉換：
+  1. 選取 m 個點 {r₁, ..., rₘ}
+  2. 對每列 j，插值多項式：
+     uⱼ(X), vⱼ(X), wⱼ(X)
+  3. 定義：
+     A(X) = Σ wⱼ · uⱼ(X)
+     B(X) = Σ wⱼ · vⱼ(X)
+     C(X) = Σ wⱼ · wⱼ(X)
+  4. 零化多項式：t(X) = ∏(X - rᵢ)
+
+QAP 關係：
+  A(X) · B(X) - C(X) = h(X) · t(X)
+  對某個商多項式 h(X)</code></pre>
+
+      <h3>配對群結構</h3>
+
+      <pre><code>雙線性群設置：
+
+群：G₁, G₂, G_T（同階 p）
+配對：e: G₁ × G₂ → G_T
+生成元：G₁ 的 g₁，G₂ 的 g₂
+
+雙線性性質：
+  e(aP, bQ) = e(P, Q)^{ab}
+
+符號約定：
+  [x]₁ = x · g₁ ∈ G₁
+  [x]₂ = x · g₂ ∈ G₂</code></pre>
+
+      <h2>協議細節</h2>
+
+      <h3>可信設置</h3>
+
+      <pre><code>Groth16 Setup(R1CS, τ, α, β, γ, δ):
+
+輸入：R1CS 實例，隨機秘密 τ, α, β, γ, δ
+
+輸出：
+  證明密鑰 pk = (
+    [α]₁, [β]₁, [β]₂, [δ]₁, [δ]₂,
+    {[τⁱ]₁}ᵢ₌₀ⁿ⁻¹,
+    {[(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/δ]₁}ⱼ∈private,
+    {[τⁱ·t(τ)/δ]₁}ᵢ₌₀ⁿ⁻²
+  )
+
+  驗證密鑰 vk = (
+    [α]₁, [β]₂, [γ]₂, [δ]₂,
+    {[(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/γ]₁}ⱼ∈public
+  )
+
+安全要求：
+  τ, α, β, γ, δ 必須銷毀（toxic waste）</code></pre>
+
+      <h3>證明生成</h3>
+
+      <pre><code>Groth16 Prove(pk, w):
+
+輸入：證明密鑰，見證向量 w = (1, x, w_private)
+
+隨機值：r, s ← F_p
+
+計算：
+  A = [α + Σ wⱼ·uⱼ(τ) + r·δ]₁
+
+  B = [β + Σ wⱼ·vⱼ(τ) + s·δ]₂
+
+  C = [Σⱼ∈private wⱼ·(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/δ
+       + h(τ)·t(τ)/δ
+       + s·A + r·B - r·s·δ]₁
+
+輸出：π = (A, B, C) ∈ G₁ × G₂ × G₁</code></pre>
+
+      <h3>驗證</h3>
+
+      <pre><code>Groth16 Verify(vk, x, π):
+
+輸入：驗證密鑰，公開輸入 x，證明 π = (A, B, C)
+
+計算公開輸入的線性組合：
+  L = Σⱼ∈public xⱼ · [(β·uⱼ(τ) + α·vⱼ(τ) + wⱼ(τ))/γ]₁
+
+驗證配對等式：
+  e(A, B) = e([α]₁, [β]₂) · e(L, [γ]₂) · e(C, [δ]₂)
+
+複雜度：
+  - 3 次配對運算
+  - 1 次 G₁ 多標量乘法（公開輸入）</code></pre>
+
+      <h2>安全性分析</h2>
+
+      <h3>安全假設</h3>
+
+      <pre><code>Groth16 安全基於：
+
+1. q-PKE（q-Power Knowledge of Exponent）
+   給定 (g, g^α, g^τ, ..., g^{τ^q}, g^{ατ}, ..., g^{ατ^q})
+   任何能輸出 (c, ĉ) 使 ĉ = c^α 的算法
+   必須「知道」某個 a₀, ..., aₙ 使 c = g^{Σaᵢτⁱ}
+
+2. d-SDH（Strong Diffie-Hellman）
+   給定 (g, g^τ, ..., g^{τ^d})
+   難以計算 (c, g^{1/(τ+c)}) 對任意 c
+
+3. 雙線性配對假設
+   離散對數在 G₁, G₂, G_T 中均困難</code></pre>
+
+      <h3>Toxic Waste 風險</h3>
+
+      <pre><code>可信設置的危險：
+
+若攻擊者知道 τ, α, β, γ, δ：
+  - 可以偽造任意證明
+  - 證明系統完全失效
+
+緩解措施：
+  1. MPC 儀式（如 Zcash Powers of Tau）
+  2. 多方參與，只需一人誠實
+  3. 公開可驗證的儀式
+
+Groth16 vs 通用設置：
+  - Groth16：每個電路需獨立設置
+  - PLONK：通用設置，可重用</code></pre>
+
+      <h2>效能分析</h2>
+
+      <h3>複雜度比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>Groth16</th>
+            <th>PLONK</th>
+            <th>STARK</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>~192 B</td>
+            <td>~400 B</td>
+            <td>~50 KB</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td>~3 ms</td>
+            <td>~5 ms</td>
+            <td>~10 ms</td>
+          </tr>
+          <tr>
+            <td><strong>證明時間</strong></td>
+            <td>O(n log n)</td>
+            <td>O(n log n)</td>
+            <td>O(n log n)</td>
+          </tr>
+          <tr>
+            <td><strong>設置類型</strong></td>
+            <td>電路特定</td>
+            <td>通用</td>
+            <td>透明</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>實際效能</h3>
+
+      <pre><code>基準測試（100 萬約束，BN254）：
+
+證明生成：
+  - CPU（單核）：~60 秒
+  - CPU（多核）：~15 秒
+  - GPU：~5 秒
+
+驗證：
+  - ~3 毫秒
+
+記憶體使用：
+  - 證明：~8 GB
+  - 驗證：~1 MB</code></pre>
+
+      <h2>ZKML 應用</h2>
+
+      <h3>為何 ZKML 較少使用 Groth16</h3>
+
+      <pre><code>Groth16 在 ZKML 的限制：
+
+1. 電路特定設置
+   - 每個模型需要獨立設置
+   - 模型更新需重新設置
+   - 設置時間長（大模型可能數小時）
+
+2. 非線性函數困難
+   - 純 R1CS 無查表支援
+   - ReLU 需要位元分解（~254 約束/ReLU）
+
+3. 大電路問題
+   - 設置隨電路線性增長
+   - 大型 ML 模型設置成本高
+
+ZKML 偏好：
+  - PLONK/Halo2：查表支援 + 通用設置
+  - STARK：透明設置 + 大電路友好</code></pre>
+
+      <h3>適用場景</h3>
+
+      <pre><code>Groth16 仍適合：
+
+1. 小型固定模型
+   - 模型不常更新
+   - 電路規模可控
+
+2. 極致驗證效率需求
+   - 鏈上驗證成本敏感
+   - 每次驗證都上鏈
+
+3. 最小證明大小
+   - 儲存成本敏感
+   - 傳輸頻寬受限
+
+範例應用：
+  - 固定的欺詐檢測模型
+  - 嵌入式 ML 驗證
+  - 極簡區塊鏈整合</code></pre>
+
+      <h2>工具與實現</h2>
+
+      <h3>主要庫</h3>
+
+      <pre><code>1. snarkjs (JavaScript)
+   - 完整 Groth16 實現
+   - 與 Circom 整合
+   - 支援瀏覽器
+
+2. arkworks (Rust)
+   - 高效能實現
+   - 多曲線支援
+   - 可組合的庫
+
+3. gnark (Go)
+   - 高效能
+   - 良好 API
+   - 多後端支援
+
+4. bellman (Rust)
+   - Zcash 使用
+   - 成熟穩定</code></pre>
+
+      <h3>使用範例</h3>
+
+      <pre><code>// Circom + snarkjs 範例
+
+// circuit.circom
+template Multiply() {
+    signal input a;
+    signal input b;
+    signal output c;
+    c <== a * b;
+}
+
+component main = Multiply();
+
+// 命令行使用
+$ circom circuit.circom --r1cs --wasm
+$ snarkjs groth16 setup circuit.r1cs pot12.ptau circuit_0.zkey
+$ snarkjs groth16 prove circuit_0.zkey witness.wtns proof.json
+$ snarkjs groth16 verify verification_key.json public.json proof.json</code></pre>
+
+      <h2>變體與改進</h2>
+
+      <h3>Groth16 變體</h3>
+
+      <pre><code>1. Groth16 with Lookup (研究中)
+   - 嘗試添加查表支援
+   - 複雜度增加
+
+2. LegoSNARK
+   - 模塊化證明
+   - 可組合 Groth16 證明
+
+3. 遞迴 Groth16
+   - 在 Groth16 電路中驗證 Groth16
+   - 配對運算的電路表示複雜</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="plonk.html">PLONK</a> - 通用設置的替代方案</li>
+        <li><a href="../halo2.html">Halo2</a> - 無需可信設置的方案</li>
+        <li><a href="stark.html">STARK</a> - 透明設置方案</li>
+        <li><a href="../arithmetization/r1cs.html">R1CS</a> - Groth16 使用的算術化</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Groth, J. "On the Size of Pairing-based Non-interactive Arguments." EUROCRYPT 2016.</cite>
+            <a href="https://doi.org/10.1007/978-3-662-49896-5_11" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Ben-Sasson, E., et al. "Succinct Non-Interactive Zero Knowledge for a von Neumann Architecture." USENIX Security 2014.</cite>
+            <a href="https://eprint.iacr.org/2013/879" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-3">
+            <cite>Bowe, S., Gabizon, A., & Miers, I. "Scalable Multi-party Computation for zk-SNARK Parameters in the Random Beacon Model." IACR ePrint 2017/1050.</cite>
+            <a href="https://eprint.iacr.org/2017/1050" target="_blank" rel="noopener">ePrint</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

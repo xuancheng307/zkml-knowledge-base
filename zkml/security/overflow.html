@@ -29,49 +29,401 @@
       <h1>溢位與精度風險</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文章節</div>
-        <p>本頁對應論文 §5.3「溢位與精度風險分析」</p>
+        <div class="callout-title">核心概念</div>
+        <p>本頁分析 ZKML 系統中的數值溢位 (Overflow) 與精度損失問題。有限域算術的 wrap-around 特性可能導致嚴重的安全與正確性問題。主要參考 ZKML (EuroSys 2024)<sup><a href="#ref-1">[1]</a></sup> 與量化相關文獻<sup><a href="#ref-2">[2]</a></sup>。</p>
       </div>
 
-      <div class="placeholder-content">
-        <div class="icon">⚠️</div>
-        <p>本頁內容正在撰寫中...</p>
-      </div>
+      <h2>有限域算術的數學基礎</h2>
 
-      <h2>預計涵蓋內容</h2>
+      <p>
+        零知識證明電路在有限域 𝔽<sub>p</sub> 上進行運算，其中 p 為大質數（通常 p ≈ 2<sup>254</sup> 或更大）。有限域的特性是所有運算結果都模 p，形成環繞 (wrap-around) 行為<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
 
-      <h3>溢位風險來源</h3>
-      <ul>
-        <li>定點數乘法累積</li>
-        <li>bit-width 不足</li>
-        <li>深層網路的數值累積</li>
-      </ul>
+      <pre><code>有限域運算定義：
+  加法：a + b ≡ (a + b) mod p
+  乘法：a · b ≡ (a · b) mod p
 
-      <h3>精度損失問題</h3>
-      <ul>
-        <li>量化造成的精度損失</li>
-        <li>非線性函數近似誤差</li>
-        <li>截斷 (truncation) 策略</li>
-      </ul>
+對於有號整數表示（使用 two's complement 映射）：
+  正數範圍：[0, (p-1)/2]
+  負數範圍：[(p+1)/2, p-1] 映射至 [-(p-1)/2, -1]
 
-      <h3>風險評估指標</h3>
-      <ul>
-        <li>Top-1 Accuracy Drop</li>
-        <li>最大絕對誤差</li>
-        <li>相對誤差分布</li>
-      </ul>
+溢位發生條件：
+  當計算結果 r 滿足 |r| > (p-1)/2 時，數值會環繞</code></pre>
+
+      <h3>定點數表示</h3>
+
+      <p>
+        ZKML 使用定點數 (Fixed-Point) 表示浮點值，將小數以整數形式儲存<sup><a href="#ref-2">[2]</a></sup>：
+      </p>
+
+      <pre><code>定點數表示：
+  x_fixed = round(x_float × 2^f)
+
+其中：
+  f = 小數位數 (fractional bits)
+  總位寬 b = 整數位數 + 小數位數 + 符號位
+
+可表示範圍：
+  有號定點數：[-2^(b-1), 2^(b-1) - 1] / 2^f
+
+範例（b=16, f=8）：
+  可表示範圍：[-128.0, 127.996...]
+  精度：1/256 ≈ 0.0039</code></pre>
+
+      <h2>溢位風險來源</h2>
+
+      <h3>1. 矩陣乘法累積</h3>
+
+      <p>
+        全連接層和卷積層的核心運算是矩陣乘法，涉及大量乘加運算。累積過程中數值範圍急劇擴大<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>全連接層：y = Wx + b
+
+單一輸出元素：
+  y_i = Σ_j W_ij × x_j + b_i
+
+累積範圍分析：
+  設輸入 x_j ∈ [-X_max, X_max]
+  設權重 W_ij ∈ [-W_max, W_max]
+
+  則 |y_i| ≤ n × X_max × W_max + |b_i|
+
+  其中 n 為輸入維度
+
+範例：
+  輸入維度 n = 512
+  X_max = 1.0（標準化輸入）
+  W_max = 0.1（典型權重範圍）
+
+  最大累積值 ≈ 512 × 1.0 × 0.1 = 51.2
+
+  若使用 8 位定點數（範圍 ±127），可能安全
+  若輸入未標準化，風險大幅增加</code></pre>
+
+      <h3>2. 深層網路的級聯效應</h3>
+
+      <p>
+        在多層網路中，每層的輸出成為下一層的輸入，數值範圍可能層層放大：
+      </p>
+
+      <pre><code>L 層網路的範圍傳播：
+
+設第 l 層輸出範圍為 R_l，則：
+  R_(l+1) = f(n_l × R_l × W_max^(l+1))
+
+其中 f 為激活函數的影響
+
+對於 ReLU：f(x) = max(0, x)，不縮放正值
+對於 Sigmoid/Tanh：輸出被限制在 [-1, 1] 或 [0, 1]
+
+風險區域：
+  - ReLU 網路可能無限放大
+  - 無激活函數的線性層最危險
+  - BatchNorm 可幫助控制範圍，但 ZKML 中難以實現</code></pre>
 
       <div class="callout callout-warning">
-        <div class="callout-title">Auto-Tuning 約束</div>
-        <p>Auto-tuning 工具必須確保選出的配置不會造成溢位，同時維持可接受的精度損失範圍。</p>
+        <div class="callout-title">BatchNorm 的挑戰</div>
+        <p>傳統神經網路使用 BatchNorm 控制中間值範圍，但 BatchNorm 涉及除法和平方根運算，在 ZK 電路中成本極高。ZKML 通常需要在訓練後移除 BatchNorm 或將其融入線性層<sup><a href="#ref-1">[1]</a></sup>。</p>
       </div>
 
-      <h3>防護策略</h3>
+      <h3>3. 量化過程的捨入累積</h3>
+
+      <p>
+        量化過程中的捨入誤差在深層網路中累積<sup><a href="#ref-2">[2]</a></sup>：
+      </p>
+
+      <pre><code>單次量化誤差：
+  ε_q = x_float - x_quant × scale
+  |ε_q| ≤ scale / 2 = 2^(-f-1)（對於 f 位小數）
+
+多層累積誤差（worst case）：
+  ε_total ≤ Σ_l ε_l × Π_(i>l) gain_i
+
+其中 gain_i 為第 i 層的增益（權重範數）
+
+累積效應：
+  若每層增益 g > 1，誤差指數放大
+  L 層後：ε_total ∝ g^L</code></pre>
+
+      <h2>精度損失分析</h2>
+
+      <h3>量化誤差的數學模型</h3>
+
+      <p>
+        均勻量化的誤差可建模為均勻分布雜訊<sup><a href="#ref-2">[2]</a></sup>：
+      </p>
+
+      <pre><code>對於 b 位均勻量化：
+  量化步長：Δ = (x_max - x_min) / (2^b - 1)
+
+  量化誤差 ε ~ Uniform(-Δ/2, Δ/2)
+
+  誤差統計：
+    E[ε] = 0（無偏）
+    Var[ε] = Δ^2 / 12
+
+  信噪比（對稱量化）：
+    SQNR = 10 × log_10(Var[x] / Var[ε])
+         ≈ 6.02 × b + 4.77 - 10 × log_10(12 × Var[x] / (x_max - x_min)^2) dB</code></pre>
+
+      <h3>激活函數近似誤差</h3>
+
+      <p>
+        非線性函數的查表或多項式近似引入額外誤差<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>激活函數</th>
+            <th>近似方法</th>
+            <th>典型誤差範圍</th>
+            <th>備註</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ReLU</strong></td>
+            <td>精確（分段）</td>
+            <td>0（若無溢位）</td>
+            <td>需符號位判斷</td>
+          </tr>
+          <tr>
+            <td><strong>Sigmoid</strong></td>
+            <td>查表（8-12 位）</td>
+            <td>10<sup>-3</sup> ~ 10<sup>-4</sup></td>
+            <td>邊界區域誤差較大</td>
+          </tr>
+          <tr>
+            <td><strong>GELU</strong></td>
+            <td>多項式近似</td>
+            <td>10<sup>-2</sup> ~ 10<sup>-3</sup></td>
+            <td>通常用 3-5 階多項式</td>
+          </tr>
+          <tr>
+            <td><strong>SoftMax</strong></td>
+            <td>查表 + 正規化</td>
+            <td>10<sup>-2</sup></td>
+            <td>exp 運算最具挑戰</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>安全位寬計算</h2>
+
+      <h3>靜態範圍分析</h3>
+
+      <p>
+        在電路生成前，分析每層可能的數值範圍以決定安全位寬<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>演算法：靜態範圍分析
+
+輸入：模型 M，輸入範圍 [x_min, x_max]
+輸出：每層所需位寬 {b_1, b_2, ..., b_L}
+
+1. 初始化：range[0] = [x_min, x_max]
+
+2. 對於每層 l = 1 to L：
+   2.1 若為線性層 (W, b)：
+       range_min[l] = min(W × range[l-1]) + b_min
+       range_max[l] = max(W × range[l-1]) + b_max
+
+   2.2 若為激活層：
+       range[l] = activation(range[l-1])
+
+   2.3 計算所需位寬：
+       R = max(|range_min[l]|, |range_max[l]|)
+       b[l] = ceil(log_2(R)) + 1 + f  // +1 為符號位，f 為小數位
+
+3. 返回 {b_1, ..., b_L}</code></pre>
+
+      <h3>動態範圍校準</h3>
+
+      <p>
+        使用代表性資料集校準實際數值範圍，比靜態分析更精確但需額外計算<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>演算法：動態範圍校準
+
+輸入：模型 M，校準資料集 D_cal
+輸出：每層激活值的觀測範圍
+
+1. 對於每個樣本 x ∈ D_cal：
+   1.1 執行前向傳播
+   1.2 記錄每層激活值的 min/max
+
+2. 對於每層 l：
+   observed_min[l] = min over all samples
+   observed_max[l] = max over all samples
+
+3. 加入安全餘量：
+   safe_min[l] = observed_min[l] × (1 + margin)
+   safe_max[l] = observed_max[l] × (1 + margin)
+
+   典型 margin = 0.1 ~ 0.2（10-20% 餘量）
+
+4. 計算位寬（同靜態分析）</code></pre>
+
+      <h2>溢位防護機制</h2>
+
+      <h3>1. 飽和運算 (Saturation)</h3>
+
+      <p>
+        在電路中加入飽和邏輯，將超出範圍的值裁剪至邊界：
+      </p>
+
+      <pre><code>飽和運算定義：
+
+sat(x, x_min, x_max) =
+  x_min,  if x < x_min
+  x_max,  if x > x_max
+  x,      otherwise
+
+ZK 電路實現：
+  需要範圍證明約束
+  約束數量：O(b) 其中 b 為位寬
+
+代價：
+  額外約束開銷
+  可能改變模型行為（非等價轉換）</code></pre>
+
+      <h3>2. 動態縮放 (Dynamic Scaling)</h3>
+
+      <p>
+        在高風險層插入重新縮放操作：
+      </p>
+
+      <pre><code>動態縮放策略：
+
+對於中間值 y：
+  y_scaled = y / scale_factor
+
+scale_factor 選擇：
+  方法 1：固定 scale = 2^k（位移運算）
+  方法 2：根據校準數據動態決定
+
+ZK 電路實現：
+  除法需要額外約束
+  位移除法較高效：y >> k</code></pre>
+
+      <h3>3. 混合精度配置</h3>
+
+      <p>
+        對不同層使用不同位寬，在敏感層使用更高精度<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>層類型</th>
+            <th>典型位寬</th>
+            <th>風險等級</th>
+            <th>建議</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>輸入層</strong></td>
+            <td>8-16 位</td>
+            <td>低</td>
+            <td>依資料範圍決定</td>
+          </tr>
+          <tr>
+            <td><strong>隱藏層</strong></td>
+            <td>16-32 位</td>
+            <td>中-高</td>
+            <td>需範圍分析</td>
+          </tr>
+          <tr>
+            <td><strong>累積器</strong></td>
+            <td>32-64 位</td>
+            <td>高</td>
+            <td>矩陣乘法內部</td>
+          </tr>
+          <tr>
+            <td><strong>輸出層</strong></td>
+            <td>16-32 位</td>
+            <td>中</td>
+            <td>需覆蓋輸出範圍</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>精度損失評估指標</h2>
+
+      <h3>分類任務</h3>
+
+      <pre><code>Top-1 Accuracy Drop：
+  Δ_acc = Acc_float - Acc_quant
+
+可接受閾值：
+  高精度需求：Δ_acc < 0.1%
+  一般應用：Δ_acc < 1%
+  低精度可接受：Δ_acc < 5%</code></pre>
+
+      <h3>回歸任務</h3>
+
+      <pre><code>均方誤差增量：
+  Δ_MSE = MSE_quant - MSE_float
+
+相對誤差：
+  ε_rel = |y_quant - y_float| / |y_float|
+
+最大絕對誤差：
+  ε_max = max_x |f_quant(x) - f_float(x)|</code></pre>
+
+      <h2>配置空間約束整合</h2>
+
+      <p>
+        Auto-tuning 必須將溢位安全作為硬性約束<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>安全配置驗證：
+
+def is_safe_config(config, model):
+    # 1. 檢查位寬是否足夠
+    required_bits = analyze_bit_width(model, config)
+    if config.bit_width < required_bits:
+        return False
+
+    # 2. 檢查累積器溢位
+    max_accumulation = estimate_max_accumulation(model)
+    accumulator_bits = config.bit_width * 2 + log2(max_dimension)
+    if accumulator_bits > field_size:
+        return False
+
+    # 3. 檢查精度損失
+    accuracy_drop = evaluate_accuracy(model, config)
+    if accuracy_drop > config.max_accuracy_drop:
+        return False
+
+    return True</code></pre>
+
+      <h2>相關頁面</h2>
+
       <ul>
-        <li>動態範圍分析</li>
-        <li>安全 bit-width 計算</li>
-        <li>配置空間約束</li>
+        <li><a href="soundness.html">Soundness 分析</a> - 溢位對健全性的影響</li>
+        <li><a href="zk-relation.html">ZK 關係式定義</a> - 電路約束基礎</li>
+        <li><a href="../quantization-for-zk.html">ZK 專用量化</a> - 量化配置詳解</li>
+        <li><a href="../configuration-space.html">配置空間與調參</a> - 參數優化</li>
+        <li><a href="../fixed-point.html">定點數與精度</a> - 定點數表示詳解</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Jacob, B., Kligys, S., Chen, B., Zhu, M., Tang, M., Howard, A., Adam, H., & Kalenichenko, D. "Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference." CVPR, 2018.</cite>
+            <a href="https://arxiv.org/abs/1712.05877" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

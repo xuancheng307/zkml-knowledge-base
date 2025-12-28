@@ -28,11 +28,278 @@
     <article>
       <h1>密碼學總覽</h1>
 
-      <div class="placeholder-content">
-        <div class="icon">🔐</div>
-        <p>本頁內容正在撰寫中...</p>
-        <p>預計涵蓋：密碼學知識地圖、各主題依賴關係、與 ZKML 的關聯說明。</p>
+      <div class="callout callout-info">
+        <div class="callout-title">導讀說明</div>
+        <p>本區塊涵蓋 ZKML 所需的密碼學基礎知識。理解這些概念對於深入掌握 ZKML 系統的設計與安全性至關重要。</p>
       </div>
+
+      <h2>零知識證明簡介</h2>
+
+      <p>
+        <strong>零知識證明 (Zero-Knowledge Proof, ZKP)</strong> 是一種密碼學協議，允許證明者 (Prover) 向驗證者 (Verifier) 證明某個陳述為真，同時不洩露任何額外資訊<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
+
+      <p>形式化定義：對於語言 L 和關係 R，零知識證明系統 (P, V) 滿足：</p>
+
+      <pre><code>1. 完備性 (Completeness)：
+   若 x ∈ L，誠實證明者 P 總能說服驗證者 V
+   Pr[⟨P(w), V⟩(x) = 1 | R(x, w) = 1] = 1
+
+2. 健全性 (Soundness)：
+   若 x ∉ L，任何作弊證明者被接受的機率可忽略
+   Pr[⟨P*, V⟩(x) = 1 | x ∉ L] ≤ negl(λ)
+
+3. 零知識性 (Zero-Knowledge)：
+   存在模擬器 S，使得 View_V[⟨P(w), V⟩(x)] ≈ S(x)
+   驗證者無法從證明中學到關於 w 的額外資訊</code></pre>
+
+      <h2>ZKML 使用的證明系統類別</h2>
+
+      <p>現代 ZKP 系統可分為兩大類<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>類別</th>
+            <th>代表系統</th>
+            <th>證明大小</th>
+            <th>驗證時間</th>
+            <th>設置</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>zk-SNARK</strong></td>
+            <td>Groth16, PLONK, Halo2</td>
+            <td>O(1) 或 O(log n)</td>
+            <td>O(1) 或 O(log n)</td>
+            <td>需要（通用或電路特定）</td>
+          </tr>
+          <tr>
+            <td><strong>zk-STARK</strong></td>
+            <td>STARK, RISC Zero</td>
+            <td>O(log² n)</td>
+            <td>O(log² n)</td>
+            <td>透明（無需信任）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">ZKML 的選擇</div>
+        <p>大多數 ZKML 系統選擇 zk-SNARK（特別是 Halo2），因為較小的證明大小對於鏈上驗證至關重要。Halo2 無需可信設置，且支援遞迴證明組合<sup><a href="#ref-2">[2]</a></sup>。</p>
+      </div>
+
+      <h2>密碼學知識地圖</h2>
+
+      <p>ZKML 相關的密碼學知識可分為以下層次：</p>
+
+      <h3>1. 多項式承諾 (Polynomial Commitments)</h3>
+
+      <p>多項式承諾是現代 ZKP 系統的核心組件，允許證明者承諾一個多項式，並在稍後證明該多項式在特定點的求值<sup><a href="#ref-3">[3]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>承諾方案</th>
+            <th>假設</th>
+            <th>證明大小</th>
+            <th>使用系統</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="commitments/kzg.html">KZG</a></td>
+            <td>配對群 + 可信設置</td>
+            <td>O(1)</td>
+            <td>PLONK, ZKTorch</td>
+          </tr>
+          <tr>
+            <td><a href="commitments/ipa.html">IPA</a></td>
+            <td>離散對數</td>
+            <td>O(log n)</td>
+            <td>Halo2, EZKL</td>
+          </tr>
+          <tr>
+            <td><a href="commitments/fri.html">FRI</a></td>
+            <td>碰撞抗性雜湊</td>
+            <td>O(log² n)</td>
+            <td>STARK</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>2. 算術化 (Arithmetization)</h3>
+
+      <p>算術化是將計算轉換為多項式約束的過程。不同算術化方法影響電路表達能力與效率<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>約束形式</th>
+            <th>特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="arithmetization/r1cs.html">R1CS</a></td>
+            <td>(A·z) ○ (B·z) = C·z</td>
+            <td>簡單、廣泛支援、Groth16 使用</td>
+          </tr>
+          <tr>
+            <td><a href="arithmetization/plonkish.html">PLONKish</a></td>
+            <td>自定義閘 + 查表</td>
+            <td>靈活、高效、ZKML 首選</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3. 證明系統 (Proof Systems)</h3>
+
+      <p>證明系統將算術化的約束轉換為可驗證的密碼學證明：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>系統</th>
+            <th>算術化</th>
+            <th>承諾</th>
+            <th>特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="proof-systems/groth16.html">Groth16</a></td>
+            <td>R1CS</td>
+            <td>配對</td>
+            <td>最小證明 (192 bytes)、電路特定設置</td>
+          </tr>
+          <tr>
+            <td><a href="https://xuancheng307.github.io/PLONK/" target="_blank">PLONK</a></td>
+            <td>PLONKish</td>
+            <td>KZG</td>
+            <td>通用設置、自定義閘</td>
+          </tr>
+          <tr>
+            <td><a href="proof-systems/halo2.html">Halo2</a></td>
+            <td>PLONKish</td>
+            <td>IPA/KZG</td>
+            <td>無需設置、遞迴友好、ZKML 主流</td>
+          </tr>
+          <tr>
+            <td><a href="proof-systems/stark.html">STARK</a></td>
+            <td>AIR</td>
+            <td>FRI</td>
+            <td>透明設置、後量子安全、證明較大</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>有限域算術</h2>
+
+      <p>所有 ZKP 計算都在有限域 F<sub>p</sub> 上進行，其中 p 是大質數<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>常用有限域：
+  BN254:    p ≈ 2^254 (配對友好、EVM 支援)
+  BLS12-381: p ≈ 2^381 (更高安全性)
+  Pasta:    p ≈ 2^255 (Halo2 使用、遞迴友好)
+
+基本運算（mod p）：
+  加法：a + b mod p
+  乘法：a · b mod p
+  逆元：a^(-1) mod p（使用擴展歐幾里得或費馬小定理）</code></pre>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">ZKML 的挑戰</div>
+        <p>機器學習使用浮點數和非線性函數，但 ZKP 在有限域上進行<strong>線性算術</strong>。這個根本差異導致 ZKML 必須使用量化（浮點→定點）和查表（非線性→離散化）來橋接兩個世界<sup><a href="#ref-2">[2]</a></sup>。</p>
+      </div>
+
+      <h2>與 ZKML 的關聯</h2>
+
+      <p>密碼學組件在 ZKML 系統中扮演以下角色：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ZKML 組件</th>
+            <th>相關密碼學</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>電路生成</td>
+            <td>算術化 (PLONKish)</td>
+            <td>將 ML 運算轉換為多項式約束</td>
+          </tr>
+          <tr>
+            <td>查表優化</td>
+            <td>Lookup Arguments</td>
+            <td>高效處理非線性激活函數</td>
+          </tr>
+          <tr>
+            <td>證明生成</td>
+            <td>多項式承諾 + IOP</td>
+            <td>產生簡潔的正確性證明</td>
+          </tr>
+          <tr>
+            <td>鏈上驗證</td>
+            <td>配對運算</td>
+            <td>EVM 預編譯支援快速驗證</td>
+          </tr>
+          <tr>
+            <td>證明聚合</td>
+            <td>遞迴證明</td>
+            <td>合併多個子證明降低驗證成本</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>學習路徑建議</h2>
+
+      <p>根據您的背景，建議以下學習順序：</p>
+
+      <h3>從零開始</h3>
+      <ol>
+        <li><a href="zkp-basics.html">ZKP 基礎概念</a> - 理解零知識證明的直覺</li>
+        <li><a href="zkp-properties.html">完備性、健全性、零知識</a> - 形式化安全定義</li>
+        <li><a href="arithmetization/r1cs.html">R1CS</a> - 最簡單的算術化方法</li>
+        <li><a href="proof-systems/groth16.html">Groth16</a> - 經典 zk-SNARK</li>
+      </ol>
+
+      <h3>直奔 ZKML</h3>
+      <ol>
+        <li><a href="arithmetization/plonkish.html">PLONKish</a> - ZKML 使用的算術化</li>
+        <li><a href="proof-systems/halo2.html">Halo2</a> - 主流 ZKML 後端</li>
+        <li><a href="commitments/kzg.html">KZG</a> - 多項式承諾基礎</li>
+      </ol>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="/zkml-knowledge-base/foundations/index.html">ZKML 總覽</a> - 完整的技術概述</li>
+        <li><a href="/zkml-knowledge-base/zkml/model-to-circuit.html">模型到電路轉換</a> - ML 與密碼學的橋樑</li>
+        <li><a href="/zkml-knowledge-base/zkml/security/zk-relation.html">ZK 關係式定義</a> - 形式化定義</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Peng, Z., Wang, T., Zhao, C., et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-3">
+            <cite>Kate, A., Zaverucha, G. M., & Goldberg, I. "Constant-Size Commitments to Polynomials and Their Applications." ASIACRYPT, 2010.</cite>
+            <a href="https://doi.org/10.1007/978-3-642-17373-8_11" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

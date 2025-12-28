@@ -29,43 +29,311 @@
       <h1>Soundness 分析</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文章節</div>
-        <p>本頁對應論文 §5.2「Soundness 與 Completeness 分析」</p>
+        <div class="callout-title">核心概念</div>
+        <p>本頁分析 ZKML 系統中的健全性 (Soundness) 保證，以及量化、近似計算等技術如何影響安全性。主要參考 ZKML (EuroSys 2024)<sup><a href="#ref-1">[1]</a></sup> 與 MTZK (NDSS 2025)<sup><a href="#ref-2">[2]</a></sup>。</p>
       </div>
 
-      <div class="placeholder-content">
-        <div class="icon">🛡️</div>
-        <p>本頁內容正在撰寫中...</p>
-      </div>
+      <h2>Soundness 的形式化定義</h2>
 
-      <h2>預計涵蓋內容</h2>
+      <p>
+        <strong>健全性 (Soundness)</strong> 是零知識證明系統的核心安全屬性之一。直觀而言，健全性保證惡意證明者無法為錯誤的陳述生成有效證明<sup><a href="#ref-3">[3]</a></sup>。
+      </p>
 
-      <h3>Soundness 定義</h3>
-      <ul>
-        <li>計算健全性 (Computational Soundness)</li>
-        <li>統計健全性 (Statistical Soundness)</li>
-        <li>Perfect Soundness</li>
-      </ul>
+      <h3>三種健全性層級</h3>
 
-      <h3>ZKML 中的 Soundness 挑戰</h3>
-      <ul>
-        <li>量化誤差對 Soundness 的影響</li>
-        <li>浮點到定點轉換的風險</li>
-        <li>近似計算的安全性保證</li>
-      </ul>
+      <table>
+        <thead>
+          <tr>
+            <th>層級</th>
+            <th>定義</th>
+            <th>應用場景</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Perfect Soundness</strong></td>
+            <td>作弊成功機率 = 0</td>
+            <td>資訊理論安全系統</td>
+          </tr>
+          <tr>
+            <td><strong>Statistical Soundness</strong></td>
+            <td>作弊成功機率 ≤ negl(λ)，與計算能力無關</td>
+            <td>STARK 等基於雜湊的系統</td>
+          </tr>
+          <tr>
+            <td><strong>Computational Soundness</strong></td>
+            <td>多項式時間攻擊者的成功機率 ≤ negl(λ)</td>
+            <td>大多數 zk-SNARK 系統</td>
+          </tr>
+        </tbody>
+      </table>
 
-      <h3>RQ4 研究問題</h3>
+      <p>形式化定義：</p>
+
+      <pre><code>對於關係 R 和零知識證明系統 (Setup, Prove, Verify)：
+
+Soundness Error ε：
+  對於所有多項式時間攻擊者 A：
+  Pr[Verify(vk, x, π) = 1 ∧ x ∉ L_R] ≤ ε
+
+其中 L_R = { x : ∃w, R(x, w) = 1 } 為關係 R 定義的語言</code></pre>
+
+      <h2>ZKML 中的 Soundness 挑戰</h2>
+
+      <p>
+        傳統 ZKP 系統假設電路精確執行計算。然而，ZKML 引入了量化和近似，這對健全性產生影響<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <h3>1. 量化誤差問題</h3>
+
+      <p>
+        將浮點模型量化為定點表示時，每個運算都引入捨入誤差。累積誤差可能導致量化模型的輸出與原始模型不同：
+      </p>
+
+      <pre><code>原始模型：y_float = f(x; W_float)
+量化模型：y_quant = f_q(x_q; W_q)
+
+誤差：|y_float - y_quant| ≤ ε_total
+
+問題：ZK 證明驗證的是 y_quant，而非 y_float
+      使用者期望的可能是 y_float</code></pre>
+
       <div class="callout callout-warning">
-        <div class="callout-title">研究問題</div>
-        <p>auto-tuning 產生的配置是否能保證 soundness 不被破壞？需要什麼樣的安全邊界設計？</p>
+        <div class="callout-title">語義健全性</div>
+        <p>即使電路約束在技術上是健全的，量化模型的行為可能與使用者預期不符。這涉及「語義健全性」問題：證明的內容是否真正反映使用者的意圖<sup><a href="#ref-1">[1]</a></sup>。</p>
       </div>
 
-      <h3>安全邊界設計</h3>
+      <h3>2. 非線性函數近似</h3>
+
+      <p>
+        ReLU、GELU 等激活函數通常使用查表或多項式近似。這些近似在某些輸入點可能產生與原始函數不同的輸出<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>近似方法</th>
+            <th>誤差來源</th>
+            <th>Soundness 影響</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>查表 (Lookup)</strong></td>
+            <td>離散化誤差、插值誤差</td>
+            <td>輸出可能在相鄰表項間偏差</td>
+          </tr>
+          <tr>
+            <td><strong>多項式近似</strong></td>
+            <td>近似誤差、邊界行為</td>
+            <td>輸入超出訓練範圍時誤差增大</td>
+          </tr>
+          <tr>
+            <td><strong>分段線性</strong></td>
+            <td>分段點處的不連續性</td>
+            <td>梯度資訊損失</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>3. 溢位風險</h3>
+
+      <p>
+        有限域算術在固定位寬下運算。當中間計算結果超出表示範圍時，會發生 wrap-around（環繞），導致計算結果錯誤但電路約束仍可滿足：
+      </p>
+
+      <pre><code>假設使用 16 位定點數，範圍 [-32768, 32767]
+
+正常計算：30000 + 5000 = 35000
+溢位結果：30000 + 5000 = -30536  (wrap-around)
+
+問題：電路會接受 -30536 作為有效輸出
+      這在技術上「滿足」約束，但語義錯誤</code></pre>
+
+      <p>詳細分析見 <a href="overflow.html">溢位與精度風險</a>。</p>
+
+      <h2>Soundness 保護策略</h2>
+
+      <h3>1. 安全位寬設計</h3>
+
+      <p>
+        ZKML 系統需要分析模型中每層的數值範圍，確保位寬足夠容納所有可能的中間值<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>安全位寬計算：
+
+對於線性層 y = Wx + b：
+  range(y_i) = Σ_j |W_ij| · range(x_j) + |b_i|
+
+所需位寬 k 滿足：
+  2^(k-1) > max(|range(y_i)|) for all i
+
+實務建議：
+  輸入層：8-16 位
+  權重：8-16 位
+  中間層：根據累積分析動態計算
+  輸出層：確保覆蓋完整輸出範圍</code></pre>
+
+      <h3>2. 範圍證明 (Range Proofs)</h3>
+
+      <p>
+        在關鍵位置加入範圍約束，確保中間值在預期範圍內<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>對於中間值 v，增加約束：
+  v ∈ [v_min, v_max]
+
+實作方式：
+  方法 1：位元分解 v = Σ_i b_i · 2^i，證明每個 b_i ∈ {0, 1}
+  方法 2：查表確認 v 在允許值集合中
+  方法 3：輔助變數 v - v_min ≥ 0 且 v_max - v ≥ 0</code></pre>
+
+      <h3>3. 量化感知訓練</h3>
+
+      <p>
+        在訓練階段模擬量化效應，使模型學習到對量化更魯棒的權重分布<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
       <ul>
-        <li>bit-width 下限保證</li>
-        <li>overflow 防護機制</li>
-        <li>配置空間的安全約束</li>
+        <li><strong>Fake Quantization</strong>：前向傳播使用量化值，反向傳播使用 STE (Straight-Through Estimator)</li>
+        <li><strong>範圍約束</strong>：限制激活值在訓練中的數值範圍</li>
+        <li><strong>梯度裁剪</strong>：防止權重過大導致量化誤差放大</li>
       </ul>
+
+      <h3>4. 配置空間約束</h3>
+
+      <p>
+        Auto-tuning 工具必須將健全性作為硬性約束，排除可能導致溢位或過大誤差的配置<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>配置空間過濾：
+
+for config in configuration_space:
+    if not check_overflow_safety(config, model):
+        reject(config)
+    if estimate_accuracy_drop(config, model) > threshold:
+        reject(config)
+    else:
+        evaluate(config)
+
+安全邊界設計：
+  bit_width_min = 分析得出的最小安全位寬
+  lookup_bits_min = 確保激活函數精度的最小查表位寬
+  accuracy_drop_max = 允許的最大精度損失（如 1%）</code></pre>
+
+      <h2>攻擊場景分析</h2>
+
+      <h3>量化利用攻擊</h3>
+
+      <p>
+        攻擊者可能設計特定輸入，使量化模型產生與原始模型顯著不同的輸出，同時生成有效的 ZK 證明<sup><a href="#ref-2">[2]</a></sup>：
+      </p>
+
+      <pre><code>攻擊場景：
+  1. 攻擊者找到 x' 使得 f_float(x') = A 但 f_quant(x') = B
+  2. 攻擊者提交 x' 並聲稱輸出為 B
+  3. ZK 證明正確驗證，因為量化電路確實輸出 B
+  4. 使用者預期的是 A（基於原始模型）
+
+防護：
+  - 公開量化模型的承諾，而非原始模型
+  - 文件說明量化規格
+  - 限制量化誤差在可接受範圍</code></pre>
+
+      <h3>溢位利用攻擊</h3>
+
+      <p>
+        如果電路未正確處理溢位，攻擊者可能利用 wrap-around 行為：
+      </p>
+
+      <pre><code>攻擊場景：
+  1. 找到導致中間層溢位的極端輸入
+  2. 溢位後的值仍滿足電路約束
+  3. 產生完全錯誤的輸出，但證明有效
+
+防護：
+  - 強制範圍證明
+  - 使用足夠大的有限域
+  - 動態範圍分析</code></pre>
+
+      <h2>Soundness 驗證方法</h2>
+
+      <h3>1. 形式化驗證</h3>
+
+      <p>
+        使用符號執行或模型檢查驗證電路約束的完整性：
+      </p>
+
+      <ul>
+        <li>證明對於所有有效輸入，電路輸出與預期模型行為一致</li>
+        <li>證明不存在滿足約束但語義錯誤的計算路徑</li>
+      </ul>
+
+      <h3>2. 隨機測試</h3>
+
+      <p>
+        大規模隨機輸入測試，比較量化電路輸出與原始模型輸出：
+      </p>
+
+      <pre><code>for i in range(num_tests):
+    x = random_input()
+    y_float = model_float(x)
+    y_quant = circuit_quant(x)
+    assert |y_float - y_quant| < tolerance</code></pre>
+
+      <h3>3. 邊界測試</h3>
+
+      <p>
+        針對數值邊界、極端輸入進行特化測試：
+      </p>
+
+      <ul>
+        <li>最大/最小輸入值</li>
+        <li>接近量化邊界的輸入</li>
+        <li>可能觸發非線性函數極端行為的輸入</li>
+      </ul>
+
+      <h2>與 Auto-Tuning 的整合</h2>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">關鍵問題</div>
+        <p>Auto-tuning 產生的配置是否能保證 Soundness 不被破壞？需要什麼樣的安全邊界設計？</p>
+      </div>
+
+      <p>ZKML 系統的 auto-tuning 需要在優化效率的同時維護安全性<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>硬性約束</strong>：位寬下限、範圍證明要求作為不可違反的約束</li>
+        <li><strong>軟性目標</strong>：證明時間、記憶體使用作為優化目標</li>
+        <li><strong>驗證流程</strong>：每個候選配置必須通過安全性檢查才能評估效能</li>
+      </ul>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="zk-relation.html">ZK 關係式定義</a> - 關係式的形式化定義</li>
+        <li><a href="overflow.html">溢位與精度風險</a> - 數值精度問題詳解</li>
+        <li><a href="../quantization-for-zk.html">ZK 專用量化</a> - 量化技術與配置</li>
+        <li><a href="../configuration-space.html">配置空間與調參</a> - Auto-tuning 詳解</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Xiao, D., Liu, Z., Peng, Y., & Wang, S. "MTZK: Testing and Exploring Bugs in Zero-Knowledge (ZK) Compilers." NDSS Symposium, 2025.</cite>
+            <a href="https://www.ndss-symposium.org/ndss-paper/mtzk-testing-and-exploring-bugs-in-zero-knowledge-zk-compilers/" target="_blank" rel="noopener">NDSS</a>
+          </li>
+          <li id="ref-3">
+            <cite>Peng, Z., Wang, T., Zhao, C., Liao, G., Lin, Z., Liu, Y., Cao, B., Shi, L., Yang, Q., & Zhang, S. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

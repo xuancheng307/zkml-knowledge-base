@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body data-page-id="cost-function">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
@@ -29,35 +30,383 @@
       <h1>Cost Function 設計</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文核心章節</div>
-        <p>本頁對應論文 §5.3「Cost Function 設計」</p>
+        <div class="callout-title">論文章節</div>
+        <p>本頁對應論文 §5.3「Cost Function 設計」，整合 ZKML (EuroSys 2024) 的成本估算方法與多目標貝葉斯優化 (MOBO) 的理論基礎。</p>
       </div>
 
-      <div class="placeholder-content">
-        <div class="icon">📐</div>
-        <p>本頁內容正在撰寫中...</p>
+      <h2>概述</h2>
+
+      <p>ZKML 系統的配置優化本質上是一個<strong>多目標最佳化問題</strong>。與傳統機器學習調參僅關注模型準確度不同，ZKML 必須同時考量多個可能衝突的目標<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>最小化</strong>：證明時間、記憶體使用、證明大小、鏈上 gas 成本</li>
+        <li><strong>最大化</strong>：模型準確度</li>
+        <li><strong>滿足</strong>：硬性約束（如記憶體上限、準確度門檻）</li>
+      </ul>
+
+      <p>設計良好的 Cost Function 是自動調優框架的核心，它將多維目標空間映射為單一可比較的數值，引導優化器找到最佳配置。</p>
+
+      <h2>單目標 Cost Function</h2>
+
+      <h3>基本形式</h3>
+
+      <p>最簡單的 Cost Function 形式是加權線性組合<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <p class="math">$$C(\mathbf{c}) = \alpha \cdot T_{\text{prove}}(\mathbf{c}) + \beta \cdot M_{\text{RAM}}(\mathbf{c}) + \gamma \cdot S_{\text{proof}}(\mathbf{c}) + \delta \cdot (1 - \text{Acc}(\mathbf{c}))$$</p>
+
+      <p>其中：</p>
+      <ul>
+        <li>\(\mathbf{c}\) 為配置向量（包含 logrows、lookup_bits、bit_width 等）</li>
+        <li>\(T_{\text{prove}}\) 為證明時間（秒）</li>
+        <li>\(M_{\text{RAM}}\) 為峰值記憶體使用（GB）</li>
+        <li>\(S_{\text{proof}}\) 為證明大小（KB）</li>
+        <li>\(\text{Acc}\) 為模型準確度</li>
+        <li>\(\alpha, \beta, \gamma, \delta\) 為權重係數</li>
+      </ul>
+
+      <h3>帶懲罰項的 Cost Function</h3>
+
+      <p>實務上常需處理硬性約束，使用懲罰項實現<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <p class="math">$$C(\mathbf{c}) = T_{\text{prove}}(\mathbf{c}) + \lambda_1 \cdot \mathbb{1}[\text{Acc}(\mathbf{c}) < \theta_{\text{acc}}] + \lambda_2 \cdot \mathbb{1}[M_{\text{RAM}}(\mathbf{c}) > M_{\max}]$$</p>
+
+      <p>其中：</p>
+      <ul>
+        <li>\(\mathbb{1}[\cdot]\) 為指示函數，條件成立時為 1，否則為 0</li>
+        <li>\(\theta_{\text{acc}}\) 為準確度門檻（如 90%）</li>
+        <li>\(M_{\max}\) 為可用記憶體上限</li>
+        <li>\(\lambda_1, \lambda_2\) 為懲罰係數（通常設為很大的值）</li>
+      </ul>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">懲罰係數選擇</div>
+        <p>懲罰係數 \(\lambda\) 需足夠大以確保違反約束的配置永遠不會被選中。實務上可設為目標函數可能值的 10-100 倍。</p>
       </div>
 
-      <h2>預計涵蓋內容</h2>
+      <h3>應用場景導向的權重</h3>
 
-      <h3>單目標 Cost Function</h3>
-      <p>基本形式：</p>
-      <pre><code>cost(c) = prover_time(c) + λ₁ · 𝟙[acc(c) < threshold] + λ₂ · gas(c)</code></pre>
+      <p>不同應用場景對各成本指標的重視程度不同<sup><a href="#ref-1">[1]</a></sup>：</p>
 
-      <h3>多目標最佳化</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>應用場景</th>
+            <th>主要關注</th>
+            <th>建議權重分配</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>區塊鏈驗證</strong></td>
+            <td>證明大小、gas 成本</td>
+            <td>高 \(\gamma\)，中 \(\alpha\)</td>
+          </tr>
+          <tr>
+            <td><strong>即時推理</strong></td>
+            <td>證明時間</td>
+            <td>高 \(\alpha\)，低 \(\gamma\)</td>
+          </tr>
+          <tr>
+            <td><strong>資源受限環境</strong></td>
+            <td>記憶體使用</td>
+            <td>高 \(\beta\)，中 \(\alpha\)</td>
+          </tr>
+          <tr>
+            <td><strong>高精度需求</strong></td>
+            <td>模型準確度</td>
+            <td>高 \(\delta\)，寬鬆其他</td>
+          </tr>
+          <tr>
+            <td><strong>批次處理</strong></td>
+            <td>總吞吐量</td>
+            <td>平衡 \(\alpha\) 和 \(\beta\)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>多目標最佳化</h2>
+
+      <h3>Pareto 最優</h3>
+
+      <p>當目標相互衝突時，不存在單一最優解。取而代之的是 <strong>Pareto 前沿</strong>（Pareto Frontier）——所有無法在不犧牲某一目標的前提下改善其他目標的解集合<sup><a href="#ref-2">[2]</a></sup>。</p>
+
+      <p><strong>定義</strong>：配置 \(\mathbf{c}\) <strong>Pareto 支配</strong>（dominates）配置 \(\mathbf{c}'\) 若且唯若：</p>
+
+      <p class="math">$$\forall i: f_i(\mathbf{c}) \leq f_i(\mathbf{c}') \quad \text{and} \quad \exists j: f_j(\mathbf{c}) < f_j(\mathbf{c}')$$</p>
+
+      <p>其中 \(f_i\) 為第 \(i\) 個目標函數（假設都是最小化問題）。</p>
+
+      <p><strong>Pareto 前沿</strong>：所有不被任何其他解支配的解的集合：</p>
+
+      <p class="math">$$\mathcal{P} = \{\mathbf{c} \in \mathcal{C} : \nexists \mathbf{c}' \in \mathcal{C}, \mathbf{c}' \text{ dominates } \mathbf{c}\}$$</p>
+
+      <h3>Hypervolume 指標</h3>
+
+      <p>Hypervolume 是評估 Pareto 前沿品質的常用指標<sup><a href="#ref-2">[2]</a></sup>。給定參考點 \(\mathbf{r}\)，hypervolume 定義為 Pareto 前沿與參考點之間的空間體積：</p>
+
+      <p class="math">$$\text{HV}(\mathcal{P}, \mathbf{r}) = \text{Vol}\left(\bigcup_{\mathbf{c} \in \mathcal{P}} [\mathbf{f}(\mathbf{c}), \mathbf{r}]\right)$$</p>
+
+      <p>Hypervolume 越大，表示 Pareto 前沿品質越好（覆蓋更多目標空間）。</p>
+
+      <h3>Expected Hypervolume Improvement (EHVI)</h3>
+
+      <p>多目標貝葉斯優化 (MOBO) 使用 EHVI 作為獲取函數<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <p class="math">$$\text{EHVI}(\mathbf{c}) = \mathbb{E}[\text{HV}(\mathcal{P} \cup \{\mathbf{c}\}, \mathbf{r}) - \text{HV}(\mathcal{P}, \mathbf{r})]$$</p>
+
+      <p>EHVI 衡量新配置對現有 Pareto 前沿的預期改善程度。選擇 EHVI 最大的配置進行下一次評估。</p>
+
+      <div class="callout callout-info">
+        <div class="callout-title">可微分 EHVI</div>
+        <p>傳統 EHVI 計算複雜度較高。Daulton et al. (2020) 提出可微分的 qEHVI，支援批次選擇多個配置並利用 GPU 加速<sup><a href="#ref-2">[2]</a></sup>。</p>
+      </div>
+
+      <h2>ZKML 成本估算模型</h2>
+
+      <h3>FFT 成本估算</h3>
+
+      <p>證明時間的主要組成是 FFT 運算。ZKML 使用以下公式估算<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <p class="math">$$C_{\text{FFT}} = n_{\text{FFT}} \cdot t_{\text{FFT}}(k) + n'_{\text{FFT}} \cdot t_{\text{FFT}}(k')$$</p>
+
+      <p>其中：</p>
       <ul>
-        <li>只保留 acc ≥ 門檻的 config</li>
-        <li>對剩餘 config 做 Pareto 分析</li>
-        <li>找出 Pareto Frontier 上的最佳配置</li>
+        <li>\(k = \log_2(\text{rows})\) 為行數的對數</li>
+        <li>\(k' = k + \log_2(d_{\max} - 1)\)，\(d_{\max}\) 為約束最大次數</li>
+        <li>\(t_{\text{FFT}}(k)\) 為大小為 \(2^k\) 的 FFT 時間（預先測量）</li>
       </ul>
 
-      <h3>權重選擇策略</h3>
+      <p>FFT 數量計算：</p>
+
+      <p class="math">$$n_{\text{FFT}} = N_i + N_a + 3 \cdot N_{\text{lk}} + \left\lceil \frac{N_{\text{pm}} + d_{\max} - 3}{d_{\max} - 2} \right\rceil$$</p>
+
+      <p>其中 \(N_i\) 為實例列數、\(N_a\) 為建議列數、\(N_{\text{lk}}\) 為查表數量、\(N_{\text{pm}}\) 為置換約束數量。</p>
+
+      <h3>MSM 成本估算</h3>
+
+      <p>多純量乘法 (MSM) 是另一主要成本來源<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>承諾方案</th>
+            <th>MSM 數量</th>
+            <th>單次 MSM 大小</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>KZG</td>
+            <td>\(n_{\text{FFT}} + d_{\max} - 1\)</td>
+            <td>\(2^k\)</td>
+          </tr>
+          <tr>
+            <td>IPA</td>
+            <td>\(n_{\text{FFT}} + d_{\max}\)</td>
+            <td>\(2^k\)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>估算準確性</h3>
+
+      <p>ZKML 成本估算器的準確性以 Kendall 等級相關係數衡量<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>後端</th>
+            <th>Kendall τ</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>KZG</td>
+            <td>0.89</td>
+            <td>高度相關</td>
+          </tr>
+          <tr>
+            <td>IPA</td>
+            <td>0.88</td>
+            <td>高度相關</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>這意味著估算器能準確排序不同配置的相對效能，即使絕對值可能有誤差。</p>
+
+      <h2>實務設計考量</h2>
+
+      <h3>階段式優化</h3>
+
+      <p>實務上建議採用階段式優化策略<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ol>
+        <li><strong>可行性篩選</strong>：排除違反硬性約束的配置（logrows 不足、記憶體超限）</li>
+        <li><strong>準確度篩選</strong>：排除準確度低於門檻的配置</li>
+        <li><strong>Pareto 分析</strong>：在可行配置中找出 Pareto 前沿</li>
+        <li><strong>最終選擇</strong>：根據應用需求從 Pareto 前沿選擇</li>
+      </ol>
+
+      <pre><code class="language-python">
+def staged_optimization(configs, model, constraints):
+    """階段式優化策略"""
+
+    # 階段 1: 可行性篩選
+    feasible = [c for c in configs
+                if check_feasibility(c, constraints)]
+
+    # 階段 2: 準確度篩選
+    accurate = [c for c in feasible
+                if evaluate_accuracy(model, c) >= constraints['min_acc']]
+
+    # 階段 3: 評估所有目標
+    evaluated = [(c, evaluate_all_objectives(model, c))
+                 for c in accurate]
+
+    # 階段 4: 找出 Pareto 前沿
+    pareto_front = find_pareto_front(evaluated)
+
+    return pareto_front
+      </code></pre>
+
+      <h3>快速可行性檢查</h3>
+
+      <p>在進行昂貴的完整評估前，可使用快速檢查排除不可行配置<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>檢查項目</th>
+            <th>方法</th>
+            <th>成本</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>logrows 足夠性</td>
+            <td>估算最小行數需求</td>
+            <td>毫秒級</td>
+          </tr>
+          <tr>
+            <td>記憶體需求</td>
+            <td>根據 logrows 估算</td>
+            <td>毫秒級</td>
+          </tr>
+          <tr>
+            <td>約束滿足</td>
+            <td>Mock prove（不生成證明）</td>
+            <td>秒級</td>
+          </tr>
+          <tr>
+            <td>量化準確度</td>
+            <td>校準資料集評估</td>
+            <td>秒級</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>歸一化處理</h3>
+
+      <p>不同目標的尺度差異大（秒 vs GB vs KB），需要歸一化<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <p class="math">$$\tilde{f}_i(\mathbf{c}) = \frac{f_i(\mathbf{c}) - f_i^{\min}}{f_i^{\max} - f_i^{\min}}$$</p>
+
+      <p>其中 \(f_i^{\min}\) 和 \(f_i^{\max}\) 可從歷史觀測估計，或使用領域知識設定。</p>
+
+      <h2>與 TPE 的整合</h2>
+
+      <p>Tree-structured Parzen Estimator (TPE) 是 ZKML 使用的優化演算法<sup><a href="#ref-3">[3]</a></sup>。Cost Function 設計需考慮與 TPE 的配合：</p>
+
+      <h3>單目標 TPE</h3>
+
+      <p>TPE 透過建模 \(p(x|y)\) 而非 \(p(y|x)\) 進行優化：</p>
+
+      <p class="math">$$p(x|y) = \begin{cases} \ell(x) & \text{if } y < y^* \\ g(x) & \text{if } y \geq y^* \end{cases}$$</p>
+
+      <p>其中 \(y^*\) 通常取為觀測值的 \(\gamma = 0.15\) 分位數。TPE 選擇 \(\ell(x)/g(x)\) 比值高的配置。</p>
+
+      <h3>多目標 TPE（MOTPE）</h3>
+
+      <p>對於多目標問題，可擴展 TPE<sup><a href="#ref-3">[3]</a></sup>：</p>
+
+      <ol>
+        <li>計算每個配置的 Pareto 支配數</li>
+        <li>選擇支配數最少的 \(\gamma\) 比例配置作為「好」樣本</li>
+        <li>分別對每個目標建模 \(\ell(x)\) 和 \(g(x)\)</li>
+        <li>使用乘積 \(\prod_i \ell_i(x) / \prod_i g_i(x)\) 選擇配置</li>
+      </ol>
+
+      <h2>ZKML 優化器效益</h2>
+
+      <p>良好的 Cost Function 設計對優化效益至關重要<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>ZKML 優化</th>
+            <th>固定配置</th>
+            <th>改善</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>VGG-16</td>
+            <td>637.1 s</td>
+            <td>1474.0 s</td>
+            <td>131%</td>
+          </tr>
+          <tr>
+            <td>MobileNet</td>
+            <td>1225.5 s</td>
+            <td>2407.8 s</td>
+            <td>96%</td>
+          </tr>
+          <tr>
+            <td>MNIST</td>
+            <td>2.5 s</td>
+            <td>4.4 s</td>
+            <td>76%</td>
+          </tr>
+          <tr>
+            <td>GPT-2</td>
+            <td>3651.7 s</td>
+            <td>5952.0 s</td>
+            <td>63%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>優化器執行時間相比窮舉搜索快約 <strong>5900 倍</strong>（以 GPT-2 為例：185.3 秒 vs 估計 1,078,449 秒）。</p>
+
+      <h2>相關頁面</h2>
+
       <ul>
-        <li>根據應用場景調整 λ 值</li>
-        <li>區塊鏈應用：重視 gas</li>
-        <li>即時推論：重視 prover_time</li>
-        <li>資源受限：重視 RAM</li>
+        <li><a href="cost-metrics.html">ZK 成本指標</a> - 各成本指標的詳細定義</li>
+        <li><a href="configuration-space.html">配置空間與調參</a> - 配置參數與優化方法</li>
+        <li><a href="quantization-for-zk.html">ZK 專用量化</a> - 量化對準確度的影響</li>
+        <li><a href="frameworks/zkml-2024.html">ZKML (EuroSys 2024)</a> - 系統實作細節</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Daulton, S., Balandat, M., & Bakshy, E. "Differentiable Expected Hypervolume Improvement for Parallel Multi-Objective Bayesian Optimization." NeurIPS 2020.</cite>
+            <a href="https://arxiv.org/abs/2006.05078" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-3">
+            <cite>Bergstra, J., Bardenet, R., Bengio, Y., & Kégl, B. "Algorithms for Hyper-Parameter Optimization." NeurIPS 2011.</cite>
+            <a href="https://papers.nips.cc/paper/2011/hash/86e8f7ab32cfd12577bc2619bc635690-Abstract.html" target="_blank" rel="noopener">NeurIPS</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

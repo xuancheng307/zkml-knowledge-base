@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RISC Zero - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="risc-zero">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>RISC Zero</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>RISC Zero 是一個通用零知識虛擬機（zkVM），可以為任何 RISC-V 程式生成零知識證明<sup><a href="#ref-1">[1]</a></sup>。透過支援標準 Rust 程式碼，開發者可以直接使用現有 ML 函式庫進行可驗證計算，無需編寫專用電路。</p>
+      </div>
+
+      <h2>架構概述</h2>
+
+      <h3>zkVM 方法</h3>
+
+      <pre><code>傳統 ZKML vs zkVM 方法：
+
+傳統 ZKML：
+  模型 → 專用電路 → 證明
+  優點：高度優化
+  缺點：需要專門編譯器，每種操作需特製
+
+zkVM 方法：
+  模型 → 標準程式 → RISC-V → zkVM → 證明
+  優點：任何 Rust 程式都可證明
+  缺點：通用性帶來開銷
+
+RISC Zero 定位：
+  通用性優先，效能持續改進</code></pre>
+
+      <h3>系統架構</h3>
+
+      <pre><code>RISC Zero 組件：
+
+1. Guest Program
+   - 開發者編寫的 Rust 程式
+   - 編譯為 RISC-V 可執行檔
+   - 在 zkVM 中執行
+
+2. zkVM
+   - 執行 RISC-V 指令
+   - 記錄執行軌跡
+   - 基於 STARK 生成證明
+
+3. Host Program
+   - 提供輸入數據
+   - 接收 Receipt（證明）
+   - 可選：執行驗證
+
+4. Verifier
+   - 鏈上或鏈下驗證
+   - 支援多種平台</code></pre>
+
+      <h2>技術細節</h2>
+
+      <h3>STARK 證明系統</h3>
+
+      <p>RISC Zero 使用 STARK 作為底層證明系統<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>STARK 特性：
+  - 透明設置（無可信第三方）
+  - 後量子安全
+  - 證明大小：O(log² n)
+
+RISC Zero 的 STARK：
+  - 基於 FRI 多項式承諾
+  - 使用 DEEP-ALI 優化
+  - 支援遞迴證明
+
+證明組成：
+  - 執行軌跡多項式
+  - 約束多項式
+  - FRI 查詢回應</code></pre>
+
+      <h3>執行軌跡</h3>
+
+      <pre><code>RISC-V 執行軌跡：
+
+每個時鐘週期記錄：
+  - 程式計數器 (PC)
+  - 寄存器狀態 (x0-x31)
+  - 記憶體讀寫
+
+約束類型：
+  1. 指令解碼約束
+     確保 opcode 對應正確操作
+
+  2. 執行約束
+     確保 ALU 運算正確
+
+  3. 記憶體約束
+     確保讀寫一致性
+
+  4. 程式載入約束
+     確保執行正確程式</code></pre>
+
+      <h3>Bonsai 證明服務</h3>
+
+      <pre><code>Bonsai 特點：
+
+雲端證明生成：
+  - 用戶提交程式和輸入
+  - Bonsai 集群生成證明
+  - 返回 Receipt
+
+優勢：
+  - 無需本地計算資源
+  - 並行化和硬體加速
+  - 快速迭代開發
+
+API 使用：
+  let receipt = bonsai_client
+      .prove(image_id, input)
+      .await?;
+
+  // 驗證
+  receipt.verify(image_id)?;</code></pre>
+
+      <h2>ZKML 應用</h2>
+
+      <h3>直接使用 Rust ML 庫</h3>
+
+      <pre><code>支援的方式：
+
+方式 1：原生 Rust 推理
+  use ndarray::Array2;
+  use candle_core::Tensor;  // 需適配
+
+  // 在 guest program 中直接運行
+  let output = model.forward(&input);
+
+方式 2：ONNX Runtime（實驗性）
+  // 載入 ONNX 模型
+  let model = onnx::load("model.onnx");
+  let output = model.run(input);
+
+方式 3：手動實現
+  // 適合小型模型
+  fn linear(x: &[f32], w: &[f32], b: f32) -> f32 {
+      x.iter().zip(w).map(|(a,b)| a*b).sum::<f32>() + b
+  }</code></pre>
+
+      <h3>範例：MNIST 分類</h3>
+
+      <pre><code>RISC Zero MNIST 範例：
+
+// guest/src/main.rs
+#![no_main]
+risc0_zkvm::guest::entry!(main);
+
+fn main() {
+    // 讀取輸入
+    let image: [u8; 784] = env::read();
+
+    // 載入權重（預編譯）
+    let weights = include_bytes!("weights.bin");
+
+    // 前向傳播
+    let hidden = relu(matmul(&image, &weights.layer1));
+    let output = softmax(matmul(&hidden, &weights.layer2));
+
+    // 輸出結果
+    let prediction = argmax(&output);
+    env::commit(&prediction);
+}
+
+效能數據（粗略）：
+  模型：2 層 MLP，~100K 參數
+  推理時間：~100 ms
+  證明時間：~10 分鐘
+  證明大小：~1 MB</code></pre>
+
+      <h3>大型模型挑戰</h3>
+
+      <pre><code>LLM 在 zkVM 的問題：
+
+週期數爆炸：
+  簡單 MLP：~100K 週期
+  BERT-base：~100M 週期
+  LLaMA-7B：~10T 週期（估計）
+
+記憶體限制：
+  zkVM 記憶體模型需證明
+  大型模型權重載入成本高
+
+當前策略：
+  1. 模型壓縮（量化、剪枝）
+  2. 分段證明
+  3. 使用專用 ZKML 框架處理大模型</code></pre>
+
+      <h2>效能優化</h2>
+
+      <h3>Continuations（延續）</h3>
+
+      <pre><code>問題：長程式超出單次證明限制
+
+Continuations 機制：
+  - 將長執行分割為段
+  - 每段獨立證明
+  - 使用遞迴組合
+
+使用方式：
+  // 設置段大小
+  let env = ExecutorEnv::builder()
+      .segment_limit_po2(20)  // 2^20 週期/段
+      .build();
+
+  // 執行並證明
+  let receipt = prover.prove(env, image)?;
+
+優勢：
+  - 突破記憶體限制
+  - 可並行證明各段
+  - 支援任意長計算</code></pre>
+
+      <h3>加速器</h3>
+
+      <pre><code>RISC Zero 加速選項：
+
+1. GPU 加速
+   - CUDA 支援
+   - Metal 支援（Apple）
+   - 10-100x 加速
+
+2. FPGA（開發中）
+   - 更高效能潛力
+   - 針對 STARK 運算優化
+
+3. Bonsai 雲端
+   - 分散式證明
+   - 專用硬體
+
+使用 GPU：
+  let prover = default_prover();
+  // 自動檢測並使用 GPU</code></pre>
+
+      <h3>電路優化</h3>
+
+      <pre><code>Guest 程式優化技巧：
+
+1. 避免動態分配
+   使用棧上數組而非 Vec
+
+2. 最小化記憶體存取
+   記憶體約束成本高
+
+3. 使用加速器（Accelerators）
+   // RISC Zero 提供的加速運算
+   risc0_zkvm::guest::sha256(&data);
+
+4. 批處理
+   一次證明處理多個推理
+
+5. 預計算
+   將常數表格編譯進 guest</code></pre>
+
+      <h2>與專用 ZKML 比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>RISC Zero</th>
+            <th>EZKL/Halo2</th>
+            <th>ZKTorch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>開發難度</strong></td>
+            <td>低（標準 Rust）</td>
+            <td>中（配置 + 電路）</td>
+            <td>中（PyTorch 擴展）</td>
+          </tr>
+          <tr>
+            <td><strong>效能（小模型）</strong></td>
+            <td>中</td>
+            <td>高</td>
+            <td>高</td>
+          </tr>
+          <tr>
+            <td><strong>效能（大模型）</strong></td>
+            <td>低</td>
+            <td>中</td>
+            <td>高</td>
+          </tr>
+          <tr>
+            <td><strong>靈活性</strong></td>
+            <td>極高（任意程式）</td>
+            <td>中（支援的層類型）</td>
+            <td>中高</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>~1 MB (STARK)</td>
+            <td>~10 KB (SNARK)</td>
+            <td>~10 KB (SNARK)</td>
+          </tr>
+          <tr>
+            <td><strong>後量子安全</strong></td>
+            <td>是</td>
+            <td>否</td>
+            <td>否</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>應用場景</h2>
+
+      <h3>適合 RISC Zero 的場景</h3>
+
+      <pre><code>1. 複雜預處理
+   - 圖像預處理 + 分類
+   - 自然語言處理管道
+   - 多模態模型
+
+2. 非標準操作
+   - 自定義層
+   - 混合 ML + 業務邏輯
+   - 研究性模型
+
+3. 快速原型
+   - 驗證概念可行性
+   - 無需專用電路開發
+   - 後續可遷移到專用系統
+
+4. 後量子需求
+   - 需要長期安全性
+   - 政府/金融應用</code></pre>
+
+      <h3>不適合的場景</h3>
+
+      <pre><code>1. 大型模型（>100M 參數）
+   建議：EZKL, ZKTorch, zkLLM
+
+2. 極致效能需求
+   建議：專用電路
+
+3. 小證明大小需求
+   建議：SNARK 系統
+
+4. 頻繁推理
+   建議：OPML 或專用系統</code></pre>
+
+      <h2>實戰範例</h2>
+
+      <h3>完整 ML 推理</h3>
+
+      <pre><code>// Cargo.toml (guest)
+[dependencies]
+risc0-zkvm = { version = "1.0", features = ["std"] }
+ndarray = "0.15"
+
+// main.rs (guest)
+#![no_main]
+risc0_zkvm::guest::entry!(main);
+
+use ndarray::{Array1, Array2};
+use risc0_zkvm::guest::env;
+
+fn relu(x: f32) -> f32 {
+    if x > 0.0 { x } else { 0.0 }
+}
+
+fn main() {
+    // 讀取輸入
+    let input: Vec<f32> = env::read();
+    let weights1: Vec<f32> = env::read();
+    let weights2: Vec<f32> = env::read();
+
+    // 第一層
+    let mut hidden = vec![0.0f32; 128];
+    for i in 0..128 {
+        for j in 0..784 {
+            hidden[i] += input[j] * weights1[i * 784 + j];
+        }
+        hidden[i] = relu(hidden[i]);
+    }
+
+    // 第二層
+    let mut output = vec![0.0f32; 10];
+    for i in 0..10 {
+        for j in 0..128 {
+            output[i] += hidden[j] * weights2[i * 128 + j];
+        }
+    }
+
+    // 輸出預測
+    let pred = output.iter()
+        .enumerate()
+        .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+        .unwrap().0;
+
+    env::commit(&(pred as u32));
+}</code></pre>
+
+      <h2>生態系統</h2>
+
+      <h3>相關項目</h3>
+
+      <pre><code>zkVM 生態：
+
+1. SP1 (Succinct)
+   - 另一個 Rust zkVM
+   - STARK + Groth16 包裝
+   - 較小證明
+
+2. Jolt (a16z)
+   - Lookup 優化的 zkVM
+   - 研究導向
+
+3. Nexus
+   - 模塊化 zkVM
+   - 可插拔證明系統
+
+RISC Zero 整合：
+  - Bonsai 鏈上驗證
+  - 多鏈支援
+  - Steel（EVM 協處理器）</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="comparison.html">框架橫向比較</a> - zkVM vs 專用 ZKML</li>
+        <li><a href="../../crypto/commitments/fri.html">FRI</a> - STARK 使用的承諾方案</li>
+        <li><a href="../../crypto/proof-systems/stark.html">STARK</a> - 證明系統詳解</li>
+        <li><a href="opml.html">OPML</a> - 另一種驗證方案</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>RISC Zero. "RISC Zero zkVM Documentation." 2024.</cite>
+            <a href="https://dev.risczero.com/api" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-2">
+            <cite>Ben-Sasson, E., et al. "Scalable, transparent, and post-quantum secure computational integrity." IACR ePrint 2018/046.</cite>
+            <a href="https://eprint.iacr.org/2018/046" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-3">
+            <cite>RISC Zero. "Bonsai: Boundless Proving." 2024.</cite>
+            <a href="https://www.bonsai.xyz/" target="_blank" rel="noopener">網站</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

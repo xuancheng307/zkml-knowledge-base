@@ -28,11 +28,225 @@
     <article>
       <h1>論文概覽</h1>
 
-      <div class="placeholder-content">
-        <div class="icon">📖</div>
-        <p>本頁內容正在撰寫中...</p>
-        <p>預計涵蓋：論文標題、研究動機、研究問題、主要發現、如何使用本站。</p>
+      <div class="callout callout-info">
+        <div class="callout-title">關於本知識庫</div>
+        <p>本知識庫是碩士論文的輔助資源，旨在系統性地整理 ZKML（零知識機器學習）領域的核心技術、工具框架與應用場景，作為論文附錄的延伸閱讀材料。</p>
       </div>
+
+      <h2>研究主題</h2>
+
+      <p>
+        <strong>零知識機器學習 (Zero-Knowledge Machine Learning, ZKML)</strong> 是密碼學與機器學習的交叉領域，研究如何在不洩露模型參數或輸入資料的情況下，生成機器學習推理正確性的密碼學證明。
+      </p>
+
+      <h3>核心問題</h3>
+
+      <pre><code>給定：
+  - 機器學習模型 f(·; W)，參數為 W
+  - 輸入資料 x
+  - 輸出結果 y = f(x; W)
+
+目標：
+  證明者生成證明 π，使驗證者確信：
+  「y 確實是模型 f 在輸入 x 上的正確推理結果」
+
+約束：
+  - 不洩露模型參數 W（模型隱私）
+  - 和/或不洩露輸入 x（資料隱私）
+  - 證明大小與驗證時間需實用</code></pre>
+
+      <h2>研究動機</h2>
+
+      <h3>為什麼需要可驗證的 ML？</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>應用場景</th>
+            <th>信任問題</th>
+            <th>ZKML 解決方案</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>MLaaS 服務</strong></td>
+            <td>無法確認雲端使用正確模型</td>
+            <td>證明推理來自承諾的模型</td>
+          </tr>
+          <tr>
+            <td><strong>區塊鏈 AI</strong></td>
+            <td>鏈上執行成本過高</td>
+            <td>鏈下推理 + 鏈上驗證證明</td>
+          </tr>
+          <tr>
+            <td><strong>隱私計算</strong></td>
+            <td>推理需要敏感資料</td>
+            <td>證明結果而不洩露輸入</td>
+          </tr>
+          <tr>
+            <td><strong>監管合規</strong></td>
+            <td>需要審計 AI 決策</td>
+            <td>提供可驗證的決策軌跡</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>主要研究問題</h2>
+
+      <p>本論文聚焦於 ZKML 系統的以下核心問題：</p>
+
+      <h3>1. 效能瓶頸</h3>
+      <ul>
+        <li>證明生成時間遠超推理時間（10-1000 倍）</li>
+        <li>記憶體消耗巨大</li>
+        <li>大型模型（如 Transformer）支援有限</li>
+      </ul>
+
+      <h3>2. 精度與安全性權衡</h3>
+      <ul>
+        <li>量化導致模型精度下降</li>
+        <li>量化誤差可能影響證明健全性</li>
+        <li>如何在精度與效能間取得平衡</li>
+      </ul>
+
+      <h3>3. 系統設計</h3>
+      <ul>
+        <li>如何設計高效的電路表示</li>
+        <li>如何自動調參（Auto-Tuning）</li>
+        <li>如何支援多樣化的模型架構</li>
+      </ul>
+
+      <h2>知識庫結構</h2>
+
+      <p>本知識庫分為以下主要區塊：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>區塊</th>
+            <th>內容</th>
+            <th>入口</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ZKML 核心</strong></td>
+            <td>ZKML 系統原理、電路轉換、配置調參</td>
+            <td><a href="/zkml-knowledge-base/zkml/index.html">ZKML 總覽</a></td>
+          </tr>
+          <tr>
+            <td><strong>密碼學基礎</strong></td>
+            <td>ZKP、證明系統、多項式承諾</td>
+            <td><a href="/zkml-knowledge-base/crypto/index.html">密碼學總覽</a></td>
+          </tr>
+          <tr>
+            <td><strong>機器學習基礎</strong></td>
+            <td>ML 推理、量化技術、模型架構</td>
+            <td><a href="/zkml-knowledge-base/ml/index.html">ML 總覽</a></td>
+          </tr>
+          <tr>
+            <td><strong>框架工具</strong></td>
+            <td>ZKML、ZKTorch、EZKL 等框架</td>
+            <td><a href="/zkml-knowledge-base/zkml/frameworks/comparison.html">框架比較</a></td>
+          </tr>
+          <tr>
+            <td><strong>應用場景</strong></td>
+            <td>區塊鏈 AI、雲端驗證、L2 決策</td>
+            <td><a href="/zkml-knowledge-base/zkml/applications/blockchain-ai.html">應用頁面</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>如何使用本站</h2>
+
+      <h3>依背景選擇路徑</h3>
+
+      <ul>
+        <li>
+          <strong>密碼學背景</strong>：建議從 <a href="/zkml-knowledge-base/ml/index.html">ML 總覽</a> 開始，了解機器學習推理流程
+        </li>
+        <li>
+          <strong>ML 背景</strong>：建議從 <a href="/zkml-knowledge-base/crypto/index.html">密碼學總覽</a> 開始，了解零知識證明基礎
+        </li>
+        <li>
+          <strong>區塊鏈背景</strong>：可直接從 <a href="/zkml-knowledge-base/zkml/applications/blockchain-ai.html">區塊鏈可驗證 AI</a> 開始
+        </li>
+        <li>
+          <strong>全面了解</strong>：從 <a href="/zkml-knowledge-base/foundations/index.html">基礎總覽</a> 開始系統學習
+        </li>
+      </ul>
+
+      <h3>快速參考</h3>
+
+      <ul>
+        <li><a href="/zkml-knowledge-base/zkml/cost-metrics.html">ZK 成本指標</a> - 理解效能評估方法</li>
+        <li><a href="/zkml-knowledge-base/zkml/configuration-space.html">配置空間與調參</a> - 系統調優指南</li>
+        <li><a href="/zkml-knowledge-base/zkml/security/zk-relation.html">ZK 關係式定義</a> - 形式化安全定義</li>
+      </ul>
+
+      <h2>主要參考文獻</h2>
+
+      <p>本知識庫的內容主要基於以下核心文獻：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>文獻</th>
+            <th>貢獻</th>
+            <th>年份</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ZKML Survey</strong></td>
+            <td>全面的 ZKML 領域綜述</td>
+            <td>2025</td>
+          </tr>
+          <tr>
+            <td><strong>ZKML (EuroSys)</strong></td>
+            <td>自動調參框架</td>
+            <td>2024</td>
+          </tr>
+          <tr>
+            <td><strong>ZKTorch</strong></td>
+            <td>PyTorch 直接編譯</td>
+            <td>2025</td>
+          </tr>
+          <tr>
+            <td><strong>zkLLM</strong></td>
+            <td>大型語言模型支援</td>
+            <td>2024</td>
+          </tr>
+          <tr>
+            <td><strong>EZKL</strong></td>
+            <td>開源實用工具</td>
+            <td>2023-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="/zkml-knowledge-base/foundations/index.html">ZKML 總覽</a> - 完整的技術概述</li>
+        <li><a href="/zkml-knowledge-base/zkml/frameworks/comparison.html">框架比較</a> - 工具選擇指南</li>
+        <li><a href="/zkml-knowledge-base/crypto/index.html">密碼學總覽</a> - ZKP 基礎知識</li>
+        <li><a href="/zkml-knowledge-base/ml/index.html">ML 總覽</a> - 機器學習基礎</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Peng, Z., Wang, T., Zhao, C., et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

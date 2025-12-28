@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZK 關係式安全 - ZKML 技術知識庫</title>
+  <title>ZK 關係式定義 - ZKML 技術知識庫</title>
 
   <script>
     (function() {
@@ -26,40 +26,265 @@
     <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
 
     <article>
-      <h1>ZK 關係式安全</h1>
+      <h1>ZK 關係式定義</h1>
 
       <div class="callout callout-info">
-        <div class="callout-title">論文章節</div>
-        <p>本頁對應論文 §5.1「ZK 關係式與電路約束」</p>
+        <div class="callout-title">核心概念</div>
+        <p>本頁說明零知識證明中「關係式 (Relation)」的形式化定義，以及如何在 ZKML 中建構可驗證的電路約束。主要整合 Peng et al. 的綜述<sup><a href="#ref-1">[1]</a></sup>與 ZKML (EuroSys 2024)<sup><a href="#ref-2">[2]</a></sup> 的相關內容。</p>
       </div>
 
-      <div class="placeholder-content">
-        <div class="icon">🔐</div>
-        <p>本頁內容正在撰寫中...</p>
+      <h2>ZK 關係式的形式化定義</h2>
+
+      <p>
+        在零知識證明系統中，<strong>關係式 (Relation)</strong> R 是一個二元謂詞 R(x, w)，其中 x 為<strong>公開輸入 (Public Input / Statement)</strong>，w 為<strong>私密見證 (Private Witness)</strong>。證明者 (Prover) 的目標是向驗證者 (Verifier) 證明「存在某個 w 使得 R(x, w) = 1」，同時不洩露 w 的任何資訊<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
+
+      <p>形式化定義如下：</p>
+
+      <pre><code>對於語言 L = { x : ∃w, R(x, w) = 1 }
+
+零知識證明系統 (P, V) 需滿足：
+  1. 完備性：若 R(x, w) = 1，誠實證明者總能說服驗證者
+  2. 健全性：若 x ∉ L，任何作弊證明者被接受的機率可忽略
+  3. 零知識：驗證者無法從證明中學到關於 w 的額外資訊</code></pre>
+
+      <h2>NP 關係與計算複雜度</h2>
+
+      <p>
+        ZK 證明系統特別適合 NP 關係，即給定見證 w 可在多項式時間內驗證 R(x, w) = 1 的問題。對於 ZKML 而言，神經網路推理屬於 NP 問題：給定模型參數 w 和輸入 x，驗證輸出 y = f(x; w) 可在多項式時間完成<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>複雜度類別</th>
+            <th>定義</th>
+            <th>與 ZKP 的關係</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>P</strong></td>
+            <td>可在多項式時間內解決的問題</td>
+            <td>可生成 ZK 證明，但通常不需要</td>
+          </tr>
+          <tr>
+            <td><strong>NP</strong></td>
+            <td>解可在多項式時間內驗證的問題</td>
+            <td>ZK 證明的主要應用範圍</td>
+          </tr>
+          <tr>
+            <td><strong>IP</strong></td>
+            <td>交互式證明可解決的問題</td>
+            <td>ZK 是 IP 的變體，附加零知識屬性</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>ZKML 中的關係式結構</h2>
+
+      <p>
+        在可驗證推理 (Verifiable Inference) 場景中，ZKML 關係式可形式化為<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <pre><code>R_inference(x, y, w) = 1  ⟺  f(x; w) = y
+
+其中：
+  x = 輸入資料（可為公開或私密）
+  y = 推理輸出（通常為公開）
+  w = 模型參數（通常為私密見證）
+  f = 神經網路推理函數</code></pre>
+
+      <h3>公開輸入與私密見證的劃分</h3>
+
+      <p>根據應用場景，ZKML 系統可採用不同的隱私設定<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>場景</th>
+            <th>公開輸入 (x)</th>
+            <th>私密見證 (w)</th>
+            <th>典型應用</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>模型私密</strong></td>
+            <td>輸入 x、輸出 y</td>
+            <td>模型參數</td>
+            <td>MLaaS 服務驗證</td>
+          </tr>
+          <tr>
+            <td><strong>輸入私密</strong></td>
+            <td>輸出 y、模型承諾</td>
+            <td>輸入 x</td>
+            <td>隱私推理（醫療診斷）</td>
+          </tr>
+          <tr>
+            <td><strong>雙重私密</strong></td>
+            <td>輸出 y</td>
+            <td>輸入 x、模型參數</td>
+            <td>完全隱私計算</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>算術電路表示</h2>
+
+      <p>
+        要生成 ZK 證明，關係式 R 必須轉換為<strong>算術電路 (Arithmetic Circuit)</strong>。算術電路由加法閘和乘法閘組成，在有限域 F_p 上執行運算<sup><a href="#ref-2">[2]</a></sup>。
+      </p>
+
+      <h3>R1CS 表示</h3>
+
+      <p>
+        <strong>Rank-1 Constraint System (R1CS)</strong> 是最常見的算術化方法，將電路約束表示為：
+      </p>
+
+      <pre><code>(A · z) ○ (B · z) = C · z
+
+其中：
+  z = (1, x, w)  為包含常數、公開輸入、私密見證的向量
+  A, B, C        為稀疏矩陣，定義電路結構
+  ○              為逐元素乘法</code></pre>
+
+      <p>每個約束形如：(∑ aᵢzᵢ) · (∑ bⱼzⱼ) = ∑ cₖzₖ，可表達一個乘法閘的計算<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <h3>PLONKish 表示</h3>
+
+      <p>
+        現代 ZKML 系統（如 EZKL、ZKML）多採用 <strong>PLONKish</strong> 算術化，相較 R1CS 具有以下優勢<sup><a href="#ref-2">[2]</a></sup>：
+      </p>
+
+      <ul>
+        <li><strong>Custom Gates</strong>：可定義任意形式的閘約束，不限於簡單乘法</li>
+        <li><strong>Lookup Arguments</strong>：支援查表操作，適合非線性函數</li>
+        <li><strong>Copy Constraints</strong>：處理線路連接 (wiring) 更高效</li>
+      </ul>
+
+      <p>PLONKish 約束的一般形式：</p>
+
+      <pre><code>Q_L(X)·a(X) + Q_R(X)·b(X) + Q_O(X)·c(X)
+  + Q_M(X)·a(X)·b(X) + Q_C(X) = 0
+
+其中 Q_* 為選擇器多項式，a, b, c 為線路多項式</code></pre>
+
+      <h2>神經網路層的關係式</h2>
+
+      <p>不同類型的神經網路層對應不同的 ZK 關係式<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <h3>線性層 (Linear Layer)</h3>
+
+      <pre><code>R_linear: y = Wx + b
+
+約束數量：O(n·m)，其中 n 為輸入維度，m 為輸出維度
+實作方式：矩陣乘法分解為逐元素乘法和累加</code></pre>
+
+      <h3>卷積層 (Convolution Layer)</h3>
+
+      <pre><code>R_conv: y[i,j] = ∑ₖ ∑ₗ x[i+k, j+l] · w[k, l]
+
+約束數量：O(H·W·C_in·C_out·K²)
+優化策略：im2col 展開、FFT 加速（zkCNN）</code></pre>
+
+      <h3>激活函數 (Activation Function)</h3>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">非線性挑戰</div>
+        <p>ReLU、GELU 等非線性函數無法直接在有限域算術中表達，需要特殊處理。</p>
       </div>
 
-      <h2>預計涵蓋內容</h2>
+      <p>常見處理策略<sup><a href="#ref-2">[2]</a></sup>：</p>
 
-      <h3>ZK 關係式定義</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>策略</th>
+            <th>ReLU 實作</th>
+            <th>約束開銷</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>位元分解</strong></td>
+            <td>分解 x 為位元，檢查符號位</td>
+            <td>O(b) 約束/元素，b 為位寬</td>
+          </tr>
+          <tr>
+            <td><strong>查表</strong></td>
+            <td>預計算 ReLU(x) 查表</td>
+            <td>O(1) 約束 + lookup</td>
+          </tr>
+          <tr>
+            <td><strong>範圍證明</strong></td>
+            <td>證明 x ∈ [0, 2^k) 或 x ∈ [-2^k, 0)</td>
+            <td>O(k) 約束</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>量化與關係式轉換</h2>
+
+      <p>
+        由於 ZK 電路在有限域上運算，浮點數必須量化為定點數表示。量化過程引入近似，需要在關係式中正確處理<sup><a href="#ref-2">[2]</a></sup>：
+      </p>
+
+      <pre><code>原始浮點運算：y_float = W_float · x_float
+
+量化關係式：
+  x_q = round(x_float / S_x)           // 量化輸入
+  W_q = round(W_float / S_W)           // 量化權重
+  y_acc = W_q · x_q                    // 整數累積
+  y_q = round(y_acc · S_W · S_x / S_y) // 重新量化輸出
+
+ZK 電路需證明上述整數運算的正確性</code></pre>
+
+      <h2>安全性保證</h2>
+
+      <p>正確定義的 ZK 關係式需滿足以下安全屬性<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <h3>完備性 (Completeness)</h3>
+      <p>
+        若誠實證明者確實執行了正確的推理計算，則必然能生成有效證明。這要求電路約束能完整捕捉推理邏輯，不會誤判正確計算。
+      </p>
+
+      <h3>健全性 (Soundness)</h3>
+      <p>
+        惡意證明者無法為錯誤的計算生成有效證明。這要求電路約束足夠嚴格，不允許任何「作弊」的計算路徑。
+      </p>
+      <p>
+        在 ZKML 中，量化誤差可能引入額外的健全性考量：如果量化後的電路允許的輸出範圍過寬，可能存在攻擊者利用誤差區間的風險。詳見 <a href="soundness.html">Soundness 分析</a>。
+      </p>
+
+      <h3>零知識性 (Zero-Knowledge)</h3>
+      <p>
+        驗證者除了「陳述為真」這個事實外，無法從證明中獲得任何關於見證的資訊。對於模型私密場景，這意味著驗證者無法從證明反推模型參數。
+      </p>
+
+      <h2>相關頁面</h2>
+
       <ul>
-        <li>R(x, w) 關係式結構</li>
-        <li>公開輸入 x 與私密見證 w</li>
-        <li>電路約束的形式化描述</li>
+        <li><a href="soundness.html">Soundness 分析</a> - 量化與健全性的關係</li>
+        <li><a href="overflow.html">溢位與精度風險</a> - 數值精度問題</li>
+        <li><a href="../model-to-circuit.html">模型到電路轉換</a> - 電路生成流程</li>
+        <li><a href="/zkml-knowledge-base/crypto/arithmetization/plonkish.html">PLONKish</a> - 算術化詳解</li>
+        <li><a href="/zkml-knowledge-base/crypto/arithmetization/r1cs.html">R1CS</a> - R1CS 約束系統</li>
       </ul>
 
-      <h3>ZKML 中的關係式</h3>
-      <ul>
-        <li>神經網路推論的電路表示</li>
-        <li>量化運算的約束轉換</li>
-        <li>非線性運算的 ZK-friendly 近似</li>
-      </ul>
-
-      <h3>安全性要求</h3>
-      <ul>
-        <li>完備性 (Completeness)</li>
-        <li>健全性 (Soundness)</li>
-        <li>零知識性 (Zero-Knowledge)</li>
-      </ul>
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Peng, Z., Wang, T., Zhao, C., Liao, G., Lin, Z., Liu, Y., Cao, B., Shi, L., Yang, Q., & Zhang, S. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2502.18535, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 

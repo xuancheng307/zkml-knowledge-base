@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>查表優化 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="lookup-tables">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>查表優化</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>查表（Lookup Table）是 ZKML 中處理非線性函數最有效的技術。透過預計算函數值並使用密碼學查表論證，可將 ReLU 等激活函數的約束數量從 O(log |F|) 降至 O(1)<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>為什麼需要查表</h2>
+
+      <h3>非線性函數的挑戰</h3>
+
+      <p>ZK 電路中，只有加法和乘法是「原生」操作<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>原生操作（低成本）：
+  - 加法：z = x + y（0 約束，線性）
+  - 乘法：z = x · y（1 約束）
+
+非線性操作（傳統方法的高成本）：
+  - 比較：x > y → O(log |F|) 約束
+  - ReLU：max(0, x) → O(log |F|) 約束
+  - Sigmoid：1/(1+e^{-x}) → 數百約束
+  - 除法：z = x/y → O(log |F|) 約束
+
+典型場景（BN254 曲線，254-bit 域）：
+  單個 ReLU = ~254 個布林約束
+  神經網路可能有數百萬個 ReLU</code></pre>
+
+      <h3>查表的優勢</h3>
+
+      <pre><code>查表方法：
+  預計算表格 T = {(x, f(x)) : x ∈ domain}
+  證明 (input, output) ∈ T
+
+成本分析：
+  - 表格大小：|domain|
+  - 每次查表：O(1) 約束（攤銷後）
+  - 總成本：O(n + |T|)，其中 n 是查詢數
+
+ReLU 範例（8-bit 輸入）：
+  傳統：254 約束 × n 個 ReLU
+  查表：O(1) 約束/ReLU + 256 行表格
+
+  若 n = 10,000 個 ReLU：
+    傳統：2,540,000 約束
+    查表：~10,256 約束（~250x 改進）</code></pre>
+
+      <h2>Plookup 協議</h2>
+
+      <h3>基本原理</h3>
+
+      <p>Plookup 是最常用的查表協議<sup><a href="#ref-3">[3]</a></sup>：</p>
+
+      <pre><code>問題定義：
+  給定表格 T = {t_1, ..., t_d}（已承諾）
+  給定查詢 f = {f_1, ..., f_n}（見證的一部分）
+  證明：∀i, f_i ∈ T
+
+核心思想：
+  1. 若 f ⊆ T，則 f ∪ T 排序後相鄰元素來自同一組
+  2. 使用多項式編碼排序關係
+  3. 驗證排序的一致性</code></pre>
+
+      <h3>協議細節</h3>
+
+      <pre><code>Plookup 步驟：
+
+1. 排序與去重
+   s = sort(f ∪ T)
+   // 相同元素連續出現
+
+2. 構造累積多項式
+   Z(X) 滿足：
+   Z(1) = 1
+   Z(ωX) = Z(X) · [f(X) + γ] · [t(X) + β·t(ωX) + γ(1+β)]
+                / [h₁(X) + β·h₁(ωX) + γ(1+β)]
+                / [h₂(X) + β·h₂(ωX) + γ(1+β)]
+
+3. 驗證
+   - 檢查 Z(1) = 1
+   - 檢查 Z(ω^n) = 1（循環回起點）
+   - 檢查遞迴關係在所有點成立</code></pre>
+
+      <h3>多欄查表</h3>
+
+      <pre><code>單欄 vs 多欄：
+
+單欄：
+  T = {0, 1, 2, ..., 255}
+  用途：範圍檢查
+
+多欄：
+  T = {(x, y) : y = f(x)}
+  用途：函數求值
+
+多欄處理：
+  方法 1：打包
+    T' = {x + y·R : (x,y) ∈ T}，R 足夠大
+    缺點：R 需要很大，可能溢出
+
+  方法 2：隨機線性組合
+    查詢 (f_1, f_2) ∈ T
+    → 查詢 f_1 + θ·f_2 ∈ T'
+    其中 T' = {t_1 + θ·t_2 : (t_1, t_2) ∈ T}
+    θ 由 Fiat-Shamir 產生</code></pre>
+
+      <h2>ZKML 中的查表應用</h2>
+
+      <h3>激活函數</h3>
+
+      <pre><code>ReLU 查表：
+
+表格定義（8-bit 量化）：
+  T_relu = {(i, max(0, i)) : i ∈ [-128, 127]}
+  大小：256 行
+
+Halo2 實作：
+  meta.lookup("relu", |meta| {
+      let input = meta.query_advice(a, Rotation::cur());
+      let output = meta.query_advice(b, Rotation::cur());
+      let sel = meta.query_selector(s_relu);
+
+      vec![
+          (sel.clone() * input, table_input),
+          (sel * output, table_output)
+      ]
+  });
+
+EZKL 配置：
+  lookup_range: 16      # 輸入位寬
+  lookup_bits: 12       # 查表分段位寬
+  logrows: 17           # 2^17 行</code></pre>
+
+      <h3>其他非線性函數</h3>
+
+      <pre><code>Sigmoid：
+  T_sig = {(i, σ(i/s)) : i ∈ [-2^k, 2^k-1]}
+  其中 s 是縮放因子
+
+  精度考量：
+    - 輸入範圍影響表格大小
+    - 輸出需要定點數表示
+    - 飽和區可合併
+
+GELU：
+  T_gelu = {(i, GELU(i/s))}
+  類似 Sigmoid 處理
+
+Softmax（部分）：
+  T_exp = {(i, exp(i/s))}
+  分母需要額外累加電路
+
+LayerNorm：
+  T_rsqrt = {(i, 1/√i)}
+  用於歸一化分母</code></pre>
+
+      <h3>範圍檢查</h3>
+
+      <pre><code>目的：確保值在有效範圍內
+
+應用場景：
+  - 量化值邊界檢查
+  - 防止溢出
+  - 輸入驗證
+
+範例（8-bit 無符號）：
+  T_range = {0, 1, 2, ..., 255}
+
+  查詢：x ∈ T_range
+  證明：0 ≤ x < 256
+
+位元分解替代方案：
+  傳統：x = Σ b_i · 2^i，每個 b_i ∈ {0,1}
+  需要 8 個布林約束
+
+  查表：單次查表，O(1) 約束</code></pre>
+
+      <h2>表格設計考量</h2>
+
+      <h3>表格大小 vs 精度</h3>
+
+      <pre><code>權衡關係：
+
+小表格（如 2^8 = 256 行）：
+  優點：證明時間短，記憶體低
+  缺點：輸入範圍受限，可能需要縮放
+
+大表格（如 2^16 = 65536 行）：
+  優點：更大輸入範圍，更高精度
+  缺點：更多 FFT 計算，更大記憶體
+
+最佳實踐：
+  1. 分析實際值分布
+  2. 選擇覆蓋 99.9% 情況的範圍
+  3. 對極端值特殊處理</code></pre>
+
+      <h3>分段查表</h3>
+
+      <pre><code>問題：輸入位寬過大（如 16-bit）
+
+分段策略：
+  將 16-bit 輸入分為兩個 8-bit 查表
+
+  x = x_high · 256 + x_low
+
+  表格 1：T_high = {(i, f_high(i))}
+  表格 2：T_low = {(i, f_low(i))}
+
+  結果組合：
+    f(x) ≈ T_high[x_high] + correction(x_low)
+
+適用函數：
+  - 可加性分解的函數
+  - 分段線性近似
+  - 對數/指數函數</code></pre>
+
+      <h3>共享表格</h3>
+
+      <pre><code>優化：多個電路區域共用同一表格
+
+範例：
+  所有 ReLU 層使用同一 T_relu
+  所有範圍檢查使用同一 T_range
+
+Halo2 實作：
+  // 定義全局表格
+  let relu_table = ReLUTable::new(&meta);
+
+  // 多個區域引用同一表格
+  layer1_config.enable_relu(relu_table.clone());
+  layer2_config.enable_relu(relu_table.clone());
+
+節省：
+  - 表格只需承諾一次
+  - 設置開銷不重複</code></pre>
+
+      <h2>進階技術</h2>
+
+      <h3>動態表格</h3>
+
+      <pre><code>問題：某些函數依賴運行時參數
+
+範例：Softmax 的溫度參數
+  softmax(x/T) 中的 T 可變
+
+解決方案：
+
+方法 1：多版本表格
+  T_softmax_T1, T_softmax_T2, ...
+  運行時選擇
+
+方法 2：插值
+  預計算少量點
+  使用多項式插值
+
+方法 3：參數化查表
+  T = {(x, T, f(x, T))}
+  三欄查表</code></pre>
+
+      <h3>tlookup（張量查表）</h3>
+
+      <p>zkLLM 引入的張量查表技術<sup><a href="#ref-4">[4]</a></sup>：</p>
+
+      <pre><code>問題：矩陣運算產生大量查詢
+
+標準 Plookup：
+  n×m 矩陣 → n·m 次查表
+  每次查表成本：O(n·m + |T|)
+
+tlookup 優化：
+  利用張量結構
+  分解為行/列查表
+  複雜度：O(n + m + |T|)
+
+適用場景：
+  - 矩陣乘法結果驗證
+  - 批次激活函數
+  - Attention 分數</code></pre>
+
+      <h3>Caulk / Caulk+</h3>
+
+      <pre><code>Caulk 特點：
+  - 預處理大表格
+  - O(log |T|) 驗證時間
+  - 適合超大靜態表格
+
+Caulk+ 改進：
+  - O(1) 驗證時間
+  - 更小證明大小
+
+適用場景：
+  - 百萬行以上的表格
+  - 稀疏查詢模式
+  - 多次使用同一表格</code></pre>
+
+      <h2>實作考量</h2>
+
+      <h3>記憶體管理</h3>
+
+      <pre><code>表格儲存：
+  - 表格在 Setup 階段承諾
+  - 證明過程中需要完整表格
+
+優化策略：
+  1. 表格壓縮（若有規律）
+  2. 按需載入（分頁）
+  3. GPU 記憶體利用
+
+範例：
+  2^20 行表格，每行 64 bytes
+  = 64 MB 記憶體
+
+  對於多個表格：
+    總記憶體 = Σ |T_i| × row_size</code></pre>
+
+      <h3>並行化</h3>
+
+      <pre><code>查表的並行機會：
+
+1. 多表並行
+   不同表格的查表可並行處理
+
+2. 批次查詢
+   同一表格的多個查詢可批次處理
+
+3. GPU 加速
+   排序和累積多項式計算可 GPU 化
+
+效能提升：
+  單核：100 ms / 1000 查詢
+  多核：20 ms / 1000 查詢（5x）
+  GPU：5 ms / 1000 查詢（20x）</code></pre>
+
+      <h2>框架支援</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>查表協議</th>
+            <th>特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Halo2</strong></td>
+            <td>Plookup 變體</td>
+            <td>靈活配置，多欄支援</td>
+          </tr>
+          <tr>
+            <td><strong>EZKL</strong></td>
+            <td>Halo2 lookup</td>
+            <td>自動表格生成</td>
+          </tr>
+          <tr>
+            <td><strong>ZKTorch</strong></td>
+            <td>KZG lookup</td>
+            <td>批次優化</td>
+          </tr>
+          <tr>
+            <td><strong>zkLLM</strong></td>
+            <td>tlookup</td>
+            <td>張量專用優化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="fixed-point.html">定點數與精度</a> - 查表值的數值表示</li>
+        <li><a href="../crypto/arithmetization/plonkish.html">PLONKish / AIR</a> - 查表的算術化基礎</li>
+        <li><a href="frameworks/zkllm.html">zkLLM</a> - tlookup 的來源</li>
+        <li><a href="model-to-circuit.html">模型 → 電路</a> - 查表在電路設計中的應用</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Liu, T., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3629570" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Zcash Team. "The halo2 Book - Lookup Argument." 2024.</cite>
+            <a href="https://zcash.github.io/halo2/design/proving-system/lookup.html" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-3">
+            <cite>Gabizon, A., & Williamson, Z. "plookup: A simplified polynomial protocol for lookup tables." IACR ePrint 2020/315.</cite>
+            <a href="https://eprint.iacr.org/2020/315" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
+            <cite>Sun, H., et al. "zkLLM: Zero Knowledge Proofs for Large Language Models." ACM CCS 2024.</cite>
+            <a href="https://doi.org/10.1145/3658644.3670351" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>
