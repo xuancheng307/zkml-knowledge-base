@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可驗證推理 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="verifiable">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>可驗證推理</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>可驗證推理（Verifiable Inference）是 ZKML 的主要應用範式，目標是證明「特定輸入經過特定模型確實產生特定輸出」，確保 ML 推理的正確性可被第三方驗證<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>問題定義</h2>
+
+      <h3>信任問題</h3>
+
+      <pre><code>場景：用戶使用雲端 ML 服務
+
+傳統模式：
+  用戶 → 輸入 → [雲端模型] → 輸出 → 用戶
+  問題：用戶無法驗證服務商確實使用聲稱的模型
+
+潛在風險：
+  1. 使用更便宜的小模型
+  2. 使用過時的模型版本
+  3. 針對特定用戶修改輸出
+  4. 完全偽造輸出
+
+可驗證推理目標：
+  用戶能確認輸出確實來自正確的計算過程</code></pre>
+
+      <h3>形式化定義</h3>
+
+      <pre><code>可驗證推理協議：
+
+公開資訊：
+  - 模型承諾 C_M（或完整模型）
+  - 輸入 x
+  - 輸出 y
+
+證明者生成：
+  π ← Prove(M, x, y)
+
+驗證者檢查：
+  Verify(C_M, x, y, π) → {accept, reject}
+
+安全性質：
+  完備性：正確計算總能通過驗證
+  可靠性：錯誤結果無法通過驗證</code></pre>
+
+      <h2>技術實現</h2>
+
+      <h3>模型承諾</h3>
+
+      <pre><code>為何需要模型承諾：
+
+問題：完整模型太大無法上鏈
+解決：使用密碼學承諾
+
+承諾方案：
+  C_M = Hash(M) 或
+  C_M = Commit(flatten(weights))
+
+驗證關係：
+  證明「存在 M 使得 Commit(M) = C_M 且 M(x) = y」
+
+實務配置（EZKL）：
+  // 生成模型承諾
+  ezkl gen-witness --model model.onnx
+
+  // 承諾包含在 verification key 中</code></pre>
+
+      <h3>電路設計</h3>
+
+      <pre><code>可驗證推理電路結構：
+
+公開輸入：
+  - 模型承諾 C_M
+  - 輸入 x
+  - 輸出 y
+
+私密見證：
+  - 模型權重 W（若模型需保密）
+  - 中間激活值
+
+電路約束：
+  1. Commit(W) = C_M（承諾一致性）
+  2. layer_1(x) = a_1（第一層計算）
+  3. layer_2(a_1) = a_2（第二層計算）
+  ...
+  n. layer_n(a_{n-1}) = y（輸出匹配）</code></pre>
+
+      <h2>應用場景</h2>
+
+      <h3>雲端 ML 驗證</h3>
+
+      <pre><code>場景：企業使用雲端 AI 服務
+
+流程：
+  1. 服務商公布模型承諾
+  2. 用戶提交推理請求
+  3. 服務商返回結果 + 證明
+  4. 用戶驗證證明
+
+價值：
+  - 確保服務品質（使用正確模型）
+  - 責任歸屬（可審計）
+  - 合規要求（如金融 AI）</code></pre>
+
+      <h3>區塊鏈應用</h3>
+
+      <pre><code>鏈上 AI 決策：
+
+流程：
+  1. 智能合約存儲模型承諾
+  2. 鏈下執行 ML 推理
+  3. 提交結果 + ZK 證明
+  4. 合約驗證並執行
+
+應用案例：
+  - 預言機驗證
+  - DAO 自動決策
+  - 鏈上遊戲 AI
+  - DeFi 風險評估</code></pre>
+
+      <h3>合規審計</h3>
+
+      <pre><code>監管合規：
+
+需求：
+  證明 AI 系統使用經批准的模型
+  不需要公開模型細節
+
+實現：
+  1. 監管機構審核並簽署模型承諾
+  2. 企業使用該模型進行推理
+  3. 產生可驗證證明
+  4. 審計時驗證證明匹配已批准承諾</code></pre>
+
+      <h2>效能考量</h2>
+
+      <h3>證明生成成本</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型規模</th>
+            <th>證明時間</th>
+            <th>記憶體</th>
+            <th>適用場景</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>小型（<1M 參數）</td>
+            <td>秒級</td>
+            <td>~4 GB</td>
+            <td>即時驗證</td>
+          </tr>
+          <tr>
+            <td>中型（1-10M）</td>
+            <td>分鐘級</td>
+            <td>~16 GB</td>
+            <td>批次驗證</td>
+          </tr>
+          <tr>
+            <td>大型（>100M）</td>
+            <td>小時級</td>
+            <td>~64 GB+</td>
+            <td>離線驗證</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>驗證成本</h3>
+
+      <pre><code>驗證是輕量的：
+
+典型驗證時間：~10 ms
+典型證明大小：~10-50 KB
+鏈上驗證 gas：~300K-500K
+
+適合：
+  - 鏈上驗證
+  - 大量用戶驗證同一證明
+  - 資源受限設備</code></pre>
+
+      <h2>與隱私推理的區別</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>面向</th>
+            <th>可驗證推理</th>
+            <th>隱私推理</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>主要目標</strong></td>
+            <td>正確性證明</td>
+            <td>數據保密</td>
+          </tr>
+          <tr>
+            <td><strong>隱藏內容</strong></td>
+            <td>模型權重（可選）</td>
+            <td>輸入數據</td>
+          </tr>
+          <tr>
+            <td><strong>典型用戶</strong></td>
+            <td>服務消費者</td>
+            <td>數據擁有者</td>
+          </tr>
+          <tr>
+            <td><strong>信任假設</strong></td>
+            <td>不信任服務商</td>
+            <td>不信任模型商</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>實務指南</h2>
+
+      <h3>EZKL 實現</h3>
+
+      <pre><code># 1. 準備模型
+ezkl gen-settings --model model.onnx
+
+# 2. 校準（選擇量化參數）
+ezkl calibrate --model model.onnx --data calibration.json
+
+# 3. 生成電路
+ezkl compile-circuit --model model.onnx
+
+# 4. 設置（生成驗證密鑰）
+ezkl setup --model model.onnx
+
+# 5. 證明
+ezkl prove --model model.onnx --input input.json
+
+# 6. 驗證
+ezkl verify --proof proof.json --vk vk.json</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="private-inference.html">隱私推理</a> - 另一種 ZKML 範式</li>
+        <li><a href="problem-statement.html">問題定義與場景</a> - ZKML 問題總覽</li>
+        <li><a href="applications/cloud-verification.html">雲端 ML 驗證</a> - 應用場景詳解</li>
+        <li><a href="frameworks/ezkl.html">EZKL</a> - 實現工具</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Liu, T., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

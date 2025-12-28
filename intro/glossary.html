@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>術語表 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="glossary">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>術語表</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">使用說明</div>
+        <p>本術語表收錄 ZKML 相關的核心術語，包含零知識證明、機器學習和區塊鏈領域的專有名詞。術語按字母/筆畫排序。</p>
+      </div>
+
+      <h2>A</h2>
+
+      <dl>
+        <dt>AIR (Algebraic Intermediate Representation)</dt>
+        <dd>代數中間表示，STARK 使用的算術化格式，透過轉換約束和邊界約束定義計算。</dd>
+
+        <dt>Arithmetization（算術化）</dt>
+        <dd>將計算問題轉換為代數形式（多項式、矩陣）的過程，是 ZKP 的核心步驟。</dd>
+      </dl>
+
+      <h2>C</h2>
+
+      <dl>
+        <dt>Commitment（承諾）</dt>
+        <dd>密碼學原語，允許「鎖定」一個值，之後可以打開驗證。具有綁定性和隱藏性。</dd>
+
+        <dt>Completeness（完備性）</dt>
+        <dd>ZKP 性質：誠實證明者對真陳述總能說服驗證者。</dd>
+      </dl>
+
+      <h2>F</h2>
+
+      <dl>
+        <dt>Fiat-Shamir Transform</dt>
+        <dd>將互動式證明轉換為非互動式的技術，用雜湊函數替代驗證者的隨機挑戰。</dd>
+
+        <dt>Fixed-point Arithmetic（定點數算術）</dt>
+        <dd>用整數表示小數的方法，透過縮放因子將浮點數映射到有限域。ZKML 中廣泛使用。</dd>
+
+        <dt>FRI (Fast Reed-Solomon IOP)</dt>
+        <dd>STARK 使用的多項式承諾協議，基於 Reed-Solomon 編碼的接近性測試。</dd>
+      </dl>
+
+      <h2>G</h2>
+
+      <dl>
+        <dt>Groth16</dt>
+        <dd>最高效的 zk-SNARK 系統之一，具有最小證明大小（~192 bytes）和最快驗證。需要電路特定的可信設置。</dd>
+      </dl>
+
+      <h2>H</h2>
+
+      <dl>
+        <dt>Halo2</dt>
+        <dd>Zcash 開發的證明系統，支援 IPA 和 KZG 承諾，具有靈活的 PLONKish 電路設計。</dd>
+      </dl>
+
+      <h2>I</h2>
+
+      <dl>
+        <dt>IPA (Inner Product Argument)</dt>
+        <dd>內積論證，一種不需要可信設置的多項式承諾方案，證明大小 O(log n)。</dd>
+      </dl>
+
+      <h2>K</h2>
+
+      <dl>
+        <dt>KZG Commitment</dt>
+        <dd>Kate-Zaverucha-Goldberg 多項式承諾，基於配對的承諾方案，O(1) 證明大小和驗證時間。</dd>
+      </dl>
+
+      <h2>L</h2>
+
+      <dl>
+        <dt>Lookup Table（查表）</dt>
+        <dd>預計算的函數值表格，用於高效處理非線性函數。Plookup 協議實現密碼學查表驗證。</dd>
+      </dl>
+
+      <h2>M</h2>
+
+      <dl>
+        <dt>MPC (Multi-Party Computation)</dt>
+        <dd>多方安全計算，允許多方共同計算函數而不洩露各自輸入。</dd>
+      </dl>
+
+      <h2>P</h2>
+
+      <dl>
+        <dt>Pairing（配對）</dt>
+        <dd>雙線性映射 e: G₁ × G₂ → G_T，KZG 和 Groth16 的數學基礎。</dd>
+
+        <dt>PLONK</dt>
+        <dd>通用的 zk-SNARK 系統，支援通用可信設置，是許多 ZKML 系統的基礎。</dd>
+
+        <dt>PLONKish</dt>
+        <dd>PLONK 風格的算術化格式，支援自定義門和查表論證。</dd>
+
+        <dt>Prover（證明者）</dt>
+        <dd>生成零知識證明的一方，通常擁有私密見證。</dd>
+      </dl>
+
+      <h2>Q</h2>
+
+      <dl>
+        <dt>QAP (Quadratic Arithmetic Program)</dt>
+        <dd>二次算術程序，R1CS 的多項式表示，Groth16 使用。</dd>
+
+        <dt>Quantization（量化）</dt>
+        <dd>將浮點數轉換為低精度整數的過程，減少 ML 模型的計算和儲存需求。</dd>
+      </dl>
+
+      <h2>R</h2>
+
+      <dl>
+        <dt>R1CS (Rank-1 Constraint System)</dt>
+        <dd>秩一約束系統，最常見的算術化格式，約束形式為 a·b = c。</dd>
+
+        <dt>ReLU</dt>
+        <dd>Rectified Linear Unit，最常用的激活函數 max(0, x)。在 ZKP 中需要特殊處理。</dd>
+      </dl>
+
+      <h2>S</h2>
+
+      <dl>
+        <dt>Scale（縮放因子）</dt>
+        <dd>定點數表示中的精度參數，x_fp = x_real × 2^scale。</dd>
+
+        <dt>Soundness（可靠性）</dt>
+        <dd>ZKP 性質：攻擊者無法偽造假陳述的有效證明。</dd>
+
+        <dt>SNARK (Succinct Non-interactive ARgument of Knowledge)</dt>
+        <dd>簡潔非互動知識論證，具有短證明和快驗證的 ZKP 系統。</dd>
+
+        <dt>STARK (Scalable Transparent ARgument of Knowledge)</dt>
+        <dd>可擴展透明知識論證，不需要可信設置，具有後量子安全性。</dd>
+
+        <dt>SRS (Structured Reference String)</dt>
+        <dd>結構化參考字串，可信設置產生的公共參數。</dd>
+      </dl>
+
+      <h2>T</h2>
+
+      <dl>
+        <dt>Toxic Waste</dt>
+        <dd>可信設置中必須銷毀的秘密值，若洩露則可偽造證明。</dd>
+
+        <dt>Trusted Setup（可信設置）</dt>
+        <dd>生成公共參數的儀式，需要至少一方誠實銷毀秘密。</dd>
+      </dl>
+
+      <h2>V</h2>
+
+      <dl>
+        <dt>Verifier（驗證者）</dt>
+        <dd>驗證零知識證明的一方，只看到公開資訊。</dd>
+      </dl>
+
+      <h2>W</h2>
+
+      <dl>
+        <dt>Witness（見證）</dt>
+        <dd>證明者的私密輸入，用於生成證明但不被洩露。</dd>
+      </dl>
+
+      <h2>Z</h2>
+
+      <dl>
+        <dt>Zero-Knowledge（零知識）</dt>
+        <dd>ZKP 性質：驗證者從證明過程中學不到私密資訊。</dd>
+
+        <dt>ZKML</dt>
+        <dd>Zero-Knowledge Machine Learning，結合零知識證明與機器學習的技術領域。</dd>
+
+        <dt>zkVM</dt>
+        <dd>零知識虛擬機，可為任意程式生成 ZK 證明的通用系統。</dd>
+      </dl>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="index.html">總覽：什麼是 ZKML</a></li>
+        <li><a href="reading-paths.html">推薦閱讀路徑</a></li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

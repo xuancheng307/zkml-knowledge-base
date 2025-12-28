@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>威脅模型與安全目標 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="threat-model">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>威脅模型與安全目標</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">安全基礎</div>
+        <p>理解 ZKML 的威脅模型是正確應用這項技術的基礎。本頁面定義 ZKML 系統中的參與者、攻擊者能力、以及系統需要達成的安全目標。</p>
+      </div>
+
+      <h2>參與者角色</h2>
+
+      <h3>核心角色</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>角色</th>
+            <th>描述</th>
+            <th>持有資源</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>證明者</strong></td>
+            <td>執行 ML 推理並生成證明</td>
+            <td>模型、輸入、計算資源</td>
+          </tr>
+          <tr>
+            <td><strong>驗證者</strong></td>
+            <td>驗證證明的正確性</td>
+            <td>驗證密鑰、公開輸入</td>
+          </tr>
+          <tr>
+            <td><strong>數據擁有者</strong></td>
+            <td>提供待推理的數據</td>
+            <td>私密輸入數據</td>
+          </tr>
+          <tr>
+            <td><strong>模型擁有者</strong></td>
+            <td>提供 ML 模型</td>
+            <td>模型權重</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>場景配置</h3>
+
+      <pre><code>場景一：雲端 ML 驗證
+  證明者 = 服務商（模型 + 計算）
+  驗證者 = 用戶
+  目標：用戶驗證服務商誠實
+
+場景二：隱私推理
+  證明者 = 用戶（數據 + 本地計算）
+  驗證者 = 服務商或第三方
+  目標：用戶不洩露數據
+
+場景三：區塊鏈整合
+  證明者 = 鏈下執行者
+  驗證者 = 智能合約
+  目標：鏈上可驗證的 AI 決策</code></pre>
+
+      <h2>攻擊者模型</h2>
+
+      <h3>攻擊者能力</h3>
+
+      <pre><code>計算能力：
+  - 標準假設：多項式時間（PPT）
+  - 更強假設：無限計算（信息論安全）
+
+觀察能力：
+  - 可見公開輸入/輸出
+  - 可見證明內容
+  - 可能控制部分網路通訊
+
+控制能力：
+  - 惡意證明者：可偏離協議
+  - 惡意驗證者：可選擇挑戰（互動式）
+  - 外部攻擊者：被動觀察</code></pre>
+
+      <h3>攻擊目標</h3>
+
+      <pre><code>破壞可靠性（Soundness Attack）：
+  攻擊者偽造錯誤計算的證明
+  影響：接受錯誤的 ML 輸出
+
+破壞零知識（Privacy Attack）：
+  攻擊者從證明中提取私密資訊
+  影響：洩露模型權重或輸入數據
+
+拒絕服務（DoS Attack）：
+  攻擊者阻止合法證明生成/驗證
+  影響：系統不可用</code></pre>
+
+      <h2>安全目標</h2>
+
+      <h3>完備性（Completeness）</h3>
+
+      <pre><code>定義：
+  誠實證明者的正確計算總能通過驗證
+
+形式化：
+  若 M(x) = y 且證明者誠實
+  則 Verify(Prove(M, x, y)) = accept
+
+ZKML 考量：
+  - 量化誤差可能影響完備性
+  - 需確保定點計算與浮點足夠接近</code></pre>
+
+      <h3>可靠性（Soundness）</h3>
+
+      <pre><code>定義：
+  攻擊者無法偽造錯誤計算的證明
+
+形式化：
+  對任何 PPT 攻擊者 A：
+  Pr[Verify(A(M, x, y')) = accept ∧ M(x) ≠ y'] ≤ negl(λ)
+
+ZKML 考量：
+  - 量化引入的鬆弛需納入分析
+  - 溢出可能破壞 soundness</code></pre>
+
+      <h3>零知識性（Zero-Knowledge）</h3>
+
+      <pre><code>定義：
+  驗證者從證明過程中學不到私密資訊
+
+形式化：
+  存在模擬器 S，對任何驗證者 V*：
+  View_V*(Prove) ≈ S(public_info)
+
+ZKML 隱私範圍：
+  - 模型權重（模型即服務場景）
+  - 輸入數據（隱私推理場景）
+  - 中間激活值</code></pre>
+
+      <h2>威脅與防禦</h2>
+
+      <h3>常見攻擊類型</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>攻擊</th>
+            <th>描述</th>
+            <th>防禦</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>模型替換</td>
+            <td>使用不同於承諾的模型</td>
+            <td>模型承諾綁定</td>
+          </tr>
+          <tr>
+            <td>輸入篡改</td>
+            <td>聲稱使用不同輸入</td>
+            <td>輸入承諾綁定</td>
+          </tr>
+          <tr>
+            <td>證明偽造</td>
+            <td>不執行計算直接偽造</td>
+            <td>ZKP 可靠性保證</td>
+          </tr>
+          <tr>
+            <td>側信道洩露</td>
+            <td>從時間/功耗推斷資訊</td>
+            <td>恆定時間實作</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>安全假設</h3>
+
+      <pre><code>密碼學假設（依系統而異）：
+
+SNARK (Groth16, PLONK)：
+  - 離散對數假設
+  - 配對相關假設（q-SDH, q-PKE）
+  - 可信設置誠實（至少一方）
+
+STARK：
+  - 雜湊函數抗碰撞
+  - 隨機預言機模型
+
+IPA (Halo2)：
+  - 離散對數假設
+  - 無可信設置</code></pre>
+
+      <h2>實務建議</h2>
+
+      <h3>系統選擇指南</h3>
+
+      <pre><code>高安全場景：
+  - 使用成熟的證明系統
+  - 選擇經過審計的實作
+  - 考慮後量子安全（STARK）
+
+效能優先場景：
+  - 可接受適度安全假設
+  - 使用優化的 SNARK
+
+隱私優先場景：
+  - 確保零知識性質
+  - 審慎處理輸入/模型承諾</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="index.html">總覽：什麼是 ZKML</a></li>
+        <li><a href="../crypto/properties.html">完備性、可靠性、零知識</a></li>
+        <li><a href="../zkml/security/soundness.html">量化與 Soundness</a></li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完備性、可靠性、零知識 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="zkp-properties">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>完備性、可靠性、零知識</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">三大性質</div>
+        <p>零知識證明系統必須滿足三個核心性質：完備性（誠實證明者能說服驗證者）、可靠性（不誠實證明者無法欺騙）、零知識性（驗證者學不到額外資訊）<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>完備性（Completeness）</h2>
+
+      <h3>定義</h3>
+
+      <pre><code>形式化定義：
+
+對於 (P, V) 證明系統和語言 L：
+
+完備性：
+  ∀x ∈ L, ∀w such that (x, w) ∈ R:
+    Pr[⟨P(x, w), V(x)⟩ = accept] ≥ 1 - ε
+
+其中 ε 是可忽略函數（negligible function）
+
+含義：
+  若陳述為真，誠實證明者總能說服驗證者
+
+完美完備性 vs 統計完備性：
+  完美：ε = 0（總是成功）
+  統計：ε 可忽略（幾乎總是成功）</code></pre>
+
+      <h3>ZKML 中的完備性</h3>
+
+      <pre><code>ZKML 完備性含義：
+
+若模型推理確實正確：
+  M(x) = y
+
+則 ZKML 系統必定能生成有效證明：
+  π ← Prove(M, x, y)
+  Verify(π, commitment(M), x, y) = accept
+
+實務考量：
+  - 量化誤差不應破壞完備性
+  - 定點數精度需充分
+  - 電路大小需足夠表達計算</code></pre>
+
+      <h2>可靠性（Soundness）</h2>
+
+      <h3>標準可靠性</h3>
+
+      <pre><code>形式化定義：
+
+對於任何（可能惡意的）證明者 P*：
+
+可靠性：
+  ∀x ∉ L:
+    Pr[⟨P*(x), V(x)⟩ = accept] ≤ ε
+
+其中 ε 是可忽略函數
+
+含義：
+  若陳述為假，任何證明者都無法說服驗證者
+
+類型：
+  統計可靠性：對計算無限的攻擊者成立
+  計算可靠性：僅對 PPT 攻擊者成立</code></pre>
+
+      <h3>知識可靠性</h3>
+
+      <pre><code>更強的性質：知識論證（Argument of Knowledge）
+
+定義：存在提取器 E，對任何 P*：
+
+  若 Pr[⟨P*(x), V(x)⟩ = accept] > ε
+  則 E^{P*}(x) 能輸出見證 w，使 (x, w) ∈ R
+
+含義：
+  不僅陳述為真，證明者確實「知道」見證
+
+重要性（ZKML）：
+  確保證明者真的執行了推理
+  而非透過某種方式「猜到」輸出</code></pre>
+
+      <h3>ZKML 中的可靠性</h3>
+
+      <pre><code>ZKML 可靠性保證：
+
+若驗證通過：
+  Verify(π, C_M, x, y) = accept
+
+則存在模型 M 和推理過程使：
+  Commit(M) = C_M
+  M(x) = y（或足夠接近）
+
+量化影響：
+  - 量化引入的誤差需納入 soundness 分析
+  - 見 ZKML 論文對此的形式化處理
+
+潛在攻擊：
+  - 錯誤輸出通過驗證
+  - 使用不同於承諾的模型</code></pre>
+
+      <h2>零知識性（Zero-Knowledge）</h2>
+
+      <h3>定義</h3>
+
+      <pre><code>直觀理解：
+  驗證者從證明過程中學不到任何
+  無法透過獨自計算得知的資訊
+
+形式化（模擬器定義）：
+
+存在 PPT 模擬器 S，對任何驗證者 V*：
+
+  視圖分布相同：
+    View_{V*}[⟨P(x, w), V*(x)⟩] ≈ S(x)
+
+其中 View 包含 V* 收到的所有訊息
+
+含義：
+  驗證者能看到的一切，都能自己生成
+  因此沒有學到新資訊</code></pre>
+
+      <h3>零知識的層級</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>類型</th>
+            <th>定義</th>
+            <th>強度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>完美零知識</strong></td>
+            <td>分布完全相同</td>
+            <td>最強</td>
+          </tr>
+          <tr>
+            <td><strong>統計零知識</strong></td>
+            <td>統計距離可忽略</td>
+            <td>強</td>
+          </tr>
+          <tr>
+            <td><strong>計算零知識</strong></td>
+            <td>PPT 無法區分</td>
+            <td>實用</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>誠實驗證者 vs 惡意驗證者</h3>
+
+      <pre><code>誠實驗證者零知識（HVZK）：
+  僅對遵守協議的驗證者成立
+  較容易實現
+
+惡意驗證者零知識：
+  對任意驗證者策略成立
+  需要更複雜的構造
+
+實務影響：
+  非互動式 ZK 中，「驗證者」是雜湊函數
+  自動滿足 HVZK → 惡意 VZK</code></pre>
+
+      <h3>ZKML 中的零知識性</h3>
+
+      <pre><code>隱私保護範圍：
+
+可隱藏的資訊：
+  - 模型權重（模型即服務）
+  - 輸入數據（隱私推理）
+  - 中間激活值
+
+公開的資訊：
+  - 電路結構（模型架構）
+  - 公開輸入/輸出
+  - 模型承諾
+
+配置選項：
+  private_model = true   # 隱藏權重
+  private_input = true   # 隱藏輸入
+  private_output = false # 公開輸出</code></pre>
+
+      <h2>性質間的關係</h2>
+
+      <h3>權衡與張力</h3>
+
+      <pre><code>設計張力：
+
+完備性 vs 可靠性：
+  - 更寬鬆的驗證 → 更高完備性
+  - 更嚴格的驗證 → 更高可靠性
+  - 需要平衡
+
+可靠性 vs 零知識：
+  - 零知識要求不洩露見證
+  - 可靠性要求見證確實存在
+  - 透過承諾方案調和
+
+效率 vs 安全性：
+  - 更多約束 → 更高安全
+  - 更大電路 → 更長證明時間</code></pre>
+
+      <h3>安全參數</h3>
+
+      <pre><code>典型安全參數：
+
+λ = 128（128-bit 安全）
+
+含義：
+  - soundness error ≤ 2^{-128}
+  - 零知識違反機率 ≤ 2^{-128}
+  - 需要 2^{128} 次操作才能攻破
+
+影響因素：
+  - 曲線選擇（BN254 ~100-bit）
+  - 雜湊輸出長度
+  - FRI 查詢次數</code></pre>
+
+      <h2>形式化驗證</h2>
+
+      <h3>證明系統的安全分析</h3>
+
+      <pre><code>安全歸約：
+
+目標：證明 ZKP 系統安全
+
+方法：假設 ZKP 不安全 → 打破底層困難問題
+
+範例（Groth16）：
+  若攻擊者能偽造證明
+  → 能解決 q-PKE 問題
+  → 矛盾
+
+ZKML 額外考量：
+  - 量化引入的誤差
+  - 定點數溢出
+  - 查表正確性</code></pre>
+
+      <h2>實務意義</h2>
+
+      <h3>系統選擇指南</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>需求</th>
+            <th>建議</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>最高可靠性</td>
+            <td>使用成熟系統（Groth16, PLONK）</td>
+          </tr>
+          <tr>
+            <td>完美零知識</td>
+            <td>添加隨機遮罩</td>
+          </tr>
+          <tr>
+            <td>透明設置</td>
+            <td>STARK 或 IPA 基礎系統</td>
+          </tr>
+          <tr>
+            <td>ZKML 應用</td>
+            <td>EZKL, ZKTorch 等專用框架</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="basics.html">ZKP 基礎概念</a> - 入門介紹</li>
+        <li><a href="../zkml/security/soundness.html">量化與 Soundness</a> - ZKML 中的可靠性</li>
+        <li><a href="../zkml/security/zk-relation.html">ZK Relation 定義</a> - ZKML 的形式化</li>
+        <li><a href="proof-systems/groth16.html">Groth16</a> - 具體系統的安全分析</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Goldwasser, S., Micali, S., & Rackoff, C. "The Knowledge Complexity of Interactive Proof Systems." SIAM Journal on Computing, 1989.</cite>
+            <a href="https://doi.org/10.1137/0218012" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Bellare, M., & Goldreich, O. "On Defining Proofs of Knowledge." CRYPTO 1992.</cite>
+            <a href="https://doi.org/10.1007/3-540-48071-4_28" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

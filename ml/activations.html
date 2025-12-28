@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>激活函數 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="activations">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>激活函數</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">ZKML 核心挑戰</div>
+        <p>激活函數是神經網路的非線性來源，但在 ZK 電路中表示非線性函數成本高昂。理解不同激活函數的電路成本對 ZKML 設計至關重要。</p>
+      </div>
+      <h2>常見激活函數</h2>
+      <h3>ReLU</h3>
+      <pre><code>定義：f(x) = max(0, x)
+
+ZK 實現：
+  方法 1：位元分解（~254 約束）
+  方法 2：查表（~1 約束）
+
+推薦：使用查表方法</code></pre>
+      <h3>Sigmoid</h3>
+      <pre><code>定義：σ(x) = 1/(1+e^{-x})
+
+ZK 實現：
+  - 需要指數和除法
+  - 通常使用分段線性近似
+  - 或預計算查表
+
+建議：若可能，替換為 ReLU</code></pre>
+      <h3>GELU</h3>
+      <pre><code>定義：GELU(x) = x · Φ(x)
+
+ZK 挑戰：
+  - 涉及累積分布函數
+  - 必須使用近似或查表
+
+Transformer 常用，需特別處理</code></pre>
+      <h3>Softmax</h3>
+      <pre><code>定義：softmax(x)_i = exp(x_i) / Σ exp(x_j)
+
+ZK 挑戰：
+  - 指數計算
+  - 求和
+  - 除法
+
+通常是 ZKML 最困難的部分</code></pre>
+      <h2>ZKML 成本比較</h2>
+      <table>
+        <thead><tr><th>激活函數</th><th>傳統約束</th><th>查表約束</th><th>推薦</th></tr></thead>
+        <tbody>
+          <tr><td>ReLU</td><td>~254</td><td>~1</td><td>查表</td></tr>
+          <tr><td>Sigmoid</td><td>~1000</td><td>~1</td><td>查表/避免</td></tr>
+          <tr><td>Tanh</td><td>~1000</td><td>~1</td><td>查表/避免</td></tr>
+          <tr><td>GELU</td><td>~2000</td><td>~1</td><td>查表</td></tr>
+          <tr><td>Softmax</td><td>~5000</td><td>複雜</td><td>特殊處理</td></tr>
+        </tbody>
+      </table>
+      <h2>相關頁面</h2>
+      <ul>
+        <li><a href="../zkml/circuit/lookup-tables.html">查表優化</a></li>
+        <li><a href="neural-networks.html">神經網路基礎</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>隱私推理 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="private">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>隱私推理</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>隱私推理（Private Inference）是 ZKML 的另一主要範式，目標是在不洩露敏感數據的前提下進行 ML 推理，並可選地證明推理結果的正確性<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>問題定義</h2>
+
+      <h3>隱私挑戰</h3>
+
+      <pre><code>場景：用戶想使用 ML 服務但不想洩露數據
+
+傳統模式：
+  用戶 → 發送原始數據 → [雲端模型] → 結果
+  問題：服務商看到所有用戶數據
+
+隱私風險：
+  1. 醫療數據洩露
+  2. 財務資訊曝光
+  3. 生物識別資料濫用
+  4. 敏感文件內容外流
+
+隱私推理目標：
+  服務商執行推理，但學不到用戶數據</code></pre>
+
+      <h3>保護對象</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>保護對象</th>
+            <th>範例</th>
+            <th>技術</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>輸入隱私</strong></td>
+            <td>醫療影像、交易記錄</td>
+            <td>ZKP / MPC</td>
+          </tr>
+          <tr>
+            <td><strong>模型隱私</strong></td>
+            <td>專有算法、訓練數據</td>
+            <td>ZKP / TEE</td>
+          </tr>
+          <tr>
+            <td><strong>輸出隱私</strong></td>
+            <td>診斷結果、信用評分</td>
+            <td>加密 / ZKP</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>技術方案</h2>
+
+      <h3>純 ZKP 方案</h3>
+
+      <pre><code>方案：用戶本地計算 + ZKP 證明
+
+流程：
+  1. 用戶獲取（加密的）模型
+  2. 用戶本地執行推理
+  3. 用戶生成 ZKP 證明推理正確
+  4. 提交輸出 + 證明
+
+優點：
+  - 數據完全不離開用戶
+  - 密碼學安全保證
+
+缺點：
+  - 用戶需要計算資源
+  - 模型可能需要保密處理</code></pre>
+
+      <h3>MPC 結合方案</h3>
+
+      <pre><code>方案：多方安全計算
+
+流程：
+  1. 用戶秘密分享輸入
+  2. 多方共同計算推理
+  3. 用戶獲得結果（或秘密分享）
+
+優點：
+  - 計算負擔分散
+  - 可處理更大模型
+
+缺點：
+  - 需要多方參與
+  - 通訊開銷大</code></pre>
+
+      <h3>TEE 結合方案</h3>
+
+      <pre><code>方案：可信執行環境
+
+流程：
+  1. 用戶發送加密數據到 TEE
+  2. TEE 內解密並執行推理
+  3. 加密結果返回用戶
+  4. （可選）ZKP 證明 TEE 正確執行
+
+優點：
+  - 效能接近原生
+  - 成熟技術
+
+缺點：
+  - 依賴硬體信任
+  - 側信道攻擊風險</code></pre>
+
+      <h2>ZKP 隱私推理詳解</h2>
+
+      <h3>電路設計</h3>
+
+      <pre><code>隱私推理電路結構：
+
+公開輸入：
+  - 模型承諾 C_M
+  - 輸入承諾 C_x（非原始輸入！）
+  - 輸出 y
+
+私密見證：
+  - 輸入 x
+  - 輸入隨機性 r_x
+  - 模型權重 W（若需保密）
+
+電路約束：
+  1. Commit(x, r_x) = C_x（輸入承諾正確）
+  2. Commit(W) = C_M（模型承諾正確）
+  3. M(x) = y（推理正確）</code></pre>
+
+      <h3>承諾方案選擇</h3>
+
+      <pre><code>輸入承諾選項：
+
+Pedersen 承諾：
+  C = g^x · h^r
+  優點：加法同態
+  缺點：只能承諾單一值
+
+向量承諾：
+  C = Commit(x_1, ..., x_n)
+  適用：高維輸入
+
+雜湊承諾：
+  C = Hash(x || r)
+  優點：簡單高效
+  缺點：無同態性質</code></pre>
+
+      <h2>應用場景</h2>
+
+      <h3>醫療 AI</h3>
+
+      <pre><code>場景：遠程醫療診斷
+
+問題：
+  患者不想洩露醫療影像
+  但需要專業 AI 診斷
+
+解決方案：
+  1. 患者本地持有醫療影像
+  2. 使用隱私推理執行診斷模型
+  3. 生成證明（可選：給保險公司驗證）
+
+隱私保護：
+  - 醫院/雲端不看到原始影像
+  - 診斷結果可選擇性披露</code></pre>
+
+      <h3>金融信用評估</h3>
+
+      <pre><code>場景：隱私保護的信用評分
+
+問題：
+  用戶不想洩露完整財務資訊
+  但需要獲得信用評估
+
+解決方案：
+  1. 用戶提供財務數據的承諾
+  2. 證明數據滿足某些條件
+  3. 機構驗證證明即可
+
+範例：
+  證明「收入 > 閾值」而非揭示實際收入
+  證明「無不良記錄」而非揭示記錄詳情</code></pre>
+
+      <h3>生物識別</h3>
+
+      <pre><code>場景：隱私人臉識別
+
+問題：
+  用戶不想洩露生物特徵
+  但需要身份驗證
+
+解決方案：
+  1. 用戶持有加密的人臉特徵
+  2. 本地執行特徵匹配
+  3. 證明匹配成功（無需揭示特徵）
+
+安全性：
+  - 即使資料庫洩露，攻擊者無法獲得原始特徵
+  - 每次驗證不累積資訊</code></pre>
+
+      <h2>效能與權衡</h2>
+
+      <h3>成本比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>方案</th>
+            <th>計算成本</th>
+            <th>通訊成本</th>
+            <th>信任假設</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>純 ZKP</strong></td>
+            <td>高（證明生成）</td>
+            <td>低</td>
+            <td>密碼學</td>
+          </tr>
+          <tr>
+            <td><strong>MPC</strong></td>
+            <td>中</td>
+            <td>高</td>
+            <td>誠實多數</td>
+          </tr>
+          <tr>
+            <td><strong>TEE</strong></td>
+            <td>低</td>
+            <td>低</td>
+            <td>硬體</td>
+          </tr>
+          <tr>
+            <td><strong>ZKP + TEE</strong></td>
+            <td>中</td>
+            <td>低</td>
+            <td>混合</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>隱私級別</h3>
+
+      <pre><code>隱私級別選擇：
+
+完全隱私：
+  - 輸入、輸出、模型全部隱藏
+  - 成本最高
+  - 適用：高敏感場景
+
+部分隱私：
+  - 隱藏輸入，公開輸出
+  - 成本較低
+  - 適用：一般隱私需求
+
+可選隱私：
+  - 用戶選擇揭示程度
+  - 靈活配置
+  - 適用：多場景</code></pre>
+
+      <h2>與可驗證推理的結合</h2>
+
+      <pre><code>完整隱私可驗證推理：
+
+目標：
+  1. 保護用戶數據隱私
+  2. 證明推理正確性
+
+實現：
+  公開：模型承諾、輸入承諾、輸出
+  證明：輸入符合承諾 ∧ 推理正確
+
+應用：
+  用戶可向第三方（如保險公司）
+  證明「使用特定模型對我的數據分析得到此結果」
+  而不洩露原始數據</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="verifiable-inference.html">可驗證推理</a> - 另一種 ZKML 範式</li>
+        <li><a href="problem-statement.html">問題定義與場景</a> - ZKML 問題總覽</li>
+        <li><a href="security/zk-relation.html">ZK Relation 定義</a> - 形式化安全</li>
+        <li><a href="frameworks/ezkl.html">EZKL</a> - 實現工具</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Liu, T., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Mohassel, P., & Zhang, Y. "SecureML: A System for Scalable Privacy-Preserving Machine Learning." IEEE S&P 2017.</cite>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

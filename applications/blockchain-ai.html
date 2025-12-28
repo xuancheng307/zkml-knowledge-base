@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>區塊鏈可驗證 AI - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="blockchain-ai">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>區塊鏈可驗證 AI</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁整合 ZKML (EuroSys 2024) 的應用場景描述，以及區塊鏈 AI 整合的相關研究。</p>
+      </div>
+
+      <h2>概述</h2>
+
+      <p>區塊鏈與人工智慧的結合正在創造新的應用範式。然而，傳統的鏈上 AI 面臨<strong>信任問題</strong>：如何確保 AI 模型的推理結果是正確的，而非偽造的？<sup><a href="#ref-1">[1]</a></sup></p>
+
+      <p>零知識機器學習 (ZKML) 提供了解決方案：透過生成零知識證明，證明 AI 推理確實由特定模型正確執行，同時保護模型參數或輸入資料的隱私。</p>
+
+      <h2>核心應用場景</h2>
+
+      <h3>1. 可信審計（Trustless Audits）</h3>
+
+      <p>隨著 AI 模型日益強大且訓練於私有資料，用戶需要能夠驗證模型行為的方法<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>問題</strong>：OpenAI 未公開 GPT-4 權重；Twitter 推薦系統訓練於用戶私有資料</li>
+        <li><strong>解決方案</strong>：模型提供者承諾固定模型，並證明輸出確實由該模型產生</li>
+        <li><strong>實現</strong>：對模型權重計算雜湊承諾，推理時生成 ZK 證明</li>
+      </ul>
+
+      <p>這使得端到端的可信審計成為可能：用戶可以驗證 AI 服務使用的是聲稱的模型，而無需接觸實際的模型權重。</p>
+
+      <h3>2. 隱私生物認證</h3>
+
+      <p>結合 ZK-SNARK 與認證感測器，可實現無信任的生物識別驗證<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ol>
+        <li>用戶使用認證感測器拍攝照片</li>
+        <li>使用 ML 模型驗證臉部是否匹配先前註冊的身份</li>
+        <li>生成 ZK 證明，證明匹配成功</li>
+        <li>驗證者只需檢查證明，無需接觸原始照片</li>
+      </ol>
+
+      <p>應用場景包括：</p>
+      <ul>
+        <li>去中心化身份驗證（DID）</li>
+        <li>隱私保護的 KYC/AML 檢查</li>
+        <li>無需伺服器的門禁系統</li>
+      </ul>
+
+      <h3>3. 無信任信用評分</h3>
+
+      <p>在去中心化金融 (DeFi) 場景中<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>需求</strong>：用戶可能需要低抵押貸款，需要證明信用良好</li>
+        <li><strong>傳統方法</strong>：依賴中心化信用評分機構</li>
+        <li><strong>ZKML 方案</strong>：
+          <ul>
+            <li>用戶使用私有財務資料計算信用評分</li>
+            <li>生成 ZK 證明，證明評分高於門檻</li>
+            <li>借貸協議驗證證明，無需知道具體分數或財務細節</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h2>DeFi 應用</h2>
+
+      <h3>詐欺檢測</h3>
+
+      <p>DeFi 協議可使用 ZKML 進行交易詐欺檢測<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>步驟</th>
+            <th>操作</th>
+            <th>隱私保護</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1. 模型訓練</td>
+            <td>使用歷史交易資料訓練詐欺檢測模型</td>
+            <td>模型參數保密</td>
+          </tr>
+          <tr>
+            <td>2. 交易分析</td>
+            <td>對新交易運行模型推理</td>
+            <td>交易細節保密</td>
+          </tr>
+          <tr>
+            <td>3. 證明生成</td>
+            <td>生成推理正確性的 ZK 證明</td>
+            <td>只公開結果</td>
+          </tr>
+          <tr>
+            <td>4. 鏈上驗證</td>
+            <td>智能合約驗證證明</td>
+            <td>自動執行</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>風險評估</h3>
+
+      <p>流動性提供者和借貸協議可使用 AI 模型評估風險<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <ul>
+        <li><strong>抵押品評估</strong>：預測抵押品價格波動風險</li>
+        <li><strong>清算風險</strong>：評估借款人的清算可能性</li>
+        <li><strong>收益預測</strong>：估算流動性挖礦收益</li>
+      </ul>
+
+      <p>ZKML 確保這些評估是可驗證的，增強協議的可信度。</p>
+
+      <h2>DAO 治理</h2>
+
+      <h3>AI 輔助決策</h3>
+
+      <p>去中心化自治組織 (DAO) 可使用 AI 模型輔助治理決策<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <ul>
+        <li><strong>提案分析</strong>：AI 模型分析提案的潛在影響</li>
+        <li><strong>投票建議</strong>：基於歷史資料提供投票建議</li>
+        <li><strong>風險評估</strong>：評估提案對協議安全性的影響</li>
+      </ul>
+
+      <p>ZKML 保證 AI 分析使用的是公開承諾的模型，防止惡意操縱。</p>
+
+      <h3>成員驗證</h3>
+
+      <p>DAO 可使用 ZKML 進行成員資格驗證<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <ul>
+        <li>證明持有特定 NFT 而不揭露錢包地址</li>
+        <li>證明滿足投票權重門檻而不揭露確切持倉</li>
+        <li>證明參與歷史而不揭露完整交易記錄</li>
+      </ul>
+
+      <h2>NFT 與數位資產</h2>
+
+      <h3>AI 生成內容驗證</h3>
+
+      <p>隨著 AI 生成內容 (AIGC) 的普及，驗證內容來源變得重要<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>問題</strong>：如何證明某個 NFT 確實由特定 AI 模型生成？</li>
+        <li><strong>解決方案</strong>：在生成時附帶 ZK 證明，證明輸出來自特定模型</li>
+        <li><strong>應用</strong>：AI 藝術品的真實性驗證、版權保護</li>
+      </ul>
+
+      <h3>動態 NFT</h3>
+
+      <p>ZKML 可用於實現可驗證的動態 NFT：</p>
+
+      <ul>
+        <li>NFT 屬性根據 AI 模型輸出變化</li>
+        <li>變化過程可透過 ZK 證明驗證</li>
+        <li>防止惡意操縱 NFT 狀態</li>
+      </ul>
+
+      <h2>預言機與跨鏈</h2>
+
+      <h3>去中心化 AI 預言機</h3>
+
+      <p>傳統預言機將外部資料帶入區塊鏈，ZKML 可增強其可信度<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ol>
+        <li>預言機節點使用 AI 模型處理外部資料</li>
+        <li>生成推理過程的 ZK 證明</li>
+        <li>鏈上合約驗證證明後接受資料</li>
+      </ol>
+
+      <p>這消除了對單一預言機提供者的信任假設。</p>
+
+      <h3>跨鏈 AI 服務</h3>
+
+      <p>ZKML 可實現跨鏈的可驗證 AI 服務：</p>
+
+      <ul>
+        <li>AI 模型在一條鏈上執行</li>
+        <li>ZK 證明可在任何支援驗證的鏈上驗證</li>
+        <li>實現 AI 服務的跨鏈互操作性</li>
+      </ul>
+
+      <h2>技術挑戰</h2>
+
+      <h3>Gas 成本</h3>
+
+      <p>鏈上驗證 ZK 證明需要消耗 gas<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>證明系統</th>
+            <th>驗證 Gas</th>
+            <th>適用場景</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Groth16</td>
+            <td>~200K gas</td>
+            <td>低頻高價值交易</td>
+          </tr>
+          <tr>
+            <td>PLONK</td>
+            <td>~300K gas</td>
+            <td>通用場景</td>
+          </tr>
+          <tr>
+            <td>STARK</td>
+            <td>~1M gas</td>
+            <td>後量子安全需求</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">成本考量</div>
+        <p>對於頻繁的小額交易，gas 成本可能超過交易價值本身。需要評估 ZKML 驗證的經濟可行性，或使用 Layer 2 解決方案降低成本。</p>
+      </div>
+
+      <h3>證明時間</h3>
+
+      <p>大型 ML 模型的證明生成時間可能達到分鐘甚至小時級別<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li>GPT-2（81M 參數）：約 1 小時</li>
+        <li>ResNet-50：約 1 分鐘</li>
+        <li>小型 MLP：數秒</li>
+      </ul>
+
+      <p>這限制了 ZKML 在即時性要求高的場景的應用。</p>
+
+      <h3>模型限制</h3>
+
+      <p>當前 ZKML 系統對模型有一定限制<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li>模型架構需公開（權重可保密）</li>
+        <li>輸入長度通常需固定</li>
+        <li>不支援動態分支和迴圈</li>
+      </ul>
+
+      <h2>商業應用案例</h2>
+
+      <h3>EZKL</h3>
+
+      <p>EZKL 是目前最成熟的 ZKML 工具之一<sup><a href="#ref-3">[3]</a></sup>：</p>
+
+      <ul>
+        <li>支援 ONNX 格式模型</li>
+        <li>可生成 EVM 相容的驗證合約</li>
+        <li>已被多個 DeFi 專案採用</li>
+      </ul>
+
+      <h3>Modulus Labs</h3>
+
+      <p>Modulus Labs 展示了多個 ZKML 用例<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <ul>
+        <li><strong>RockyBot</strong>：鏈上交易機器人，使用 ZKML 證明決策過程</li>
+        <li><strong>Leela vs. World</strong>：可驗證的 AI 西洋棋遊戲</li>
+      </ul>
+
+      <h3>Giza</h3>
+
+      <p>Giza 協議允許 AI 模型以完全無信任方式部署到區塊鏈<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <ul>
+        <li>模型部署時生成驗證金鑰</li>
+        <li>每次推理附帶 ZK 證明</li>
+        <li>智能合約自動驗證</li>
+      </ul>
+
+      <h2>未來發展</h2>
+
+      <h3>硬體加速</h3>
+
+      <p>專用硬體可顯著提升 ZKML 效能：</p>
+
+      <ul>
+        <li>GPU 加速 MSM 運算</li>
+        <li>FPGA 加速 FFT 運算</li>
+        <li>ASIC 專用 ZK 晶片開發中</li>
+      </ul>
+
+      <h3>Layer 2 整合</h3>
+
+      <p>將 ZKML 驗證移至 Layer 2 可降低成本：</p>
+
+      <ul>
+        <li>批次驗證多個證明</li>
+        <li>使用 ZK Rollup 聚合</li>
+        <li>鏈下計算、鏈上驗證</li>
+      </ul>
+
+      <h3>模型優化</h3>
+
+      <p>設計 ZK-friendly 的模型架構：</p>
+
+      <ul>
+        <li>使用多項式激活函數</li>
+        <li>減少非線性操作數量</li>
+        <li>專門針對 ZKML 的模型壓縮</li>
+      </ul>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="zk-rollup.html">ZK Rollup / L2 決策</a> - Layer 2 整合詳解</li>
+        <li><a href="cloud-verification.html">雲端 ML 第三方驗證</a> - 非區塊鏈場景的應用</li>
+        <li><a href="../cost-metrics.html">ZK 成本指標</a> - 效能與成本評估</li>
+        <li><a href="../frameworks/tools/ezkl.html">EZKL</a> - 主流 ZKML 工具</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Peng, Z., et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-3">
+            <cite>South, T., et al. "Verifiable evaluations of machine learning models using zkSNARKs." arXiv preprint, 2024.</cite>
+            <a href="https://arxiv.org/abs/2402.02675" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

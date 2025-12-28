@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>開放問題 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="open-problems">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>開放問題</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">ZKML 研究前沿</div>
+        <p>ZKML 是一個快速發展的領域，仍有許多未解決的技術挑戰和研究方向。本頁整理目前的開放問題，供研究者和開發者參考。</p>
+      </div>
+
+      <h2>效能挑戰</h2>
+
+      <h3>大型模型的可行性</h3>
+      <pre><code>現狀：
+  - GPT-2 Small (~117M 參數) 已可證明
+  - 但時間以分鐘計
+  - 更大模型（1B+ 參數）仍不實際
+
+開放問題：
+  1. 如何突破 O(n log n) 證明複雜度？
+  2. 能否實現次線性證明時間？
+  3. 遞迴證明能否有效擴展？
+
+研究方向：
+  - 更高效的承諾方案
+  - 並行/分散式證明
+  - 模型特定優化</code></pre>
+
+      <h3>記憶體瓶頸</h3>
+      <pre><code>問題：
+  大型電路需要巨大記憶體
+  100M 約束可能需要 64+ GB RAM
+
+開放問題：
+  1. 如何實現記憶體高效的證明？
+  2. 流式證明（streaming proof）可行嗎？
+  3. 能否用 I/O 換記憶體而不顯著降速？
+
+現有嘗試：
+  - 分割證明（split proving）
+  - 記憶體映射技術
+  - 雲端高記憶體實例</code></pre>
+
+      <h3>即時證明</h3>
+      <pre><code>目標：
+  實現接近即時的證明生成
+  適用於互動式應用
+
+開放問題：
+  1. 硬體加速能達到什麼程度？
+  2. FPGA/ASIC 的潛力？
+  3. 能否實現亞秒級證明？
+
+考量：
+  - 通用 GPU vs 專用硬體
+  - 開發成本 vs 效能收益
+  - 去中心化 vs 效能</code></pre>
+
+      <h2>精度與安全</h2>
+
+      <h3>量化精度保證</h3>
+      <pre><code>問題：
+  量化不可避免地引入誤差
+  誤差在深層網路中累積
+
+開放問題：
+  1. 如何正式證明量化模型的精度界限？
+  2. 能否自動找到最優量化配置？
+  3. 如何平衡精度、成本和安全性？
+
+相關研究：
+  - 自動混合精度
+  - 誤差傳播分析
+  - 魯棒量化方法</code></pre>
+
+      <h3>Soundness 與近似</h3>
+      <pre><code>問題：
+  ZKML 使用多種近似技術
+  這可能影響 soundness 保證
+
+開放問題：
+  1. 近似的累積效應如何量化？
+  2. 如何定義「足夠好」的 soundness？
+  3. 能否提供正式的安全證明？
+
+挑戰：
+  - 浮點 → 定點轉換
+  - 查表近似
+  - 截斷/捨入處理</code></pre>
+
+      <h3>模型隱私強度</h3>
+      <pre><code>場景：
+  證明使用私有模型進行推理
+  同時隱藏模型參數
+
+開放問題：
+  1. 從輸入輸出能推斷多少模型資訊？
+  2. 重複查詢是否會洩漏模型？
+  3. 如何量化隱私保護程度？
+
+研究方向：
+  - 差分隱私 + ZKP
+  - 模型混淆技術
+  - 查詢限制機制</code></pre>
+
+      <h2>系統與工具</h2>
+
+      <h3>模型到電路的自動化</h3>
+      <pre><code>現狀：
+  部分框架支援自動轉換
+  但仍需手動調參
+
+開放問題：
+  1. 能否實現完全自動的優化？
+  2. 如何處理任意模型架構？
+  3. 最優配置的自動搜索可行嗎？
+
+挑戰：
+  - 配置空間巨大（指數級）
+  - 評估成本高
+  - 模型特定的最優解</code></pre>
+
+      <h3>跨框架互操作</h3>
+      <pre><code>現狀：
+  各框架獨立發展
+  證明格式不兼容
+
+開放問題：
+  1. 能否定義通用證明格式？
+  2. 如何實現跨框架驗證？
+  3. 標準化的可能性？
+
+潛在方案：
+  - 通用中間表示
+  - 證明轉換層
+  - 行業標準制定</code></pre>
+
+      <h3>調試與驗證</h3>
+      <pre><code>問題：
+  ZKML 錯誤難以調試
+  電路與模型行為差異難追蹤
+
+開放問題：
+  1. 如何有效調試 ZK 電路？
+  2. 能否提供中間狀態可視化？
+  3. 形式化驗證的可行性？
+
+需求：
+  - 更好的錯誤訊息
+  - 逐層驗證工具
+  - 自動化測試框架</code></pre>
+
+      <h2>應用層問題</h2>
+
+      <h3>訓練的可驗證性</h3>
+      <pre><code>當前焦點：
+  大多數 ZKML 專注於推理
+  訓練的可驗證性較少探索
+
+開放問題：
+  1. 如何證明訓練過程正確？
+  2. 證明使用了特定數據集？
+  3. 梯度下降的 ZKP 可行嗎？
+
+挑戰：
+  - 訓練迭代次數巨大
+  - 隨機性處理
+  - 浮點運算</code></pre>
+
+      <h3>聯邦學習與 ZKP</h3>
+      <pre><code>場景：
+  多方協作訓練
+  每方證明其貢獻正確
+
+開放問題：
+  1. 如何高效證明本地更新？
+  2. 隱私保護如何與 ZKP 結合？
+  3. 惡意參與者的處理？
+
+相關技術：
+  - MPC + ZKP
+  - 聚合簽名
+  - 承諾方案</code></pre>
+
+      <h3>AI 安全與治理</h3>
+      <pre><code>議題：
+  ZKML 可用於 AI 審計和合規
+
+開放問題：
+  1. 如何證明模型符合特定標準？
+  2. 偏見和公平性的可驗證性？
+  3. 監管框架如何整合 ZKML？
+
+應用場景：
+  - AI 模型認證
+  - 公平性證明
+  - 合規審計</code></pre>
+
+      <h2>理論問題</h2>
+
+      <h3>複雜度下界</h3>
+      <pre><code>問題：
+  ML 推理的 ZKP 複雜度下界是什麼？
+
+開放問題：
+  1. 是否存在本質的複雜度障礙？
+  2. 特定操作的最優電路？
+  3. 資訊論 vs 計算安全的權衡？
+
+研究方向：
+  - 電路複雜度理論
+  - 密碼學下界
+  - 歸約證明</code></pre>
+
+      <h3>新密碼學原語</h3>
+      <pre><code>機會：
+  ZKML 需求可能驅動新密碼學發展
+
+開放問題：
+  1. 是否存在 ML 友好的證明系統？
+  2. 矩陣運算的專用承諾？
+  3. 非線性函數的新處理方法？
+
+方向：
+  - 結構化參考字符串優化
+  - 向量/矩陣承諾
+  - 查表協議創新</code></pre>
+
+      <h2>短期與長期展望</h2>
+
+      <h3>短期可解決（1-2 年）</h3>
+      <pre><code>- 中型模型的實用化（10M 參數以內）
+- GPU 加速普及
+- 更好的開發工具
+- 主流 ML 框架整合
+- 標準化基準測試</code></pre>
+
+      <h3>中期挑戰（2-5 年）</h3>
+      <pre><code>- 大型模型可行性（100M+ 參數）
+- 接近即時的證明
+- 產業標準形成
+- 規模化部署案例
+- 硬體加速成熟</code></pre>
+
+      <h3>長期願景（5+ 年）</h3>
+      <pre><code>- 任意規模模型的可驗證推理
+- 訓練的完整可驗證性
+- AI 治理基礎設施
+- 普遍的可驗證 AI 服務
+- 新型密碼學原語</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="benchmarks.html">效能比較</a></li>
+        <li><a href="frameworks/comparison.html">框架橫向比較</a></li>
+        <li><a href="security/soundness.html">量化與 Soundness</a></li>
+        <li><a href="../thesis/index.html">論文概覽</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

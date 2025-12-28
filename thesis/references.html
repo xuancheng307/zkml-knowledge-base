@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>參考文獻 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="references">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>參考文獻</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">核心文獻導讀</div>
+        <p>本頁整理 ZKML 領域的重要參考文獻，包括 ZKML 框架論文、零知識證明基礎、機器學習優化等，並標註與知識庫各頁面的對應關係。</p>
+      </div>
+
+      <h2>ZKML 核心論文</h2>
+
+      <h3>ZKML 框架論文</h3>
+      <pre><code>[1] ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs
+    Liu et al., EuroSys 2024
+    核心貢獻：系統性的 ZKML 優化框架
+    對應頁面：<a href="../zkml/frameworks/academic/zkml-2024.html">ZKML (EuroSys 2024)</a>
+
+[2] ZKTorch: A Framework for Zero-Knowledge Proof of Deep Neural Network Inference
+    2025
+    核心貢獻：PyTorch 整合的 ZKML 框架
+    對應頁面：<a href="../zkml/frameworks/academic/zktorch.html">ZKTorch</a>
+
+[3] zkLLM: Zero Knowledge Proofs for Large Language Models
+    Sun et al., 2024
+    核心貢獻：針對 LLM 的 ZKP 優化
+    對應頁面：<a href="../zkml/frameworks/academic/zkllm.html">zkLLM</a>
+
+[4] EZKL: A Framework for Scaling ZK Machine Learning
+    EZKL Team, 2023-2024
+    核心貢獻：易用的 ZKML 開發框架
+    對應頁面：<a href="../zkml/frameworks/tools/ezkl.html">EZKL</a></code></pre>
+
+      <h3>ZKML 理論與方法</h3>
+      <pre><code>[5] Scaling up Trustless DNN Inference with Zero-Knowledge Proofs
+    早期 ZKML 工作
+    核心貢獻：ZKML 可行性探索
+
+[6] OPML: Optimistic Machine Learning on Blockchain
+    核心貢獻：樂觀 ML 驗證範式
+    對應頁面：<a href="../zkml/frameworks/others/opml.html">OPML</a>
+
+[7] Verifiable Evaluations of Machine Learning Models
+    核心貢獻：ML 評估的可驗證性</code></pre>
+
+      <h2>零知識證明文獻</h2>
+
+      <h3>基礎理論</h3>
+      <pre><code>[8] The Knowledge Complexity of Interactive Proof Systems
+    Goldwasser, Micali, Rackoff, 1989
+    核心貢獻：零知識證明的定義
+    對應頁面：<a href="../crypto/basics.html">ZKP 基礎概念</a>
+
+[9] How to Prove a Theorem So No One Else Can Claim It
+    Blum et al., 1986
+    核心貢獻：非互動式零知識證明</code></pre>
+
+      <h3>證明系統</h3>
+      <pre><code>[10] On the Size of Pairing-based Non-interactive Arguments
+     Groth, 2016 (Groth16)
+     核心貢獻：最簡潔的 SNARK
+     對應頁面：<a href="../crypto/proof-systems/groth16.html">Groth16</a>
+
+[11] PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge
+     Gabizon et al., 2019
+     核心貢獻：通用 SNARK、自定義門
+     對應頁面：<a href="../crypto/proof-systems/plonk.html">PLONK</a>
+
+[12] Scalable, transparent, and post-quantum secure computational integrity (STARK)
+     Ben-Sasson et al., 2018
+     核心貢獻：透明、後量子安全
+     對應頁面：<a href="../crypto/proof-systems/stark.html">STARK</a>
+
+[13] Recursive Proof Composition without a Trusted Setup (Halo)
+     Bowe et al., 2019
+     核心貢獻：無需可信設置的遞迴
+     對應頁面：<a href="../crypto/halo2.html">Halo2</a></code></pre>
+
+      <h3>承諾方案</h3>
+      <pre><code>[14] Constant-Size Commitments to Polynomials and Their Applications (KZG)
+     Kate, Zaverucha, Goldberg, 2010
+     核心貢獻：多項式承諾基礎
+     對應頁面：<a href="../crypto/commitments/kzg.html">KZG</a>
+
+[15] Bulletproofs: Short Proofs for Confidential Transactions and More
+     Bünz et al., 2018
+     核心貢獻：內積論證
+     對應頁面：<a href="../crypto/commitments/ipa.html">IPA</a>
+
+[16] Fast Reed-Solomon Interactive Oracle Proofs of Proximity (FRI)
+     Ben-Sasson et al., 2018
+     核心貢獻：STARK 的多項式承諾
+     對應頁面：<a href="../crypto/commitments/fri.html">FRI</a></code></pre>
+
+      <h3>查表協議</h3>
+      <pre><code>[17] Plookup: A simplified polynomial protocol for lookup tables
+     Gabizon, Williamson, 2020
+     核心貢獻：高效查表協議
+     對應頁面：<a href="../zkml/circuit/lookup-tables.html">查表優化</a>
+
+[18] cq: Cached quotients for fast lookups
+     Eagen et al., 2023
+     核心貢獻：改進的查表效率</code></pre>
+
+      <h2>機器學習文獻</h2>
+
+      <h3>模型優化</h3>
+      <pre><code>[19] Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference
+     Jacob et al., 2018
+     核心貢獻：整數量化方法
+     對應頁面：<a href="../ml/optimization/quantization.html">量化</a>
+
+[20] Learning both Weights and Connections for Efficient Neural Networks
+     Han et al., 2015
+     核心貢獻：網路剪枝
+     對應頁面：<a href="../ml/optimization/pruning.html">剪枝</a>
+
+[21] ONNX: Open Neural Network Exchange
+     核心貢獻：模型交換格式
+     對應頁面：<a href="../ml/optimization/onnx.html">ONNX</a></code></pre>
+
+      <h3>模型架構</h3>
+      <pre><code>[22] Attention Is All You Need
+     Vaswani et al., 2017
+     核心貢獻：Transformer 架構
+     對應頁面：<a href="../ml/transformers.html">Transformer 架構</a>
+
+[23] Deep Residual Learning for Image Recognition (ResNet)
+     He et al., 2016
+     核心貢獻：殘差連接
+
+[24] ImageNet Classification with Deep CNNs (AlexNet)
+     Krizhevsky et al., 2012
+     核心貢獻：深度 CNN 的突破</code></pre>
+
+      <h2>相關領域文獻</h2>
+
+      <h3>區塊鏈與智能合約</h3>
+      <pre><code>[25] Ethereum: A Next-Generation Smart Contract and Decentralized Application Platform
+     Buterin, 2014
+     核心貢獻：智能合約平台
+
+[26] zkRollup: Scalable Privacy-Preserving Solution
+     核心貢獻：ZK 擴展方案
+     對應頁面：<a href="../zkml/applications/zk-rollup.html">ZK Rollup</a></code></pre>
+
+      <h3>安全與隱私</h3>
+      <pre><code>[27] Secure Multi-Party Computation
+     Yao, 1986
+     核心貢獻：多方安全計算基礎
+
+[28] Differential Privacy
+     Dwork, 2006
+     核心貢獻：差分隱私定義</code></pre>
+
+      <h3>zkVM 系統</h3>
+      <pre><code>[29] RISC Zero zkVM
+     核心貢獻：通用 zkVM
+     對應頁面：<a href="../zkml/frameworks/tools/risc-zero.html">RISC Zero</a>
+
+[30] Cairo: A Turing-complete STARK-friendly CPU architecture
+     StarkWare, 2020
+     核心貢獻：ZK 友好的 CPU 架構</code></pre>
+
+      <h2>依主題分類</h2>
+
+      <h3>入門推薦</h3>
+      <pre><code>ZKP 入門：[8], [10]
+ML 優化入門：[19], [22]
+ZKML 入門：[1], [4]</code></pre>
+
+      <h3>深入研究</h3>
+      <pre><code>證明系統：[10], [11], [12], [13]
+承諾方案：[14], [15], [16]
+ZKML 優化：[1], [2], [3]</code></pre>
+
+      <h3>應用導向</h3>
+      <pre><code>區塊鏈應用：[25], [26]
+隱私計算：[27], [28]
+實用框架：[4], [29]</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="index.html">論文概覽</a></li>
+        <li><a href="contributions.html">研究貢獻</a></li>
+        <li><a href="chapter-map.html">章節對照表</a></li>
+        <li><a href="../foundations/glossary.html">術語表</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

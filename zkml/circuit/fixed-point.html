@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>定點數與精度 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="fixed-point">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>定點數與精度</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>ZK 電路在有限域 \(\mathbb{F}_p\) 上運算，無法直接處理浮點數。定點數算術（fixed-point arithmetic）是 ZKML 中表示實數的標準方法，透過縮放因子將小數映射到整數<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>為什麼需要定點數</h2>
+
+      <h3>浮點數的問題</h3>
+
+      <p>標準 IEEE 754 浮點數無法直接在 ZK 電路中使用<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>浮點數結構（32-bit float）：
+  符號位（1 bit）| 指數（8 bits）| 尾數（23 bits）
+
+ZK 電路的限制：
+  1. 只支援有限域算術（加法、乘法）
+  2. 位元運算成本極高
+  3. 條件分支（指數處理）代價大
+
+浮點運算電路成本：
+  - 加法：~1000 約束（對齊指數、加尾數）
+  - 乘法：~500 約束（乘尾數、加指數）
+  - 比較：~200 約束
+
+對比整數運算：
+  - 加法：0 約束（線性）
+  - 乘法：1 約束</code></pre>
+
+      <h3>定點數解決方案</h3>
+
+      <pre><code>定點數表示：
+  x_fp = round(x_real × 2^scale)
+
+範例（scale = 16）：
+  x_real = 3.14159
+  x_fp = round(3.14159 × 65536) = 205887
+
+解碼：
+  x_real ≈ x_fp / 2^scale = 205887 / 65536 ≈ 3.14158
+
+精度：
+  最小可表示差異 = 1 / 2^scale
+  scale = 16 → 精度 ≈ 0.000015</code></pre>
+
+      <h2>定點數運算</h2>
+
+      <h3>加法與減法</h3>
+
+      <pre><code>定點加法：直接加（相同 scale）
+
+x + y（實數）≈ (x_fp + y_fp) / 2^scale
+
+證明：
+  x_fp + y_fp = (x × 2^s) + (y × 2^s)
+              = (x + y) × 2^s
+
+ZK 成本：0 約束（線性操作）
+
+範例：
+  x = 3.14（x_fp = 205619，scale=16）
+  y = 2.71（y_fp = 177569）
+  x_fp + y_fp = 383188
+  解碼：383188 / 65536 ≈ 5.85</code></pre>
+
+      <h3>乘法</h3>
+
+      <pre><code>定點乘法：需要重新縮放
+
+錯誤方式：
+  x_fp × y_fp = (x × 2^s) × (y × 2^s) = xy × 2^(2s)  // scale 加倍！
+
+正確方式：
+  result = (x_fp × y_fp) >> s  // 右移 s 位
+
+ZK 電路中的實現：
+  1. z = x_fp × y_fp（1 約束）
+  2. z_scaled = z / 2^s（需要除法或範圍證明）
+
+除法處理選項：
+  選項 A：預計算 2^(-s)，z × 2^(-s)（域元素逆元）
+  選項 B：見證 q 和 r，證明 z = q × 2^s + r 且 r < 2^s
+
+範例（scale = 8）：
+  x = 3.5（x_fp = 896）
+  y = 2.0（y_fp = 512）
+  z = 896 × 512 = 458752
+  z_scaled = 458752 >> 8 = 1792
+  解碼：1792 / 256 = 7.0 ✓</code></pre>
+
+      <h3>累積誤差</h3>
+
+      <pre><code>問題：多次乘法累積捨入誤差
+
+神經網路場景：
+  y = Wx + b
+  每個乘法引入 ±0.5 LSB 誤差
+  n 個乘法 → 最大誤差 ≈ n × 0.5 / 2^scale
+
+範例分析：
+  全連接層：1024 輸入 × 512 輸出
+  每個輸出：1024 次 MAC
+  scale = 16：最大誤差 ≈ 1024 × 0.5 / 65536 ≈ 0.008
+
+緩解策略：
+  1. 使用更高 scale（如 24 或 32）
+  2. 中間計算使用更高精度
+  3. 定期重新量化</code></pre>
+
+      <h2>Scale 選擇</h2>
+
+      <h3>影響因素</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>因素</th>
+            <th>較小 scale</th>
+            <th>較大 scale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>精度</strong></td>
+            <td>較低</td>
+            <td>較高</td>
+          </tr>
+          <tr>
+            <td><strong>溢出風險</strong></td>
+            <td>較低</td>
+            <td>較高</td>
+          </tr>
+          <tr>
+            <td><strong>查表大小</strong></td>
+            <td>較小</td>
+            <td>較大</td>
+          </tr>
+          <tr>
+            <td><strong>電路複雜度</strong></td>
+            <td>較低</td>
+            <td>較高</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>典型配置</h3>
+
+      <pre><code>EZKL 預設：
+  scale = 7（對應 2^7 = 128）
+  適用：一般 ML 模型
+
+ZKTorch：
+  input_scale = 16
+  weight_scale = 8-16
+  accumulator_width = 32
+
+zkLLM：
+  activation_scale = 16
+  weight_scale = 8
+  用於 LLM 量化推理
+
+建議範圍：
+  - 小型模型：scale = 8-12
+  - 中型模型：scale = 12-16
+  - 大型模型：scale = 16-24</code></pre>
+
+      <h2>溢出處理</h2>
+
+      <h3>溢出類型</h3>
+
+      <pre><code>有限域溢出：
+  若結果 > p（域的階），自動取模
+  這會導致錯誤結果！
+
+範例（p = 2^254，scale = 16）：
+  最大安全值 ≈ 2^254 / 2^16 = 2^238
+
+累積器溢出：
+  MAC 操作：acc += w × x
+  n 次累積後：acc 可能超過安全範圍
+
+卷積層範例：
+  kernel = 3×3，channels = 512
+  單次卷積：9 × 512 = 4608 個 MAC
+  假設每個值 < 2^8：
+    最大結果 < 4608 × 2^8 × 2^8 = 4608 × 2^16
+    需要 ~29 bits</code></pre>
+
+      <h3>溢出預防</h3>
+
+      <pre><code>策略 1：範圍分析
+  靜態分析每層的值範圍
+  選擇足夠的 scale 和 bitwidth
+
+策略 2：中間重縮放
+  長計算鏈中定期 rescale
+  y = (x >> k) 來減少 bitwidth
+
+策略 3：飽和運算
+  clamp(x, min, max)
+  防止極端值傳播
+
+策略 4：動態範圍
+  使用運行時範圍檢查
+  超出範圍則標記錯誤</code></pre>
+
+      <h2>量化與定點數</h2>
+
+      <h3>從浮點到定點</h3>
+
+      <pre><code>量化流程：
+
+1. 統計分析
+   收集浮點模型的激活值分布
+   確定 min/max 範圍
+
+2. Scale 計算
+   scale = (max - min) / (2^bits - 1)
+   zero_point = round(-min / scale)
+
+3. 量化公式
+   q = round(x / scale) + zero_point
+
+4. 定點轉換
+   x_fp = q × 2^fp_scale
+   其中 fp_scale 是電路使用的 scale
+
+範例（8-bit 量化）：
+  浮點範圍：[-1.5, 2.3]
+  scale = (2.3 - (-1.5)) / 255 ≈ 0.0149
+  zero_point = round(1.5 / 0.0149) = 101
+
+  x = 1.0
+  q = round(1.0 / 0.0149) + 101 = 168</code></pre>
+
+      <h3>對稱 vs 非對稱量化</h3>
+
+      <pre><code>對稱量化：
+  x_q = round(x / scale)
+  範圍：[-2^(b-1), 2^(b-1) - 1]
+  zero_point = 0
+
+  優點：乘法簡單，無偏移項
+  缺點：若分布不對稱，浪費精度
+
+非對稱量化：
+  x_q = round(x / scale) + zero_point
+  範圍：[0, 2^b - 1]
+
+  優點：完全利用量化範圍
+  缺點：乘法需要處理 zero_point
+
+ZKML 偏好：
+  通常使用對稱量化
+  簡化電路設計</code></pre>
+
+      <h2>精度損失分析</h2>
+
+      <h3>誤差來源</h3>
+
+      <pre><code>1. 量化誤差
+   q_error = |x - dequant(quant(x))|
+   最大：scale / 2
+
+2. 捨入誤差
+   每次乘法的捨入
+   最大：1 / (2 × 2^scale)
+
+3. 累積誤差
+   多層傳播
+   可能放大或抵消
+
+4. 非線性近似誤差
+   查表的離散化
+   取決於表格精度</code></pre>
+
+      <h3>精度評估</h3>
+
+      <pre><code>評估指標：
+
+1. 逐元素誤差
+   |y_fp - y_float| / |y_float|
+   典型目標：< 1%
+
+2. 輸出準確度
+   分類：accuracy drop < 1%
+   回歸：MSE increase < 5%
+
+3. KL 散度
+   softmax 輸出分布差異
+   典型目標：< 0.01
+
+範例評估（ResNet-18）：
+  scale = 8：accuracy 70.2%（-1.8%）
+  scale = 12：accuracy 71.5%（-0.5%）
+  scale = 16：accuracy 71.9%（-0.1%）
+  FP32：accuracy 72.0%（baseline）</code></pre>
+
+      <h2>實作技巧</h2>
+
+      <h3>混合精度</h3>
+
+      <pre><code>策略：不同層使用不同精度
+
+敏感層（使用高精度）：
+  - 第一層（接近輸入）
+  - Softmax 前的層
+  - 殘差連接
+
+非敏感層（可用低精度）：
+  - 深層特徵提取
+  - 大型矩陣乘法
+
+EZKL 配置範例：
+  "scale_rebase_multiplier": 10,
+  "input_scale": 12,
+  "param_scale": 8
+
+ZKTorch 配置：
+  layer_scales = {
+    "layer0": 16,
+    "layer1": 12,
+    "layer2": 12,
+    ...
+  }</code></pre>
+
+      <h3>校準（Calibration）</h3>
+
+      <pre><code>目的：找到最佳量化參數
+
+流程：
+  1. 準備校準數據集（代表性樣本）
+  2. 運行浮點推理，收集激活值
+  3. 統計每層分布（min/max/percentile）
+  4. 選擇最佳 scale
+
+校準方法：
+  - Min-Max：使用觀察到的極值
+  - Percentile：使用 99.99% 分位數
+  - MSE 最小化：最小化量化誤差
+  - Cross-entropy：最小化輸出差異
+
+ZKML 工具支援：
+  EZKL：ezkl calibrate --data calibration.json
+  ZKTorch：自動校準流程</code></pre>
+
+      <h3>定點數調試</h3>
+
+      <pre><code>常見問題與診斷：
+
+1. 輸出全為零
+   可能原因：scale 太大，值被捨入為 0
+   診斷：檢查中間層激活值
+
+2. 輸出飽和
+   可能原因：溢出後取模
+   診斷：比較各層輸出範圍與域大小
+
+3. 精度急劇下降
+   可能原因：某層敏感度高
+   診斷：逐層比較定點與浮點輸出
+
+調試工具：
+  # EZKL 調試模式
+  ezkl gen-witness --debug
+
+  # 輸出每層的定點值和誤差統計</code></pre>
+
+      <h2>框架實現比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>預設 scale</th>
+            <th>支援混合精度</th>
+            <th>自動校準</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>EZKL</strong></td>
+            <td>7</td>
+            <td>是（手動配置）</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>ZKTorch</strong></td>
+            <td>16</td>
+            <td>是（自動）</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>ZKML</strong></td>
+            <td>可配置</td>
+            <td>是</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>zkLLM</strong></td>
+            <td>8-16</td>
+            <td>是（層級別）</td>
+            <td>是</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="quantization-for-zk.html">ZK 專用量化</a> - 量化策略詳解</li>
+        <li><a href="lookup-tables.html">查表優化</a> - 非線性函數處理</li>
+        <li><a href="security/overflow.html">Overflow 與 Wrap-around</a> - 溢出安全性</li>
+        <li><a href="model-to-circuit.html">模型 → 電路</a> - 完整轉換流程</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Liu, T., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>zkonduit. "EZKL Documentation - Fixed Point Arithmetic." 2024.</cite>
+            <a href="https://docs.ezkl.xyz/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-3">
+            <cite>Jacob, B., et al. "Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference." CVPR 2018.</cite>
+            <a href="https://arxiv.org/abs/1712.05877" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

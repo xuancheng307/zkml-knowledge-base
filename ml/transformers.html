@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transformer 架構 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="transformers">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>Transformer 架構</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">LLM 的基礎</div>
+        <p>Transformer 是現代大型語言模型的核心架構。理解其組件對 ZKML 處理 LLM 至關重要。</p>
+      </div>
+      <h2>核心組件</h2>
+      <h3>Self-Attention</h3>
+      <pre><code>計算：
+  Attention(Q, K, V) = softmax(QK^T / √d_k) · V
+
+ZKML 挑戰：
+  - 矩陣乘法：O(n² · d) 約束
+  - Softmax：每行需要特殊處理
+  - 記憶體：O(n²) 中間值
+
+zkLLM 的 zkAttn 優化：
+  使用 tlookup 減少複雜度</code></pre>
+      <h3>Feed-Forward Network</h3>
+      <pre><code>結構：
+  FFN(x) = GELU(xW₁ + b₁)W₂ + b₂
+
+ZKML 考量：
+  - 兩個大型矩陣乘法
+  - GELU 需要查表處理
+  - 隱藏層通常是輸入的 4 倍</code></pre>
+      <h3>LayerNorm</h3>
+      <pre><code>計算：
+  LayerNorm(x) = (x - μ) / σ · γ + β
+
+ZKML 挑戰：
+  - 需要計算均值和標準差
+  - 除法和開根號
+  - 通常使用近似</code></pre>
+      <h2>ZKML 處理策略</h2>
+      <table>
+        <thead><tr><th>組件</th><th>策略</th><th>框架支援</th></tr></thead>
+        <tbody>
+          <tr><td>Attention</td><td>zkAttn / 分段</td><td>zkLLM</td></tr>
+          <tr><td>FFN</td><td>標準電路</td><td>所有框架</td></tr>
+          <tr><td>GELU</td><td>查表</td><td>所有框架</td></tr>
+          <tr><td>LayerNorm</td><td>近似/查表</td><td>部分框架</td></tr>
+          <tr><td>Softmax</td><td>tlookup</td><td>zkLLM</td></tr>
+        </tbody>
+      </table>
+      <h2>相關頁面</h2>
+      <ul>
+        <li><a href="../zkml/frameworks/academic/zkllm.html">zkLLM</a></li>
+        <li><a href="activations.html">激活函數</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

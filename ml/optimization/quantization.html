@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>量化（Quantization） - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="quantization">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>量化（Quantization）</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">ZKML 的核心優化</div>
+        <p>量化是將浮點數模型轉換為定點數/整數的過程。對 ZKML 而言，量化不僅是優化手段，更是必要前提——ZK 電路只能處理有限域元素。</p>
+      </div>
+
+      <h2>量化基礎</h2>
+
+      <h3>為什麼需要量化</h3>
+      <pre><code>傳統 ML：
+  - 使用 32 位浮點數（float32）
+  - 支援任意精度運算
+  - GPU 原生支援
+
+ZK 電路：
+  - 只能處理有限域 F_p 的元素
+  - 不支援浮點運算
+  - 需要將實數映射為整數</code></pre>
+
+      <h3>量化公式</h3>
+      <pre><code>均勻量化（Uniform Quantization）：
+  q = round((x - z) / s)
+
+  其中：
+    x = 浮點數值
+    q = 量化後整數
+    s = 縮放因子（scale）
+    z = 零點偏移（zero point）
+
+反量化：
+  x' = s · q + z</code></pre>
+
+      <h2>量化類型</h2>
+
+      <h3>按位寬分類</h3>
+      <table>
+        <thead><tr><th>類型</th><th>位寬</th><th>範圍</th><th>精度損失</th><th>ZKML 適用性</th></tr></thead>
+        <tbody>
+          <tr><td>INT8</td><td>8 位</td><td>[-128, 127]</td><td>小</td><td>最常用</td></tr>
+          <tr><td>INT16</td><td>16 位</td><td>[-32768, 32767]</td><td>極小</td><td>高精度需求</td></tr>
+          <tr><td>INT4</td><td>4 位</td><td>[-8, 7]</td><td>中等</td><td>極端壓縮</td></tr>
+          <tr><td>Binary</td><td>1 位</td><td>{-1, +1}</td><td>大</td><td>特殊應用</td></tr>
+        </tbody>
+      </table>
+
+      <h3>按粒度分類</h3>
+      <pre><code>Per-Tensor 量化：
+  整個張量使用同一個 (s, z)
+  優點：簡單，約束少
+  缺點：精度較低
+
+Per-Channel 量化：
+  每個輸出通道獨立 (s_c, z_c)
+  優點：精度高
+  缺點：需要更多參數
+
+Per-Group 量化：
+  將通道分組，每組獨立量化
+  優點：平衡精度與複雜度</code></pre>
+
+      <h3>按時機分類</h3>
+      <pre><code>訓練後量化（PTQ）：
+  - 訓練完成後直接量化
+  - 簡單快速
+  - 精度損失可能較大
+
+量化感知訓練（QAT）：
+  - 訓練時模擬量化效果
+  - 精度更高
+  - 需要重新訓練</code></pre>
+
+      <h2>ZKML 專用量化考量</h2>
+
+      <h3>有限域約束</h3>
+      <pre><code>問題：
+  ZK 電路在有限域 F_p 運算
+  p 通常是 254 位素數
+  但實際運算需避免 overflow
+
+解決方案：
+  選擇適當位寬 b
+  確保中間值 < p/2
+
+  例：矩陣乘法 y = Wx
+  |y_i| ≤ Σ|w_ij · x_j| ≤ n · 2^(2b)
+  需要 n · 2^(2b) < p/2</code></pre>
+
+      <h3>非線性函數處理</h3>
+      <pre><code>問題：
+  激活函數輸入/輸出都需量化
+  查表需要固定輸入範圍
+
+解決：
+  建立輸入範圍 → 查表索引的映射
+
+  例：ReLU 查表
+  輸入範圍：[-128, 127]（INT8）
+  查表大小：256 項
+  table[i] = max(0, i - 128)</code></pre>
+
+      <h3>累積誤差問題</h3>
+      <pre><code>深度網路的挑戰：
+  每層都有量化誤差
+  誤差會累積傳播
+
+對策：
+  1. 使用較高位寬（16 位）
+  2. 層間重新量化（rescaling）
+  3. 誤差校正技術</code></pre>
+
+      <h2>量化配置空間</h2>
+
+      <h3>可調參數</h3>
+      <pre><code>每層可獨立配置：
+  - 權重位寬：w_bits ∈ {4, 8, 16, 32}
+  - 激活位寬：a_bits ∈ {4, 8, 16, 32}
+  - 量化粒度：per-tensor / per-channel
+  - 縮放因子：symmetric / asymmetric
+
+配置空間大小：
+  假設 L 層，每層 4 個選項
+  總配置數 = 4^L（指數級）</code></pre>
+
+      <h3>混合精度量化</h3>
+      <pre><code>策略：
+  不同層使用不同位寬
+  敏感層用高精度
+  不敏感層用低精度
+
+敏感度分析：
+  1. 計算每層的 Hessian
+  2. 評估量化對輸出的影響
+  3. 分配位寬預算</code></pre>
+
+      <h2>ZKML 框架的量化支援</h2>
+
+      <table>
+        <thead><tr><th>框架</th><th>預設位寬</th><th>可配置</th><th>特色</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>根據模型調整</td><td>是</td><td>自動尋找最佳配置</td></tr>
+          <tr><td>ZKTorch</td><td>混合精度</td><td>是</td><td>支援細粒度控制</td></tr>
+          <tr><td>zkLLM</td><td>8 位</td><td>有限</td><td>針對 LLM 優化</td></tr>
+          <tr><td>RISC Zero</td><td>原生精度</td><td>N/A</td><td>zkVM 處理</td></tr>
+        </tbody>
+      </table>
+
+      <h2>量化與 ZK 成本</h2>
+
+      <h3>約束數量影響</h3>
+      <pre><code>整數乘法約束：
+  a × b = c 需要 1 個約束
+  與位寬無關（在域內）
+
+範圍證明：
+  證明 x ∈ [0, 2^b - 1]
+  需要 O(b) 個約束
+
+位寬越大：
+  - 範圍證明成本增加
+  - 但精度更高，soundness 更強</code></pre>
+
+      <h3>查表成本影響</h3>
+      <pre><code>b 位輸入的查表：
+  表大小 = 2^b 項
+
+8 位輸入：256 項（實用）
+16 位輸入：65536 項（較大但可行）
+32 位輸入：2^32 項（不實際）
+
+→ 查表傾向使用較低位寬</code></pre>
+
+      <h2>實作建議</h2>
+
+      <h3>ZKML 量化最佳實踐</h3>
+      <pre><code>1. 從 INT8 開始
+   - 大多數模型可接受
+   - 約束成本低
+
+2. 敏感層提升精度
+   - 第一層和最後一層
+   - Attention 相關層
+
+3. 使用 Per-Channel 量化
+   - 精度提升明顯
+   - 成本增加有限
+
+4. 驗證精度損失
+   - 比較量化前後輸出
+   - 設定可接受閾值
+
+5. 考慮 QAT
+   - 若 PTQ 精度不足
+   - 重新訓練代價</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="../../zkml/quantization/index.html">ZK 專用量化</a></li>
+        <li><a href="../../zkml/circuit/fixed-point.html">定點數與精度</a></li>
+        <li><a href="../../zkml/optimization/config-space.html">配置空間與調參</a></li>
+        <li><a href="pruning.html">剪枝（Pruning）</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

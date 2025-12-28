@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ONNX 模型表示 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="onnx">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>ONNX 模型表示</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">ZKML 的標準輸入格式</div>
+        <p>ONNX（Open Neural Network Exchange）是機器學習模型的開放標準格式。大多數 ZKML 框架都以 ONNX 作為輸入，理解 ONNX 結構對使用 ZKML 工具至關重要。</p>
+      </div>
+
+      <h2>ONNX 概述</h2>
+
+      <h3>什麼是 ONNX</h3>
+      <pre><code>定義：
+  開放神經網路交換格式
+  由 Microsoft 和 Facebook 發起
+  現由 Linux Foundation 維護
+
+目的：
+  - 框架間互操作性
+  - 模型部署標準化
+  - 優化工具鏈統一
+
+支援的框架：
+  - PyTorch（原生支援）
+  - TensorFlow（通過 tf2onnx）
+  - JAX、Keras、MXNet 等</code></pre>
+
+      <h3>ONNX 在 ZKML 中的角色</h3>
+      <pre><code>典型工作流：
+  1. 在 PyTorch/TensorFlow 訓練模型
+  2. 導出為 ONNX 格式
+  3. ZKML 框架讀取 ONNX
+  4. 轉換為 ZK 電路
+
+為什麼選擇 ONNX：
+  - 框架無關
+  - 結構清晰
+  - 工具成熟
+  - 易於分析和優化</code></pre>
+
+      <h2>ONNX 結構</h2>
+
+      <h3>核心組件</h3>
+      <pre><code>ModelProto：
+  ├── graph（計算圖）
+  │   ├── nodes（運算節點）
+  │   ├── inputs（輸入張量）
+  │   ├── outputs（輸出張量）
+  │   └── initializers（權重）
+  ├── opset_imports（運算集版本）
+  └── metadata（模型資訊）</code></pre>
+
+      <h3>節點（Node）</h3>
+      <pre><code>每個節點包含：
+  - op_type：運算類型（如 Conv, MatMul, Relu）
+  - inputs：輸入張量名稱列表
+  - outputs：輸出張量名稱列表
+  - attributes：運算參數
+
+範例（矩陣乘法）：
+  node {
+    op_type: "MatMul"
+    input: ["A", "B"]
+    output: ["Y"]
+  }</code></pre>
+
+      <h3>張量（Tensor）</h3>
+      <pre><code>張量資訊：
+  - name：唯一標識符
+  - elem_type：數據類型（float32, int8 等）
+  - shape：維度資訊
+
+資料類型（ZKML 相關）：
+  FLOAT（1）：32 位浮點
+  INT8（3）：8 位整數
+  INT16（5）：16 位整數
+  INT32（6）：32 位整數</code></pre>
+
+      <h2>常見運算符</h2>
+
+      <h3>ZKML 支援的基本運算</h3>
+      <table>
+        <thead><tr><th>運算符</th><th>說明</th><th>ZKML 支援</th></tr></thead>
+        <tbody>
+          <tr><td>MatMul</td><td>矩陣乘法</td><td>所有框架</td></tr>
+          <tr><td>Conv</td><td>卷積</td><td>所有框架</td></tr>
+          <tr><td>Gemm</td><td>通用矩陣乘法</td><td>所有框架</td></tr>
+          <tr><td>Add</td><td>加法</td><td>所有框架</td></tr>
+          <tr><td>Relu</td><td>ReLU 激活</td><td>所有框架</td></tr>
+          <tr><td>Sigmoid</td><td>Sigmoid 激活</td><td>大部分框架</td></tr>
+          <tr><td>Softmax</td><td>Softmax</td><td>部分框架</td></tr>
+          <tr><td>BatchNormalization</td><td>批次正規化</td><td>大部分框架</td></tr>
+          <tr><td>MaxPool</td><td>最大池化</td><td>大部分框架</td></tr>
+          <tr><td>AveragePool</td><td>平均池化</td><td>所有框架</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Transformer 相關運算</h3>
+      <table>
+        <thead><tr><th>運算符</th><th>說明</th><th>ZKML 支援</th></tr></thead>
+        <tbody>
+          <tr><td>Attention</td><td>注意力機制</td><td>zkLLM</td></tr>
+          <tr><td>LayerNormalization</td><td>層正規化</td><td>部分框架</td></tr>
+          <tr><td>Gelu</td><td>GELU 激活</td><td>需查表</td></tr>
+          <tr><td>Transpose</td><td>轉置</td><td>所有框架</td></tr>
+          <tr><td>Reshape</td><td>重塑</td><td>所有框架</td></tr>
+        </tbody>
+      </table>
+
+      <h2>模型導出</h2>
+
+      <h3>PyTorch 導出</h3>
+      <pre><code>基本導出：
+  import torch
+
+  model = MyModel()
+  model.eval()
+
+  dummy_input = torch.randn(1, 3, 224, 224)
+
+  torch.onnx.export(
+      model,
+      dummy_input,
+      "model.onnx",
+      opset_version=13,
+      input_names=['input'],
+      output_names=['output'],
+      dynamic_axes={'input': {0: 'batch'}}
+  )
+
+ZKML 導出建議：
+  - 使用固定批次大小（通常為 1）
+  - 選擇適當的 opset 版本
+  - 避免動態形狀</code></pre>
+
+      <h3>TensorFlow 導出</h3>
+      <pre><code>使用 tf2onnx：
+  import tf2onnx
+
+  model_proto, _ = tf2onnx.convert.from_keras(
+      model,
+      input_signature=[
+          tf.TensorSpec([1, 224, 224, 3], tf.float32)
+      ],
+      opset=13
+  )
+
+  with open("model.onnx", "wb") as f:
+      f.write(model_proto.SerializeToString())</code></pre>
+
+      <h2>ONNX 優化</h2>
+
+      <h3>圖優化</h3>
+      <pre><code>ONNX Runtime 優化：
+  import onnxruntime as ort
+
+  sess_options = ort.SessionOptions()
+  sess_options.graph_optimization_level = \
+      ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+
+常見優化：
+  1. 常數摺疊（Constant Folding）
+  2. 冗餘節點消除
+  3. 運算符融合（Op Fusion）
+  4. 形狀推斷</code></pre>
+
+      <h3>ZKML 前處理</h3>
+      <pre><code>推薦步驟：
+  1. 簡化模型
+     python -m onnxsim model.onnx model_sim.onnx
+
+  2. 檢查支援的運算符
+     根據目標框架檢查相容性
+
+  3. 量化（若需要）
+     使用 ONNX 量化工具或框架內建功能
+
+  4. 驗證模型
+     比較原始模型和處理後模型的輸出</code></pre>
+
+      <h2>ZKML 框架的 ONNX 支援</h2>
+
+      <h3>EZKL</h3>
+      <pre><code>支援狀況：
+  - 主要輸入格式
+  - 支援大部分常見運算
+  - 自動處理量化
+
+使用方式：
+  ezkl gen-settings -M model.onnx
+  ezkl calibrate -M model.onnx -D data.json
+  ezkl compile-circuit -M model.onnx -S settings.json</code></pre>
+
+      <h3>ZKTorch</h3>
+      <pre><code>支援狀況：
+  - 可接受 ONNX 或直接 PyTorch
+  - 支援混合精度配置
+  - 提供細粒度控制
+
+特色：
+  - 支援更多 Transformer 運算
+  - 可配置每層量化參數</code></pre>
+
+      <h3>RISC Zero</h3>
+      <pre><code>支援狀況：
+  - 不直接使用 ONNX
+  - 使用 Rust 實現的推理引擎
+  - 在 zkVM 中執行
+
+工作流：
+  1. 導出 ONNX
+  2. 使用 tract 載入
+  3. 在 zkVM guest 中執行</code></pre>
+
+      <h2>常見問題</h2>
+
+      <h3>不支援的運算符</h3>
+      <pre><code>解決方案：
+  1. 替換為等效的支援運算
+     例：Hardswish → 分解為基本運算
+
+  2. 使用自定義運算符
+     部分框架支援擴展
+
+  3. 修改原始模型
+     訓練時避免使用不支援的運算</code></pre>
+
+      <h3>動態形狀問題</h3>
+      <pre><code>ZKML 需要固定形狀：
+  - 電路在編譯時確定
+  - 不能處理變長輸入
+
+解決方案：
+  1. 導出時固定形狀
+  2. 對變長序列使用 padding
+  3. 分別為不同長度生成電路</code></pre>
+
+      <h3>精度差異</h3>
+      <pre><code>可能原因：
+  - 浮點運算順序不同
+  - 量化引入誤差
+  - 某些運算的近似實現
+
+驗證方法：
+  1. 比較中間層輸出
+  2. 使用測試數據驗證
+  3. 設定可接受誤差閾值</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="quantization.html">量化（Quantization）</a></li>
+        <li><a href="pruning.html">剪枝（Pruning）</a></li>
+        <li><a href="../../zkml/circuit/index.html">模型 → 電路</a></li>
+        <li><a href="../../zkml/frameworks/tools/ezkl.html">EZKL</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

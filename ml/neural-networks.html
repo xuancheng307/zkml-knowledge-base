@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>神經網路基礎 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="neural-networks">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>神經網路基礎</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">ZKML 視角</div>
+        <p>本頁面從 ZKML 的角度介紹神經網路的基本結構。理解這些組件如何轉換為電路約束是 ZKML 的核心。</p>
+      </div>
+      <h2>基本結構</h2>
+      <h3>全連接層</h3>
+      <pre><code>數學定義：
+  y = Wx + b
+  其中 W ∈ R^{m×n}, x ∈ R^n, b ∈ R^m
+
+ZKML 考量：
+  - 每個乘法需要 1 個約束
+  - 總約束：O(m × n)
+  - 大型層可能產生巨大電路</code></pre>
+      <h3>卷積層</h3>
+      <pre><code>操作：滑動窗口 + 逐元素乘加
+
+ZKML 考量：
+  - 可轉換為 Im2col + 矩陣乘法
+  - 權重共享減少參數量
+  - 但不減少約束數量</code></pre>
+      <h3>池化層</h3>
+      <pre><code>類型：
+  - Max Pooling：需要比較操作
+  - Average Pooling：線性，較友好
+
+ZKML 考量：
+  - Max Pooling 需要額外約束（比較）
+  - 建議使用 Average Pooling</code></pre>
+      <h2>前向傳播</h2>
+      <pre><code>層級結構：
+  輸入 → 線性 → 激活 → 線性 → ... → 輸出
+
+ZKML 電路對應：
+  每層產生中間變數
+  中間變數需要正確傳遞（複製約束）</code></pre>
+      <h2>ZKML 友好架構</h2>
+      <table>
+        <thead><tr><th>組件</th><th>ZKML 友好度</th><th>建議</th></tr></thead>
+        <tbody>
+          <tr><td>全連接</td><td>高</td><td>直接使用</td></tr>
+          <tr><td>卷積</td><td>高</td><td>直接使用</td></tr>
+          <tr><td>ReLU</td><td>中（需查表）</td><td>使用查表</td></tr>
+          <tr><td>BatchNorm</td><td>中</td><td>合併到前一層</td></tr>
+          <tr><td>Softmax</td><td>低</td><td>避免或近似</td></tr>
+        </tbody>
+      </table>
+      <h2>相關頁面</h2>
+      <ul>
+        <li><a href="activations.html">激活函數</a></li>
+        <li><a href="../zkml/circuit/index.html">模型 → 電路</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

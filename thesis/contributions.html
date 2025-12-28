@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>研究貢獻 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="contributions">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>研究貢獻</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">論文核心貢獻</div>
+        <p>本頁詳細說明論文的主要研究貢獻，包括理論創新、實作成果和對領域的影響。</p>
+      </div>
+
+      <h2>貢獻總覽</h2>
+
+      <h3>主要貢獻</h3>
+      <pre><code>1. ZKML 配置空間的系統性分析
+   - 定義完整的配置參數空間
+   - 分析各參數對成本的影響
+
+2. Cost Function 設計與優化
+   - 提出多目標成本函數
+   - 權衡精度、時間、空間
+
+3. ZK 專用量化策略
+   - 針對電路特性的量化方法
+   - 平衡精度與 soundness
+
+4. 框架橫向比較研究
+   - 統一評估標準
+   - 實驗性能分析</code></pre>
+
+      <h2>貢獻一：配置空間分析</h2>
+
+      <h3>問題背景</h3>
+      <pre><code>現有挑戰：
+  - ZKML 框架配置選項繁多
+  - 缺乏系統性的配置指南
+  - 選擇不當導致效能低下或精度損失
+
+研究問題：
+  如何系統性地理解和優化 ZKML 配置？</code></pre>
+
+      <h3>研究貢獻</h3>
+      <pre><code>1. 配置維度識別
+   識別並分類 ZKML 的關鍵配置維度：
+   - 量化參數（位寬、粒度、方法）
+   - 電路參數（查表大小、分割策略）
+   - 系統參數（記憶體限制、並行度）
+
+2. 參數交互分析
+   分析參數間的相互影響：
+   - 位寬 vs 約束數量
+   - 查表大小 vs 精度
+   - 分割粒度 vs 證明時間
+
+3. 配置空間刻畫
+   量化配置空間的規模：
+   - L 層網路，每層 k 個選項
+   - 總配置數 = k^L
+   - 完整搜索不可行</code></pre>
+
+      <h3>理論意義</h3>
+      <pre><code>- 首次系統化 ZKML 配置問題
+- 為自動化配置奠定基礎
+- 指導框架設計者的決策</code></pre>
+
+      <h2>貢獻二：Cost Function 設計</h2>
+
+      <h3>問題定義</h3>
+      <pre><code>目標：
+  給定 ML 模型 M 和約束條件 C
+  找到最優配置 θ* 使得成本最小
+
+形式化：
+  θ* = argmin_{θ} Cost(M, θ)
+  subject to: Accuracy(M, θ) ≥ A_min
+              Memory(M, θ) ≤ M_max</code></pre>
+
+      <h3>成本函數設計</h3>
+      <pre><code>多目標成本函數：
+  Cost(θ) = α · T_prove(θ)
+          + β · T_verify(θ)
+          + γ · S_proof(θ)
+          + δ · M_peak(θ)
+
+其中：
+  T_prove = 證明時間
+  T_verify = 驗證時間
+  S_proof = 證明大小
+  M_peak = 峰值記憶體
+  α, β, γ, δ = 權重係數
+
+可配置權重：
+  - 重視低延遲：增加 α
+  - 重視鏈上成本：增加 γ
+  - 重視即時驗證：增加 β</code></pre>
+
+      <h3>創新點</h3>
+      <pre><code>1. 統一的成本模型
+   - 整合多種成本指標
+   - 可根據場景調整權重
+
+2. 精度約束的整合
+   - 將精度作為硬約束
+   - 確保量化不過度影響精度
+
+3. 可微分的近似
+   - 支持基於梯度的優化
+   - 高效配置搜索</code></pre>
+
+      <h2>貢獻三：ZK 專用量化</h2>
+
+      <h3>傳統量化 vs ZK 量化</h3>
+      <pre><code>傳統量化目標：
+  - 減少模型大小
+  - 加速推理
+  - 降低記憶體使用
+
+ZK 量化額外考量：
+  - 約束數量（電路大小）
+  - Soundness（安全性）
+  - 有限域表示</code></pre>
+
+      <h3>提出的策略</h3>
+      <pre><code>1. 感知電路的量化
+   - 考慮每層對約束的貢獻
+   - 敏感層使用高精度
+   - 非敏感層使用低精度
+
+2. Soundness 保證
+   - 分析量化誤差對 soundness 的影響
+   - 設定安全的誤差界限
+   - 提供形式化保證
+
+3. 查表友好的設計
+   - 優先使用 8 位量化
+   - 與查表優化協同
+   - 減少總約束數</code></pre>
+
+      <h3>實驗結果</h3>
+      <pre><code>與標準 PTQ 比較：
+  - 精度損失：相當（< 1%）
+  - 約束減少：20-40%
+  - 證明時間：減少 25-35%
+
+與 QAT 結合：
+  - 進一步降低精度損失
+  - 可達到接近浮點精度</code></pre>
+
+      <h2>貢獻四：框架比較研究</h2>
+
+      <h3>研究方法</h3>
+      <pre><code>1. 統一評估框架
+   - 標準化模型集
+   - 統一硬體環境
+   - 一致的測量方法
+
+2. 多維度比較
+   - 效能指標
+   - 功能支援
+   - 易用性
+   - 成熟度
+
+3. 系統性測試
+   - 小/中/大型模型
+   - 不同架構（CNN, Transformer）
+   - 不同應用場景</code></pre>
+
+      <h3>主要發現</h3>
+      <pre><code>1. 框架特性分化
+   - EZKL：易用性最佳
+   - ZKTorch：配置靈活
+   - zkLLM：LLM 專用
+   - RISC Zero：通用性最強
+
+2. 效能模式
+   - 小型模型：各框架相近
+   - 中型模型：專用優化重要
+   - 大型模型：仍具挑戰性
+
+3. 瓶頸識別
+   - 證明時間是主要瓶頸
+   - 記憶體限制是次要瓶頸
+   - 驗證效率普遍良好</code></pre>
+
+      <h2>對領域的影響</h2>
+
+      <h3>理論影響</h3>
+      <pre><code>- 建立 ZKML 配置的理論框架
+- 提供成本建模的系統方法
+- 連接 ML 優化與 ZK 效能</code></pre>
+
+      <h3>實踐影響</h3>
+      <pre><code>- 為開發者提供配置指南
+- 為框架設計者提供設計原則
+- 為研究者指出開放問題</code></pre>
+
+      <h3>後續研究方向</h3>
+      <pre><code>- 自動配置搜索算法
+- 更高效的證明技術
+- 大型模型的可行性研究</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="index.html">論文概覽</a></li>
+        <li><a href="chapter-map.html">章節對照表</a></li>
+        <li><a href="../zkml/optimization/cost-function.html">Cost Function 設計</a></li>
+        <li><a href="../zkml/optimization/config-space.html">配置空間與調參</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

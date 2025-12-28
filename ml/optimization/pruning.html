@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>剪枝（Pruning） - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="pruning">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>剪枝（Pruning）</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">減少模型複雜度</div>
+        <p>剪枝通過移除不重要的權重或結構來減少模型大小。對 ZKML 而言，剪枝直接減少約束數量，是重要的優化手段。</p>
+      </div>
+
+      <h2>剪枝基礎</h2>
+
+      <h3>核心思想</h3>
+      <pre><code>觀察：
+  神經網路通常過度參數化
+  許多權重對輸出影響很小
+  移除這些權重不會顯著影響精度
+
+目標：
+  找出並移除不重要的權重
+  保持模型精度
+  減少計算量</code></pre>
+
+      <h3>剪枝流程</h3>
+      <pre><code>標準流程：
+  1. 訓練完整模型
+  2. 評估權重重要性
+  3. 移除不重要的權重
+  4. 微調（Fine-tune）恢復精度
+  5. 重複 2-4 直到達標
+
+漸進式剪枝：
+  逐步增加剪枝比例
+  每步都進行微調
+  最終達到目標稀疏度</code></pre>
+
+      <h2>剪枝類型</h2>
+
+      <h3>非結構化剪枝（Unstructured）</h3>
+      <pre><code>定義：
+  移除單個權重元素
+  產生稀疏權重矩陣
+
+優點：
+  - 靈活度高
+  - 可達到高稀疏度
+  - 精度損失小
+
+缺點：
+  - 硬體不友好
+  - 需要特殊稀疏格式
+  - 對 ZKML 效益有限
+
+範例：
+  原始：[[1.2, 0.3, -0.8],
+        [0.1, 2.1, 0.5]]
+
+  剪枝後：[[1.2, 0, -0.8],
+          [0, 2.1, 0]]</code></pre>
+
+      <h3>結構化剪枝（Structured）</h3>
+      <pre><code>定義：
+  移除整個結構單元
+  如：通道、濾波器、層
+
+優點：
+  - 硬體友好
+  - 直接減少計算量
+  - 對 ZKML 效益明顯
+
+缺點：
+  - 粒度較粗
+  - 可能損失更多精度
+
+類型：
+  - 通道剪枝：移除卷積通道
+  - 濾波器剪枝：移除整個濾波器
+  - 層剪枝：移除整層
+  - 頭部剪枝：移除 Attention head</code></pre>
+
+      <h3>半結構化剪枝</h3>
+      <pre><code>N:M 稀疏：
+  每 M 個元素保留 N 個
+  例：2:4 稀疏（50% 稀疏度）
+
+優點：
+  - 規則的稀疏模式
+  - 硬體可加速
+  - 平衡靈活性與效率
+
+NVIDIA Ampere 支援：
+  2:4 稀疏可獲得 2x 加速</code></pre>
+
+      <h2>重要性評估方法</h2>
+
+      <h3>基於幅度（Magnitude-based）</h3>
+      <pre><code>原理：
+  絕對值小的權重影響小
+  移除 |w| < threshold 的權重
+
+方法：
+  - Global pruning：全局排序
+  - Local pruning：每層獨立
+
+優點：簡單高效
+缺點：不考慮權重間關係</code></pre>
+
+      <h3>基於梯度（Gradient-based）</h3>
+      <pre><code>原理：
+  梯度反映權重對 loss 的影響
+  |w · ∂L/∂w| 小的權重可移除
+
+Taylor 展開：
+  ΔL ≈ w · ∂L/∂w + O(w²)
+
+優點：考慮訓練動態
+缺點：需要額外計算</code></pre>
+
+      <h3>基於 Hessian</h3>
+      <pre><code>原理：
+  二階導數反映曲率
+  考慮權重移除對 loss 的完整影響
+
+OBS/OBD 方法：
+  ΔL ≈ (1/2) · w² · H_ww
+
+優點：更精確
+缺點：計算 Hessian 成本高</code></pre>
+
+      <h2>ZKML 中的剪枝效益</h2>
+
+      <h3>約束減少分析</h3>
+      <pre><code>全連接層 y = Wx：
+  原始約束數：m × n
+
+結構化剪枝（移除 k 個輸出神經元）：
+  約束數：(m - k) × n
+  減少比例：k/m
+
+非結構化剪枝（p% 稀疏度）：
+  理論減少：p% 的乘法
+  實際效益：取決於實現
+  - 若仍需電路表示零：無減少
+  - 若能跳過零：有減少</code></pre>
+
+      <h3>ZKML 友好的剪枝策略</h3>
+      <pre><code>優先選擇結構化剪枝：
+  1. 電路直接變小
+  2. 無需特殊稀疏處理
+  3. 效益明確可預測
+
+通道剪枝特別有效：
+  - 減少所有相關層的計算
+  - 對卷積網路效果顯著
+
+Attention Head 剪枝：
+  - 減少 Transformer 複雜度
+  - 對 zkLLM 類應用有幫助</code></pre>
+
+      <h3>剪枝與電路大小</h3>
+      <table>
+        <thead><tr><th>剪枝類型</th><th>稀疏度</th><th>電路減少</th><th>ZKML 適用性</th></tr></thead>
+        <tbody>
+          <tr><td>非結構化</td><td>90%</td><td>0-90%*</td><td>低（需特殊支援）</td></tr>
+          <tr><td>通道剪枝</td><td>50%</td><td>~50%</td><td>高</td></tr>
+          <tr><td>層剪枝</td><td>33%（3層→2層）</td><td>~33%</td><td>高</td></tr>
+          <tr><td>2:4 稀疏</td><td>50%</td><td>需硬體支援</td><td>中</td></tr>
+        </tbody>
+      </table>
+      <p>*非結構化剪枝的電路減少取決於框架是否優化稀疏處理</p>
+
+      <h2>剪枝與量化的結合</h2>
+
+      <h3>聯合優化</h3>
+      <pre><code>順序：
+  選項 1：先剪枝 → 後量化
+    - 較常見
+    - 剪枝後模型較小，量化較穩定
+
+  選項 2：先量化 → 後剪枝
+    - 量化可能改變權重分布
+    - 影響剪枝決策
+
+  選項 3：聯合訓練
+    - QAT + 剪枝同時進行
+    - 可能達到最佳效果
+    - 訓練複雜度增加</code></pre>
+
+      <h3>對 ZKML 的綜合影響</h3>
+      <pre><code>剪枝效益：
+  - 減少乘法運算數量
+  - 減少約束數量
+
+量化效益：
+  - 減少每個運算的成本
+  - 減少範圍證明成本
+
+綜合效果：
+  電路大小 ≈ (1 - 剪枝率) × 量化成本係數 × 原始大小</code></pre>
+
+      <h2>框架支援</h2>
+
+      <table>
+        <thead><tr><th>框架</th><th>剪枝支援</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>間接</td><td>使用已剪枝的 ONNX 模型</td></tr>
+          <tr><td>ZKTorch</td><td>間接</td><td>使用 PyTorch 剪枝工具</td></tr>
+          <tr><td>zkLLM</td><td>有限</td><td>主要依賴其他優化</td></tr>
+          <tr><td>RISC Zero</td><td>間接</td><td>使用預處理的模型</td></tr>
+        </tbody>
+      </table>
+
+      <h2>實作建議</h2>
+
+      <h3>ZKML 剪枝最佳實踐</h3>
+      <pre><code>1. 優先考慮結構化剪枝
+   - 確保電路大小確實減少
+   - 避免稀疏處理的複雜性
+
+2. 設定合理目標
+   - 30-50% 結構化剪枝通常可行
+   - 超過 70% 可能顯著影響精度
+
+3. 迭代式剪枝
+   - 逐步增加剪枝比例
+   - 每步驗證精度
+
+4. 敏感層保護
+   - 第一層和最後一層通常敏感
+   - 考慮對這些層使用較低剪枝率
+
+5. 與量化配合
+   - 剪枝後再進行量化
+   - 使用 QAT 恢復精度損失</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="quantization.html">量化（Quantization）</a></li>
+        <li><a href="onnx.html">ONNX 模型表示</a></li>
+        <li><a href="../../zkml/optimization/config-space.html">配置空間與調參</a></li>
+        <li><a href="../neural-networks.html">神經網路基礎</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>推薦閱讀路徑 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="reading-paths">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>推薦閱讀路徑</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">如何使用本知識庫</div>
+        <p>根據您的背景和目標，我們提供不同的學習路徑。選擇最適合您的路線開始探索。</p>
+      </div>
+
+      <h2>路徑一：快速入門</h2>
+
+      <p><strong>目標讀者</strong>：想快速了解 ZKML 是什麼的讀者</p>
+      <p><strong>預計時間</strong>：30 分鐘</p>
+
+      <ol>
+        <li><a href="index.html">總覽：什麼是 ZKML</a> - 核心概念介紹</li>
+        <li><a href="../zkml/problem/index.html">問題定義與場景</a> - ZKML 解決什麼問題</li>
+        <li><a href="../zkml/frameworks/index.html">框架橫向比較</a> - 現有工具概覽</li>
+      </ol>
+
+      <h2>路徑二：密碼學背景者</h2>
+
+      <p><strong>目標讀者</strong>：有密碼學/ZKP 基礎，想了解 ML 整合的讀者</p>
+      <p><strong>預計時間</strong>：2-3 小時</p>
+
+      <ol>
+        <li><a href="../zkml/index.html">ZKML 總覽</a> - 整體技術架構</li>
+        <li><a href="../zkml/circuit/index.html">模型 → 電路</a> - ML 到 ZKP 的轉換</li>
+        <li><a href="../zkml/quantization/index.html">ZK 專用量化</a> - 數值處理細節</li>
+        <li><a href="../zkml/circuit/lookup-tables.html">查表優化</a> - 非線性函數處理</li>
+        <li><a href="../zkml/security/soundness.html">量化與 Soundness</a> - 安全性分析</li>
+      </ol>
+
+      <h2>路徑三：ML 背景者</h2>
+
+      <p><strong>目標讀者</strong>：有 ML 基礎，想了解 ZKP 驗證的讀者</p>
+      <p><strong>預計時間</strong>：3-4 小時</p>
+
+      <ol>
+        <li><a href="../crypto/basics.html">ZKP 基礎概念</a> - 零知識證明入門</li>
+        <li><a href="../crypto/properties.html">完備性、可靠性、零知識</a> - 核心性質</li>
+        <li><a href="../crypto/arithmetization/r1cs.html">R1CS</a> - 電路表示基礎</li>
+        <li><a href="../zkml/circuit/fixed-point.html">定點數與精度</a> - 數值表示</li>
+        <li><a href="../zkml/frameworks/tools/ezkl.html">EZKL</a> - 實用工具入門</li>
+      </ol>
+
+      <h2>路徑四：區塊鏈開發者</h2>
+
+      <p><strong>目標讀者</strong>：想在智能合約中使用 AI 的開發者</p>
+      <p><strong>預計時間</strong>：2-3 小時</p>
+
+      <ol>
+        <li><a href="../zkml/problem/verifiable.html">可驗證推理</a> - 核心範式</li>
+        <li><a href="../zkml/applications/blockchain-ai.html">區塊鏈可驗證 AI</a> - 應用場景</li>
+        <li><a href="../zkml/applications/zk-rollup.html">ZK Rollup / L2 決策</a> - L2 整合</li>
+        <li><a href="../zkml/frameworks/tools/ezkl.html">EZKL</a> - 部署工具</li>
+        <li><a href="../crypto/proof-systems/groth16.html">Groth16</a> - 鏈上驗證效率</li>
+      </ol>
+
+      <h2>路徑五：研究者/深度學習</h2>
+
+      <p><strong>目標讀者</strong>：想深入理解 ZKML 理論的研究者</p>
+      <p><strong>預計時間</strong>：8-10 小時</p>
+
+      <h3>第一階段：密碼學基礎</h3>
+      <ol>
+        <li><a href="../crypto/index.html">密碼學總覽</a></li>
+        <li><a href="../crypto/commitments/kzg.html">KZG 多項式承諾</a></li>
+        <li><a href="../crypto/commitments/ipa.html">IPA 內積論證</a></li>
+        <li><a href="../crypto/commitments/fri.html">FRI</a></li>
+      </ol>
+
+      <h3>第二階段：算術化</h3>
+      <ol>
+        <li><a href="../crypto/arithmetization/r1cs.html">R1CS</a></li>
+        <li><a href="../crypto/arithmetization/plonkish.html">PLONKish / AIR</a></li>
+      </ol>
+
+      <h3>第三階段：證明系統</h3>
+      <ol>
+        <li><a href="../crypto/proof-systems/groth16.html">Groth16</a></li>
+        <li><a href="../crypto/halo2.html">Halo2</a></li>
+        <li><a href="../crypto/proof-systems/stark.html">STARK</a></li>
+      </ol>
+
+      <h3>第四階段：ZKML 專題</h3>
+      <ol>
+        <li><a href="../zkml/quantization/index.html">ZK 專用量化</a></li>
+        <li><a href="../zkml/optimization/config-space.html">配置空間與調參</a></li>
+        <li><a href="../zkml/optimization/cost-metrics.html">ZK 成本指標</a></li>
+        <li><a href="../zkml/frameworks/academic/zkml-2024.html">ZKML (EuroSys 2024)</a></li>
+        <li><a href="../zkml/frameworks/academic/zktorch.html">ZKTorch</a></li>
+      </ol>
+
+      <h2>路徑六：論文導向</h2>
+
+      <p><strong>目標讀者</strong>：想理解本論文貢獻的讀者</p>
+
+      <ol>
+        <li><a href="../thesis/index.html">論文概覽</a></li>
+        <li><a href="../zkml/optimization/cost-function.html">Cost Function 設計</a> - 核心貢獻</li>
+        <li><a href="../zkml/optimization/config-space.html">配置空間與調參</a></li>
+        <li><a href="../zkml/frameworks/index.html">框架橫向比較</a></li>
+      </ol>
+
+      <h2>快速參考</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>我想了解...</th>
+            <th>推薦頁面</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ZKML 是什麼</td>
+            <td><a href="index.html">總覽</a></td>
+          </tr>
+          <tr>
+            <td>如何開始使用</td>
+            <td><a href="../zkml/frameworks/tools/ezkl.html">EZKL</a></td>
+          </tr>
+          <tr>
+            <td>理論基礎</td>
+            <td><a href="../crypto/basics.html">ZKP 基礎</a></td>
+          </tr>
+          <tr>
+            <td>效能比較</td>
+            <td><a href="../zkml/frameworks/index.html">框架比較</a></td>
+          </tr>
+          <tr>
+            <td>安全性</td>
+            <td><a href="threat-model.html">威脅模型</a></td>
+          </tr>
+          <tr>
+            <td>術語定義</td>
+            <td><a href="glossary.html">術語表</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="index.html">總覽：什麼是 ZKML</a></li>
+        <li><a href="glossary.html">術語表</a></li>
+      </ul>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

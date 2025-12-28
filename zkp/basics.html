@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKP 基礎概念 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="zkp-basics">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>ZKP 基礎概念</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>零知識證明（Zero-Knowledge Proof, ZKP）是一種密碼學協議，允許證明者（Prover）向驗證者（Verifier）證明某陳述為真，同時不洩露任何除「陳述為真」之外的資訊<sup><a href="#ref-1">[1]</a></sup>。</p>
+      </div>
+
+      <h2>直觀理解</h2>
+
+      <h3>經典比喻：阿里巴巴洞穴</h3>
+
+      <pre><code>場景設置：
+  - 環形洞穴有兩條路徑 A 和 B
+  - 中間有一道需要密碼的門
+  - Peggy（證明者）聲稱知道密碼
+  - Victor（驗證者）想確認但不想學到密碼
+
+協議：
+  1. Victor 在洞口等待
+  2. Peggy 隨機選擇 A 或 B 進入
+  3. Victor 喊出要求 Peggy 從 A 或 B 出來
+  4. 若 Peggy 知道密碼，總能從指定路徑出來
+  5. 若不知道，有 50% 機率失敗
+
+重複 n 次後：
+  - 成功機率（若不知密碼）：(1/2)^n
+  - n = 20 時，約百萬分之一</code></pre>
+
+      <h3>數位世界的類比</h3>
+
+      <pre><code>數學版本：
+
+陳述：「我知道方程式 f(x) = y 的解 x」
+
+傳統證明：
+  展示 x，讓驗證者計算 f(x) = y ✓
+  問題：x 被洩露
+
+零知識證明：
+  證明「我知道 x」而不透露 x
+  驗證者確信 x 存在，但無法得知 x</code></pre>
+
+      <h2>形式化定義</h2>
+
+      <h3>互動式證明系統</h3>
+
+      <pre><code>定義：互動式證明系統 (P, V) 對於語言 L
+
+參與者：
+  P（Prover）：計算能力無限
+  V（Verifier）：多項式時間
+
+互動：
+  P 和 V 交換訊息
+  最終 V 輸出 accept 或 reject
+
+性質：
+  1. 完備性（Completeness）
+  2. 可靠性（Soundness）
+  3. 零知識性（Zero-Knowledge）</code></pre>
+
+      <h3>NP 關係</h3>
+
+      <pre><code>定義：NP 關係 R ⊆ {0,1}* × {0,1}*
+
+對於 (x, w) ∈ R：
+  - x 是陳述（statement）
+  - w 是見證（witness）
+  - 可在多項式時間內驗證
+
+語言 L_R = {x : ∃w, (x, w) ∈ R}
+
+範例：
+  R = {(G, 3-coloring) : 3-coloring 是圖 G 的合法三著色}
+  x = 圖 G
+  w = 著色方案
+
+ZKML 中：
+  x = (電路描述, 公開輸入, 公開輸出)
+  w = (私密輸入, 私密權重)</code></pre>
+
+      <h2>ZKP 類型</h2>
+
+      <h3>互動式 vs 非互動式</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>類型</th>
+            <th>互動式</th>
+            <th>非互動式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>通訊輪數</strong></td>
+            <td>多輪</td>
+            <td>單輪</td>
+          </tr>
+          <tr>
+            <td><strong>驗證者</strong></td>
+            <td>需要在線</td>
+            <td>可離線</td>
+          </tr>
+          <tr>
+            <td><strong>可重用性</strong></td>
+            <td>每次需新互動</td>
+            <td>證明可轉發</td>
+          </tr>
+          <tr>
+            <td><strong>假設</strong></td>
+            <td>標準模型</td>
+            <td>CRS 或 ROM</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Fiat-Shamir 變換</h3>
+
+      <pre><code>將互動式轉為非互動式：
+
+原理：
+  用雜湊函數替代驗證者的隨機挑戰
+
+互動式協議：
+  P → V: commitment c
+  V → P: challenge e（隨機）
+  P → V: response z
+
+非互動式（Fiat-Shamir）：
+  e = Hash(c, statement)
+  證明 π = (c, e, z)
+
+安全模型：
+  隨機預言機模型（ROM）
+  假設 Hash 是理想隨機函數</code></pre>
+
+      <h3>常見 ZKP 系統分類</h3>
+
+      <pre><code>zk-SNARK：
+  - Succinct：證明簡短
+  - Non-interactive：非互動
+  - ARgument of Knowledge：知識論證
+  代表：Groth16, PLONK
+
+zk-STARK：
+  - Scalable：可擴展
+  - Transparent：透明設置
+  代表：RISC Zero, Cairo
+
+其他：
+  - Bulletproofs：範圍證明
+  - MPC-in-the-head：Ligero, Aurora</code></pre>
+
+      <h2>核心組件</h2>
+
+      <h3>承諾方案</h3>
+
+      <pre><code>定義：將值「鎖定」而不揭示
+
+兩階段協議：
+  1. Commit(m, r) → c
+     承諾訊息 m，使用隨機性 r
+
+  2. Open(c, m, r) → {0, 1}
+     驗證 c 確實承諾 m
+
+性質：
+  - 隱藏性：c 不洩露 m
+  - 綁定性：無法改變已承諾的值
+
+範例：
+  Pedersen 承諾：C = g^m · h^r
+  KZG 承諾：C = [f(τ)]_1</code></pre>
+
+      <h3>算術電路</h3>
+
+      <pre><code>ZKP 的計算表示：
+
+電路結構：
+  - 輸入線（公開 + 私密）
+  - 加法門、乘法門
+  - 輸出線
+
+範例電路：z = x² + y
+
+  x ──┬──[×]──┐
+      └───────┤
+              [+]── z
+  y ─────────┘
+
+電路滿足 ⟺ 存在合法的線路賦值</code></pre>
+
+      <h2>ZKML 連結</h2>
+
+      <h3>ML 推理作為 ZKP 陳述</h3>
+
+      <pre><code>ZKML 問題設定：
+
+公開：
+  - 模型承諾 C_M（或完整模型 M）
+  - 輸入 x（或輸入承諾）
+  - 輸出 y
+
+私密（可選）：
+  - 模型權重 w
+  - 中間激活值
+
+陳述：
+  「存在合法的推理過程使得 M(x) = y」
+
+電路：
+  將神經網路層轉換為算術電路
+  ReLU 等非線性使用查表</code></pre>
+
+      <h3>為何 ZKML 需要 ZKP</h3>
+
+      <pre><code>應用場景：
+
+1. 可驗證推理
+   證明：「這是正確的模型輸出」
+   不洩露：模型權重
+
+2. 隱私推理
+   證明：「輸入確實產生此輸出」
+   不洩露：輸入內容
+
+3. 公平性證明
+   證明：「模型對所有輸入一視同仁」
+   不洩露：內部邏輯</code></pre>
+
+      <h2>學習路徑</h2>
+
+      <pre><code>建議學習順序：
+
+1. 基礎理論
+   → 完備性、可靠性、零知識性
+
+2. 承諾方案
+   → KZG, IPA, FRI
+
+3. 算術化
+   → R1CS, PLONKish
+
+4. 證明系統
+   → Groth16, PLONK, STARK
+
+5. ZKML 應用
+   → 模型到電路的轉換</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="properties.html">完備性、可靠性、零知識</a> - ZKP 三大性質詳解</li>
+        <li><a href="index.html">密碼學總覽</a> - 完整密碼學地圖</li>
+        <li><a href="commitments/kzg.html">KZG 多項式承諾</a> - 核心承諾方案</li>
+        <li><a href="arithmetization/r1cs.html">R1CS</a> - 算術化基礎</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Goldwasser, S., Micali, S., & Rackoff, C. "The Knowledge Complexity of Interactive Proof Systems." SIAM Journal on Computing, 1989.</cite>
+            <a href="https://doi.org/10.1137/0218012" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Goldreich, O. "Foundations of Cryptography: Volume 1, Basic Tools." Cambridge University Press, 2001.</cite>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

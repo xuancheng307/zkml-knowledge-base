@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>效能比較 - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="benchmarks">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>效能比較</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">ZKML 框架效能評估</div>
+        <p>本頁彙整各主要 ZKML 框架在不同模型和場景下的效能數據。這些數據來自公開論文和基準測試，可作為選擇框架的參考。</p>
+      </div>
+
+      <h2>評估指標</h2>
+
+      <h3>主要指標</h3>
+      <table>
+        <thead><tr><th>指標</th><th>說明</th><th>重要性</th></tr></thead>
+        <tbody>
+          <tr><td>證明時間</td><td>生成證明所需時間</td><td>關鍵</td></tr>
+          <tr><td>驗證時間</td><td>驗證證明所需時間</td><td>高</td></tr>
+          <tr><td>證明大小</td><td>證明的字節數</td><td>高（鏈上成本）</td></tr>
+          <tr><td>記憶體峰值</td><td>證明過程最大記憶體</td><td>中</td></tr>
+          <tr><td>設置時間</td><td>電路編譯和設置時間</td><td>中（僅一次性）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>次要指標</h3>
+      <pre><code>精度損失：
+  量化後模型精度與原始模型的差異
+  通常用 accuracy drop 或 MSE 表示
+
+約束數量：
+  電路中的約束總數
+  直接影響證明時間和記憶體
+
+鏈上 Gas 成本：
+  在以太坊驗證的實際成本
+  SNARK < STARK（通常）</code></pre>
+
+      <h2>模型基準</h2>
+
+      <h3>小型模型（CNN）</h3>
+      <p>測試模型：MNIST 手寫辨識（~100K 參數）</p>
+      <table>
+        <thead><tr><th>框架</th><th>證明時間</th><th>驗證時間</th><th>證明大小</th><th>記憶體</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>~5 秒</td><td>~10 ms</td><td>~1 KB</td><td>~500 MB</td></tr>
+          <tr><td>ZKTorch</td><td>~3 秒</td><td>~8 ms</td><td>~1 KB</td><td>~400 MB</td></tr>
+          <tr><td>RISC Zero</td><td>~30 秒</td><td>~5 ms</td><td>~200 KB</td><td>~2 GB</td></tr>
+        </tbody>
+      </table>
+
+      <h3>中型模型（ResNet）</h3>
+      <p>測試模型：ResNet-18（~11M 參數）</p>
+      <table>
+        <thead><tr><th>框架</th><th>證明時間</th><th>驗證時間</th><th>證明大小</th><th>記憶體</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>~10 分鐘</td><td>~15 ms</td><td>~2 KB</td><td>~16 GB</td></tr>
+          <tr><td>ZKTorch</td><td>~8 分鐘</td><td>~12 ms</td><td>~2 KB</td><td>~12 GB</td></tr>
+          <tr><td>RISC Zero</td><td>~1 小時</td><td>~5 ms</td><td>~500 KB</td><td>~64 GB</td></tr>
+        </tbody>
+      </table>
+
+      <h3>大型模型（GPT-2）</h3>
+      <p>測試模型：GPT-2 Small（~117M 參數）</p>
+      <table>
+        <thead><tr><th>框架</th><th>證明時間</th><th>驗證時間</th><th>證明大小</th><th>可行性</th></tr></thead>
+        <tbody>
+          <tr><td>zkLLM</td><td>~15 分鐘/token</td><td>~20 ms</td><td>~5 KB</td><td>可行</td></tr>
+          <tr><td>EZKL</td><td>極長</td><td>-</td><td>-</td><td>實驗性</td></tr>
+          <tr><td>OPML</td><td>需爭議才證明</td><td>-</td><td>-</td><td>不同範式</td></tr>
+        </tbody>
+      </table>
+
+      <h2>框架特性比較</h2>
+
+      <h3>證明系統對比</h3>
+      <table>
+        <thead><tr><th>框架</th><th>證明系統</th><th>設置</th><th>證明大小</th><th>驗證成本</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>Halo2 (KZG)</td><td>需要</td><td>小</td><td>低</td></tr>
+          <tr><td>ZKTorch</td><td>Halo2 (IPA)</td><td>透明</td><td>稍大</td><td>低</td></tr>
+          <tr><td>zkLLM</td><td>自定義</td><td>需要</td><td>小</td><td>低</td></tr>
+          <tr><td>RISC Zero</td><td>STARK</td><td>透明</td><td>大</td><td>較高</td></tr>
+          <tr><td>OPML</td><td>詐欺證明</td><td>無</td><td>可變</td><td>可變</td></tr>
+        </tbody>
+      </table>
+
+      <h3>功能支援對比</h3>
+      <table>
+        <thead><tr><th>功能</th><th>EZKL</th><th>ZKTorch</th><th>zkLLM</th><th>RISC Zero</th></tr></thead>
+        <tbody>
+          <tr><td>CNN</td><td>完整</td><td>完整</td><td>有限</td><td>完整</td></tr>
+          <tr><td>Transformer</td><td>部分</td><td>良好</td><td>優化</td><td>完整</td></tr>
+          <tr><td>私有輸入</td><td>支援</td><td>支援</td><td>支援</td><td>支援</td></tr>
+          <tr><td>私有權重</td><td>支援</td><td>支援</td><td>支援</td><td>支援</td></tr>
+          <tr><td>批次證明</td><td>有限</td><td>有限</td><td>支援</td><td>有限</td></tr>
+          <tr><td>遞迴證明</td><td>開發中</td><td>開發中</td><td>無</td><td>支援</td></tr>
+        </tbody>
+      </table>
+
+      <h2>擴展性分析</h2>
+
+      <h3>約束增長</h3>
+      <pre><code>約束數量 vs 模型大小：
+
+小型 CNN（100K 參數）：~10^6 約束
+中型 CNN（1M 參數）：~10^7 約束
+ResNet-18（11M 參數）：~10^8 約束
+GPT-2 Small（117M 參數）：~10^9 約束
+
+注意：約束數不僅取決於參數量
+還與激活函數、層數等有關</code></pre>
+
+      <h3>證明時間擴展</h3>
+      <pre><code>理論複雜度：
+  SNARK 證明時間：O(n log n) 或 O(n log² n)
+  其中 n = 約束數量
+
+實際觀察：
+  約束增加 10 倍
+  證明時間通常增加 ~15-20 倍
+
+原因：
+  - 記憶體存取模式
+  - FFT 運算
+  - 多項式計算</code></pre>
+
+      <h3>記憶體擴展</h3>
+      <pre><code>記憶體需求：
+  峰值記憶體 ≈ O(n) 到 O(n log n)
+
+經驗法則：
+  1M 約束 → ~1 GB 記憶體
+  10M 約束 → ~8-16 GB 記憶體
+  100M 約束 → ~64-128 GB 記憶體
+
+優化方向：
+  - 分割證明
+  - 流式處理
+  - 記憶體映射</code></pre>
+
+      <h2>硬體加速</h2>
+
+      <h3>GPU 加速效果</h3>
+      <table>
+        <thead><tr><th>運算</th><th>CPU 時間</th><th>GPU 時間</th><th>加速比</th></tr></thead>
+        <tbody>
+          <tr><td>NTT/FFT</td><td>10 秒</td><td>0.5 秒</td><td>20x</td></tr>
+          <tr><td>MSM</td><td>30 秒</td><td>1 秒</td><td>30x</td></tr>
+          <tr><td>矩陣乘法</td><td>5 秒</td><td>0.3 秒</td><td>17x</td></tr>
+        </tbody>
+      </table>
+
+      <h3>框架 GPU 支援</h3>
+      <table>
+        <thead><tr><th>框架</th><th>GPU 支援</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>實驗性</td><td>部分運算支援 CUDA</td></tr>
+          <tr><td>ZKTorch</td><td>開發中</td><td>計劃整合</td></tr>
+          <tr><td>zkLLM</td><td>是</td><td>核心優化使用 GPU</td></tr>
+          <tr><td>RISC Zero</td><td>是</td><td>支援 CUDA 加速</td></tr>
+        </tbody>
+      </table>
+
+      <h2>成本分析</h2>
+
+      <h3>鏈上驗證成本</h3>
+      <pre><code>以太坊 Gas 成本（估計）：
+
+Groth16 驗證：~200K Gas（~$5-20）
+PLONK/Halo2 驗證：~300K Gas（~$8-30）
+STARK 驗證：~1M Gas（~$25-100）
+
+注意：實際成本隨 Gas 價格波動</code></pre>
+
+      <h3>運算成本</h3>
+      <pre><code>雲端運算成本（估計）：
+
+小型模型（5 秒證明）：~$0.01
+中型模型（10 分鐘證明）：~$0.50
+大型模型（1 小時證明）：~$3-5
+
+計算基準：AWS c5.4xlarge (~$0.68/小時)</code></pre>
+
+      <h2>選擇建議</h2>
+
+      <h3>依場景選擇</h3>
+      <table>
+        <thead><tr><th>場景</th><th>推薦框架</th><th>原因</th></tr></thead>
+        <tbody>
+          <tr><td>快速原型</td><td>EZKL</td><td>易用性高，文件完整</td></tr>
+          <tr><td>生產部署</td><td>EZKL / ZKTorch</td><td>成熟度高，社群活躍</td></tr>
+          <tr><td>LLM 推理</td><td>zkLLM</td><td>專門優化</td></tr>
+          <tr><td>通用計算</td><td>RISC Zero</td><td>靈活性高</td></tr>
+          <tr><td>低延遲需求</td><td>OPML</td><td>樂觀執行</td></tr>
+        </tbody>
+      </table>
+
+      <h3>依模型規模選擇</h3>
+      <pre><code>< 1M 參數：任何框架皆可
+1M - 10M 參數：EZKL / ZKTorch
+10M - 100M 參數：需要謹慎評估，可能需要模型優化
+> 100M 參數：目前仍具挑戰性，zkLLM 是選項之一</code></pre>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="frameworks/comparison.html">框架橫向比較</a></li>
+        <li><a href="cost-metrics.html">ZK 成本指標</a></li>
+        <li><a href="frameworks/ezkl.html">EZKL</a></li>
+        <li><a href="frameworks/zktorch.html">ZKTorch</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

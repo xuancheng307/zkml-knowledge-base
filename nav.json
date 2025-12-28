@@ -1,7 +1,7 @@
 {
   "config": {
     "siteName": "ZKML 技術知識庫",
-    "siteSubtitle": "AI × 密碼學 的交會點",
+    "siteSubtitle": "零知識證明 × 機器學習",
     "baseUrl": "/zkml-knowledge-base",
     "repo": "https://github.com/xuancheng307/zkml-knowledge-base",
     "author": "高璿程",
@@ -10,165 +10,193 @@
 
   "sections": [
     {
-      "id": "foundations",
-      "title": "基礎概念",
+      "id": "intro",
+      "title": "快速入門",
       "icon": "📐",
       "items": [
-        { "id": "foundations-index", "title": "總覽：什麼是 ZKML", "path": "/foundations/index.html", "status": "done" },
-        { "id": "threat-model", "title": "威脅模型與安全目標", "path": "/foundations/threat-model.html", "status": "placeholder" },
-        { "id": "glossary", "title": "術語表", "path": "/foundations/glossary.html", "status": "placeholder" },
-        { "id": "reading-paths", "title": "推薦閱讀路徑", "path": "/foundations/reading-paths.html", "status": "placeholder" }
+        { "id": "what-is-zkml", "title": "什麼是 ZKML", "path": "/intro/index.html", "status": "done" },
+        { "id": "glossary", "title": "術語表", "path": "/intro/glossary.html", "status": "done" },
+        { "id": "reading-paths", "title": "閱讀路徑", "path": "/intro/reading-paths.html", "status": "done" }
       ]
     },
+
     {
-      "id": "crypto",
-      "title": "密碼學",
+      "id": "zkp",
+      "title": "零知識證明",
       "icon": "🔐",
       "items": [
-        { "id": "crypto-index", "title": "密碼學總覽", "path": "/crypto/index.html", "status": "done" },
-        {
-          "id": "zkp",
-          "title": "零知識證明",
-          "items": [
-            { "id": "zkp-basics", "title": "ZKP 基礎概念", "path": "/crypto/zkp-basics.html", "status": "placeholder" },
-            { "id": "zkp-properties", "title": "完備性、可靠性、零知識", "path": "/crypto/zkp-properties.html", "status": "placeholder" }
-          ]
-        },
-        {
-          "id": "commitments",
-          "title": "承諾方案",
-          "items": [
-            { "id": "kzg", "title": "KZG 多項式承諾", "path": "/crypto/commitments/kzg.html", "status": "done" },
-            { "id": "ipa", "title": "IPA 內積論證", "path": "/crypto/commitments/ipa.html", "status": "done" },
-            { "id": "fri", "title": "FRI（STARK 用）", "path": "/crypto/commitments/fri.html", "status": "done" }
-          ]
-        },
+        { "id": "zkp-index", "title": "ZKP 總覽", "path": "/zkp/index.html", "status": "done" },
+        { "id": "zkp-basics", "title": "基礎定義", "path": "/zkp/basics.html", "status": "done" },
+        { "id": "zkp-properties", "title": "三大性質", "path": "/zkp/properties.html", "status": "done" },
         {
           "id": "arithmetization",
           "title": "算術化",
           "items": [
-            { "id": "r1cs", "title": "R1CS", "path": "/crypto/arithmetization/r1cs.html", "status": "done" },
-            { "id": "plonkish", "title": "PLONKish / AIR", "path": "/crypto/arithmetization/plonkish.html", "status": "done" }
+            { "id": "r1cs", "title": "R1CS", "path": "/zkp/arithmetization/r1cs.html", "status": "done" },
+            { "id": "plonkish", "title": "PLONKish", "path": "/zkp/arithmetization/plonkish.html", "status": "done" }
+          ]
+        },
+        {
+          "id": "commitments",
+          "title": "多項式承諾",
+          "items": [
+            { "id": "kzg", "title": "KZG", "path": "/zkp/commitments/kzg.html", "status": "done" },
+            { "id": "ipa", "title": "IPA", "path": "/zkp/commitments/ipa.html", "status": "done" },
+            { "id": "fri", "title": "FRI", "path": "/zkp/commitments/fri.html", "status": "done" }
           ]
         },
         {
           "id": "proof-systems",
           "title": "證明系統",
           "items": [
-            { "id": "plonk", "title": "PLONK", "path": "/crypto/proof-systems/plonk.html", "status": "done", "external": "https://xuancheng307.github.io/PLONK/" },
-            { "id": "groth16", "title": "Groth16", "path": "/crypto/proof-systems/groth16.html", "status": "done" },
-            { "id": "halo2", "title": "Halo2", "path": "/crypto/halo2.html", "status": "done" },
-            { "id": "stark", "title": "STARK", "path": "/crypto/proof-systems/stark.html", "status": "done" }
+            { "id": "groth16", "title": "Groth16", "path": "/zkp/proof-systems/groth16.html", "status": "done" },
+            { "id": "plonk", "title": "PLONK", "path": "/zkp/proof-systems/plonk.html", "status": "done", "external": "https://xuancheng307.github.io/PLONK/" },
+            { "id": "halo2", "title": "Halo2", "path": "/zkp/proof-systems/halo2.html", "status": "done" },
+            { "id": "stark", "title": "STARK", "path": "/zkp/proof-systems/stark.html", "status": "done" }
           ]
         }
       ]
     },
+
     {
       "id": "ml",
       "title": "機器學習",
       "icon": "🧠",
       "items": [
-        { "id": "ml-index", "title": "機器學習總覽", "path": "/ml/index.html", "status": "done" },
+        { "id": "ml-index", "title": "ML 總覽", "path": "/ml/index.html", "status": "done" },
+        { "id": "neural-networks", "title": "神經網路基礎", "path": "/ml/neural-networks.html", "status": "done" },
+        { "id": "activations", "title": "激活函數", "path": "/ml/activations.html", "status": "done" },
+        { "id": "transformers", "title": "Transformer", "path": "/ml/transformers.html", "status": "done" },
         {
-          "id": "fundamentals",
-          "title": "基礎架構",
-          "items": [
-            { "id": "neural-networks", "title": "神經網路基礎", "path": "/ml/neural-networks.html", "status": "placeholder" },
-            { "id": "activations", "title": "激活函數", "path": "/ml/activations.html", "status": "placeholder" },
-            { "id": "transformers", "title": "Transformer 架構", "path": "/ml/transformers.html", "status": "placeholder" }
-          ]
-        },
-        {
-          "id": "optimization",
+          "id": "ml-optimization",
           "title": "推理優化",
           "items": [
-            { "id": "quantization", "title": "量化（Quantization）", "path": "/ml/optimization/quantization.html", "status": "placeholder" },
-            { "id": "pruning", "title": "剪枝（Pruning）", "path": "/ml/optimization/pruning.html", "status": "placeholder" },
-            { "id": "onnx", "title": "ONNX 模型表示", "path": "/ml/optimization/onnx.html", "status": "placeholder" }
+            { "id": "quantization-bg", "title": "量化技術", "path": "/ml/optimization/quantization.html", "status": "done" },
+            { "id": "pruning", "title": "剪枝技術", "path": "/ml/optimization/pruning.html", "status": "done" },
+            { "id": "onnx", "title": "ONNX 表示", "path": "/ml/optimization/onnx.html", "status": "done" }
           ]
         }
       ]
     },
+
     {
       "id": "zkml",
-      "title": "ZKML",
+      "title": "ZKML 核心",
       "icon": "⚡",
-      "badge": "核心",
+      "badge": "論文核心",
       "items": [
         { "id": "zkml-index", "title": "ZKML 總覽", "path": "/zkml/index.html", "status": "done" },
-        { "id": "problem-statement", "title": "問題定義與場景", "path": "/zkml/problem-statement.html", "status": "placeholder" },
         {
-          "id": "paradigms",
-          "title": "兩大範式",
+          "id": "problem",
+          "title": "問題定義",
           "items": [
-            { "id": "verifiable-inference", "title": "可驗證推理", "path": "/zkml/verifiable-inference.html", "status": "placeholder" },
-            { "id": "private-inference", "title": "隱私推理", "path": "/zkml/private-inference.html", "status": "placeholder" }
+            { "id": "problem-index", "title": "問題與場景", "path": "/zkml/problem/index.html", "status": "done" },
+            { "id": "threat-model", "title": "威脅模型", "path": "/zkml/problem/threat-model.html", "status": "done" },
+            { "id": "verifiable", "title": "可驗證推理", "path": "/zkml/problem/verifiable.html", "status": "done" },
+            { "id": "private", "title": "隱私推理", "path": "/zkml/problem/private.html", "status": "done" }
           ]
         },
         {
-          "id": "quantization-config",
-          "title": "量化與配置",
+          "id": "circuit",
+          "title": "模型轉電路",
+          "items": [
+            { "id": "circuit-index", "title": "轉換流程", "path": "/zkml/circuit/index.html", "status": "done" },
+            { "id": "fixed-point", "title": "定點數表示", "path": "/zkml/circuit/fixed-point.html", "status": "done" },
+            { "id": "lookup-tables", "title": "查表優化", "path": "/zkml/circuit/lookup-tables.html", "status": "done" }
+          ]
+        },
+        {
+          "id": "quantization",
+          "title": "ZK 專用量化",
+          "items": [
+            { "id": "quant-index", "title": "量化策略", "path": "/zkml/quantization/index.html", "status": "done" }
+          ]
+        },
+        {
+          "id": "optimization",
+          "title": "配置優化",
           "badge": "論文核心",
           "items": [
-            { "id": "quant-for-zk", "title": "ZK 專用量化", "path": "/zkml/quantization-for-zk.html", "status": "done" },
-            { "id": "config-space", "title": "配置空間與調參", "path": "/zkml/configuration-space.html", "status": "done" },
-            { "id": "cost-metrics", "title": "ZK 成本指標", "path": "/zkml/cost-metrics.html", "status": "done" },
-            { "id": "cost-function", "title": "Cost Function 設計", "path": "/zkml/cost-function.html", "status": "done" }
-          ]
-        },
-        {
-          "id": "technical",
-          "title": "技術細節",
-          "items": [
-            { "id": "model-to-circuit", "title": "模型 → 電路", "path": "/zkml/model-to-circuit.html", "status": "done" },
-            { "id": "fixed-point", "title": "定點數與精度", "path": "/zkml/fixed-point.html", "status": "done" },
-            { "id": "lookup-tables", "title": "查表優化", "path": "/zkml/lookup-tables.html", "status": "done" }
-          ]
-        },
-        {
-          "id": "frameworks",
-          "title": "框架與工具",
-          "items": [
-            { "id": "zkml-2024", "title": "ZKML (EuroSys 2024)", "path": "/zkml/frameworks/zkml-2024.html", "status": "done" },
-            { "id": "zktorch", "title": "ZKTorch (2025)", "path": "/zkml/frameworks/zktorch.html", "status": "done" },
-            { "id": "ezkl", "title": "EZKL", "path": "/zkml/frameworks/ezkl.html", "status": "done" },
-            { "id": "zkllm", "title": "zkLLM", "path": "/zkml/frameworks/zkllm.html", "status": "done" },
-            { "id": "opml", "title": "OPML", "path": "/zkml/frameworks/opml.html", "status": "done" },
-            { "id": "risc-zero", "title": "RISC Zero", "path": "/zkml/frameworks/risc-zero.html", "status": "done" },
-            { "id": "framework-comparison", "title": "框架橫向比較", "path": "/zkml/frameworks/comparison.html", "status": "done" }
-          ]
-        },
-        {
-          "id": "applications",
-          "title": "應用場景",
-          "items": [
-            { "id": "blockchain-ai", "title": "區塊鏈可驗證 AI", "path": "/zkml/applications/blockchain-ai.html", "status": "done" },
-            { "id": "cloud-verify", "title": "雲端 ML 第三方驗證", "path": "/zkml/applications/cloud-verification.html", "status": "done" },
-            { "id": "zk-rollup", "title": "ZK Rollup / L2 決策", "path": "/zkml/applications/zk-rollup.html", "status": "done" }
+            { "id": "config-space", "title": "配置空間", "path": "/zkml/optimization/config-space.html", "status": "done" },
+            { "id": "cost-metrics", "title": "成本指標", "path": "/zkml/optimization/cost-metrics.html", "status": "done" },
+            { "id": "cost-function", "title": "成本函數", "path": "/zkml/optimization/cost-function.html", "status": "done" }
           ]
         },
         {
           "id": "security",
           "title": "安全性分析",
           "items": [
-            { "id": "zk-relation", "title": "ZK Relation 定義", "path": "/zkml/security/zk-relation.html", "status": "done" },
-            { "id": "soundness", "title": "量化與 Soundness", "path": "/zkml/security/soundness.html", "status": "done" },
-            { "id": "overflow", "title": "Overflow 與 Wrap-around", "path": "/zkml/security/overflow.html", "status": "done" }
+            { "id": "zk-relation", "title": "ZK 關係式", "path": "/zkml/security/zk-relation.html", "status": "done" },
+            { "id": "soundness", "title": "Soundness", "path": "/zkml/security/soundness.html", "status": "done" },
+            { "id": "overflow", "title": "溢位風險", "path": "/zkml/security/overflow.html", "status": "done" }
           ]
-        },
-        { "id": "benchmarks", "title": "效能比較", "path": "/zkml/benchmarks.html", "status": "placeholder" },
-        { "id": "open-problems", "title": "開放問題", "path": "/zkml/open-problems.html", "status": "placeholder" }
+        }
       ]
     },
+
+    {
+      "id": "frameworks",
+      "title": "框架與工具",
+      "icon": "🛠️",
+      "items": [
+        { "id": "frameworks-index", "title": "框架比較", "path": "/frameworks/index.html", "status": "done" },
+        {
+          "id": "academic",
+          "title": "學術系統",
+          "items": [
+            { "id": "zkml-2024", "title": "ZKML (EuroSys'24)", "path": "/frameworks/academic/zkml-2024.html", "status": "done" },
+            { "id": "zktorch", "title": "ZKTorch", "path": "/frameworks/academic/zktorch.html", "status": "done" },
+            { "id": "zkllm", "title": "zkLLM", "path": "/frameworks/academic/zkllm.html", "status": "done" }
+          ]
+        },
+        {
+          "id": "tools",
+          "title": "產業工具",
+          "items": [
+            { "id": "ezkl", "title": "EZKL", "path": "/frameworks/tools/ezkl.html", "status": "done" },
+            { "id": "risc-zero", "title": "RISC Zero", "path": "/frameworks/tools/risc-zero.html", "status": "done" }
+          ]
+        },
+        {
+          "id": "others",
+          "title": "其他方法",
+          "items": [
+            { "id": "opml", "title": "OPML", "path": "/frameworks/others/opml.html", "status": "done" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "applications",
+      "title": "應用場景",
+      "icon": "🌐",
+      "items": [
+        { "id": "blockchain-ai", "title": "區塊鏈 AI", "path": "/applications/blockchain-ai.html", "status": "done" },
+        { "id": "cloud-verify", "title": "雲端驗證", "path": "/applications/cloud-verification.html", "status": "done" },
+        { "id": "zk-rollup", "title": "ZK Rollup", "path": "/applications/zk-rollup.html", "status": "done" }
+      ]
+    },
+
+    {
+      "id": "research",
+      "title": "效能與未來",
+      "icon": "📊",
+      "items": [
+        { "id": "benchmarks", "title": "效能比較", "path": "/research/benchmarks.html", "status": "done" },
+        { "id": "open-problems", "title": "開放問題", "path": "/research/open-problems.html", "status": "done" }
+      ]
+    },
+
     {
       "id": "thesis",
       "title": "論文導讀",
       "icon": "📖",
       "items": [
         { "id": "thesis-index", "title": "論文概覽", "path": "/thesis/index.html", "status": "done" },
-        { "id": "contributions", "title": "研究貢獻", "path": "/thesis/contributions.html", "status": "placeholder" },
-        { "id": "chapter-map", "title": "章節對照表", "path": "/thesis/chapter-map.html", "status": "placeholder" },
-        { "id": "references", "title": "參考文獻", "path": "/thesis/references.html", "status": "placeholder" }
+        { "id": "contributions", "title": "研究貢獻", "path": "/thesis/contributions.html", "status": "done" },
+        { "id": "chapter-map", "title": "章節對照", "path": "/thesis/chapter-map.html", "status": "done" },
+        { "id": "references", "title": "參考文獻", "path": "/thesis/references.html", "status": "done" }
       ]
     }
   ]

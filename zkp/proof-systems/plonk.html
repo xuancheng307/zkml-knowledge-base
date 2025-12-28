@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLONK - ZKML 技術知識庫</title>
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+</head>
+<body data-page-id="plonk">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+    <article>
+      <h1>PLONK</h1>
+      <div class="callout callout-info">
+        <div class="callout-title">完整 PLONK 教學</div>
+        <p>PLONK 是現代 ZKML 最常用的證明系統之一。本站作者另有完整的 PLONK 專題網站，提供詳細的數學推導和實作說明。</p>
+        <p><strong><a href="https://xuancheng307.github.io/PLONK/" target="_blank" rel="noopener">→ 前往 PLONK 專題網站</a></strong></p>
+      </div>
+
+      <h2>PLONK 概述</h2>
+
+      <h3>基本資訊</h3>
+      <pre><code>全名：Permutations over Lagrange-bases for
+      Oecumenical Noninteractive arguments of Knowledge
+
+發表：Gabizon, Williamson, Ciobotaru (2019)
+
+特點：
+  - 通用可信設置（Universal Trusted Setup）
+  - 支援自定義門（Custom Gates）
+  - 高效的查表協議（Plookup）
+  - 廣泛應用於 ZKML</code></pre>
+
+      <h3>與其他系統比較</h3>
+      <table>
+        <thead><tr><th>特性</th><th>PLONK</th><th>Groth16</th><th>STARK</th></tr></thead>
+        <tbody>
+          <tr><td>設置</td><td>通用</td><td>電路特定</td><td>透明</td></tr>
+          <tr><td>證明大小</td><td>~1 KB</td><td>~200 B</td><td>~100 KB</td></tr>
+          <tr><td>驗證時間</td><td>快</td><td>最快</td><td>較慢</td></tr>
+          <tr><td>證明時間</td><td>中等</td><td>快</td><td>快</td></tr>
+          <tr><td>後量子安全</td><td>否</td><td>否</td><td>是</td></tr>
+          <tr><td>自定義門</td><td>支援</td><td>有限</td><td>支援</td></tr>
+        </tbody>
+      </table>
+
+      <h2>核心技術</h2>
+
+      <h3>算術化：PLONKish</h3>
+      <pre><code>PLONK 使用 PLONKish 算術化：
+
+門約束：
+  q_L · a + q_R · b + q_O · c + q_M · a·b + q_C = 0
+
+其中：
+  a, b, c = 線變量（wires）
+  q_* = 選擇器多項式
+
+特點：
+  - 固定的門結構
+  - 選擇器決定門類型
+  - 支援自定義門</code></pre>
+
+      <h3>置換論證</h3>
+      <pre><code>PLONK 使用置換論證處理複製約束：
+
+問題：證明不同位置的值相等
+方案：將相等值編碼為置換的不動點
+
+關鍵引理（Grand Product）：
+  ∏(a_i + β·σ(i) + γ) = ∏(a_i + β·i + γ)
+  當且僅當 a 符合置換 σ</code></pre>
+
+      <h3>多項式承諾</h3>
+      <pre><code>PLONK 使用 KZG 多項式承諾：
+
+優點：
+  - 常數大小承諾
+  - 常數大小開啟證明
+  - 支援批次驗證
+
+限制：
+  - 需要可信設置
+  - 基於配對假設（非後量子）</code></pre>
+
+      <h2>ZKML 中的應用</h2>
+
+      <h3>為何 ZKML 選擇 PLONK</h3>
+      <pre><code>1. 自定義門
+   - 可優化矩陣乘法
+   - 可實現高效查表
+
+2. 通用設置
+   - 一次設置，多次使用
+   - 不需為每個模型重新設置
+
+3. 查表支援（Plookup）
+   - 高效實現激活函數
+   - 減少非線性約束</code></pre>
+
+      <h3>使用 PLONK 的框架</h3>
+      <table>
+        <thead><tr><th>框架</th><th>PLONK 變體</th><th>特點</th></tr></thead>
+        <tbody>
+          <tr><td>EZKL</td><td>Halo2 (KZG)</td><td>完整 Plookup 支援</td></tr>
+          <tr><td>ZKTorch</td><td>Halo2 (IPA)</td><td>無需可信設置</td></tr>
+          <tr><td>zkLLM</td><td>自定義</td><td>LLM 專用優化</td></tr>
+        </tbody>
+      </table>
+
+      <h2>延伸閱讀</h2>
+
+      <div class="callout callout-tip">
+        <div class="callout-title">深入學習 PLONK</div>
+        <p>如需詳細了解 PLONK 的數學原理、協議細節和實作方法，請訪問：</p>
+        <p><a href="https://xuancheng307.github.io/PLONK/" target="_blank" rel="noopener"><strong>PLONK 專題網站</strong></a></p>
+        <p>包含：</p>
+        <ul>
+          <li>完整的數學推導</li>
+          <li>多項式 IOP 細節</li>
+          <li>KZG 承諾實作</li>
+          <li>Plookup 協議說明</li>
+        </ul>
+      </div>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="groth16.html">Groth16</a></li>
+        <li><a href="stark.html">STARK</a></li>
+        <li><a href="../halo2.html">Halo2</a></li>
+        <li><a href="../arithmetization/plonkish.html">PLONKish / AIR</a></li>
+        <li><a href="../commitments/kzg.html">KZG 多項式承諾</a></li>
+        <li><a href="../../zkml/circuit/lookup-tables.html">查表優化</a></li>
+      </ul>
+    </article>
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>
