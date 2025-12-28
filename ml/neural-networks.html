@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
 </head>
 <body data-page-id="neural-networks">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
@@ -23,58 +24,1044 @@
     <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
     <article>
       <h1>神經網路基礎</h1>
+
       <div class="callout callout-info">
         <div class="callout-title">ZKML 視角</div>
-        <p>本頁面從 ZKML 的角度介紹神經網路的基本結構。理解這些組件如何轉換為電路約束是 ZKML 的核心。</p>
+        <p>本頁面從 ZKML 的角度介紹神經網路的基本結構與運算。理解這些組件如何轉換為電路約束是 ZKML 的核心挑戰。每種層類型都有其獨特的電路成本特性。</p>
       </div>
-      <h2>基本結構</h2>
-      <h3>全連接層</h3>
-      <pre><code>數學定義：
+
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#fundamentals">神經網路基礎概念</a></li>
+          <li><a href="#fully-connected">全連接層</a></li>
+          <li><a href="#convolution">卷積神經網路 (CNN)</a></li>
+          <li><a href="#recurrent">循環神經網路 (RNN)</a></li>
+          <li><a href="#normalization">歸一化層</a></li>
+          <li><a href="#pooling">池化層</a></li>
+          <li><a href="#residual">殘差連接</a></li>
+          <li><a href="#forward-pass">前向傳播與電路映射</a></li>
+          <li><a href="#zkml-friendly">ZKML 友好架構設計</a></li>
+          <li><a href="#complexity">複雜度分析</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="fundamentals">神經網路基礎概念</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：人工神經網路</div>
+        <p>人工神經網路 (Artificial Neural Network, ANN) 是一種由多層互連節點組成的計算模型，靈感來自生物神經系統。每個節點執行加權求和與非線性激活的操作。</p>
+      </div>
+
+      <h3>神經元模型</h3>
+
+      <pre><code>單一神經元的數學模型：
+
+輸入：x = [x_1, x_2, ..., x_n]
+權重：w = [w_1, w_2, ..., w_n]
+偏置：b
+
+計算過程：
+  1. 線性組合：z = Σ(w_i · x_i) + b = w^T x + b
+  2. 非線性激活：a = σ(z)
+
+圖示：
+  x_1 ──w_1──┐
+  x_2 ──w_2──┤
+  x_3 ──w_3──┼──[Σ + b]──[σ]── a
+    ⋮    ⋮    │
+  x_n ──w_n──┘
+
+ZKML 對應：
+  - 線性組合：n 個乘法約束 + (n-1) 個加法約束
+  - 激活函數：取決於 σ 的類型（ReLU ~1-254 約束，Sigmoid ~1000 約束）</code></pre>
+
+      <h3>網路拓撲</h3>
+
+      <pre><code>常見神經網路拓撲結構：
+
+1. 前饋網路 (Feedforward Network)
+   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐
+   │輸入層│──▶│隱藏層│──▶│隱藏層│──▶│輸出層│
+   └─────┘   └─────┘   └─────┘   └─────┘
+
+   特點：
+   - 無循環連接
+   - 訊息單向流動
+   - 最常用於分類、回歸
+
+2. 卷積網路 (Convolutional Network)
+   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐
+   │輸入 │──▶│卷積層│──▶│池化層│──▶│全連接│──▶│輸出 │
+   └─────┘   └─────┘   └─────┘   └─────┘   └─────┘
+
+   特點：
+   - 局部連接 + 權重共享
+   - 適合圖像、序列數據
+
+3. 循環網路 (Recurrent Network)
+   ┌──────────────────┐
+   │                  │
+   │   ┌─────┐       │
+   └──▶│ RNN │───┬───┘
+       └─────┘   │
+         ▲       ▼
+       輸入    輸出
+
+   特點：
+   - 具有記憶能力
+   - 適合序列數據
+
+ZKML 考量：
+  - 前饋網路：最容易轉換為電路
+  - CNN：需要處理滑動窗口，約束數量 = 輸出大小 × 核大小
+  - RNN：展開後轉換，時間步越多約束越多</code></pre>
+
+      <h2 id="fully-connected">全連接層</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：全連接層 (Fully Connected Layer / Dense Layer)</div>
+        <p>全連接層將輸入向量的每個元素與輸出向量的每個元素連接。給定輸入 \(x \in \mathbb{R}^n\)，權重矩陣 \(W \in \mathbb{R}^{m \times n}\) 和偏置 \(b \in \mathbb{R}^m\)：</p>
+        <p class="math">$$y = Wx + b$$</p>
+        <p>其中 \(y \in \mathbb{R}^m\) 是輸出向量。</p>
+      </div>
+
+      <h3>矩陣乘法展開</h3>
+
+      <pre><code>全連接層的逐元素計算：
+
+y_i = Σ_{j=1}^{n} W_{ij} · x_j + b_i    (i = 1, 2, ..., m)
+
+展開形式：
+  y_1 = W_{11}·x_1 + W_{12}·x_2 + ... + W_{1n}·x_n + b_1
+  y_2 = W_{21}·x_1 + W_{22}·x_2 + ... + W_{2n}·x_n + b_2
+  ⋮
+  y_m = W_{m1}·x_1 + W_{m2}·x_2 + ... + W_{mn}·x_n + b_m
+
+參數量：
+  - 權重：m × n
+  - 偏置：m
+  - 總計：m × n + m = m(n + 1)
+
+計算量 (FLOPs)：
+  - 乘法：m × n
+  - 加法：m × (n - 1) + m = m × n
+  - 總計：2 × m × n</code></pre>
+
+      <h3>ZKML 電路實現</h3>
+
+      <pre><code>全連接層的 R1CS 約束：
+
+對於每個輸出 y_i：
+  y_i = Σ_{j} W_{ij} · x_j + b_i
+
+使用中間變數分解乘法：
+  t_{ij} = W_{ij} · x_j    (每個乘法一個約束)
+  s_i = Σ_j t_{ij}         (求和，線性操作)
+  y_i = s_i + b_i          (加偏置，線性操作)
+
+約束數量：
+  - 乘法約束：m × n（每個權重-輸入乘積）
+  - 線性約束可合併，不增加約束
+
+總約束：O(m × n)
+
+範例（784 → 256 的全連接層，如 MNIST 第一層）：
+  約束數 = 784 × 256 = 200,704
+
+EZKL 實現：
+  - 使用定點數表示權重和輸入
+  - 量化後權重為整數，簡化電路
+  - 支援批次處理優化</code></pre>
+
+      <h3>量化對全連接層的影響</h3>
+
+      <pre><code>量化全連接層：
+
+原始計算（浮點）：
   y = Wx + b
-  其中 W ∈ R^{m×n}, x ∈ R^n, b ∈ R^m
 
-ZKML 考量：
-  - 每個乘法需要 1 個約束
-  - 總約束：O(m × n)
-  - 大型層可能產生巨大電路</code></pre>
-      <h3>卷積層</h3>
-      <pre><code>操作：滑動窗口 + 逐元素乘加
+量化計算（定點）：
+  輸入量化：x_q = round(x / S_x)
+  權重量化：W_q = round(W / S_W)
 
-ZKML 考量：
-  - 可轉換為 Im2col + 矩陣乘法
-  - 權重共享減少參數量
-  - 但不減少約束數量</code></pre>
-      <h3>池化層</h3>
-      <pre><code>類型：
-  - Max Pooling：需要比較操作
-  - Average Pooling：線性，較友好
+  計算：y_q = W_q · x_q
+  反量化：y = S_W · S_x · y_q + b
 
-ZKML 考量：
-  - Max Pooling 需要額外約束（比較）
-  - 建議使用 Average Pooling</code></pre>
-      <h2>前向傳播</h2>
-      <pre><code>層級結構：
-  輸入 → 線性 → 激活 → 線性 → ... → 輸出
+ZKML 優勢：
+  - 整數運算適合有限域
+  - 減少位寬 → 減少約束
+  - 8-bit 量化：典型約束減少 4-8x
 
-ZKML 電路對應：
-  每層產生中間變數
-  中間變數需要正確傳遞（複製約束）</code></pre>
-      <h2>ZKML 友好架構</h2>
+精度-效率權衡：
+  ┌─────────────┬───────────────┬─────────────┐
+  │ 量化位寬    │ 相對約束數量  │ 精度損失    │
+  ├─────────────┼───────────────┼─────────────┤
+  │ FP32        │ 1x (基準)     │ 0%          │
+  │ INT16       │ ~0.5x         │ <0.1%       │
+  │ INT8        │ ~0.25x        │ 0.1-1%      │
+  │ INT4        │ ~0.125x       │ 1-5%        │
+  └─────────────┴───────────────┴─────────────┘</code></pre>
+
+      <h2 id="convolution">卷積神經網路 (CNN)</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：卷積運算</div>
+        <p>2D 卷積運算定義為<sup><a href="#ref-1">[1]</a></sup>：</p>
+        <p class="math">$$Y_{c_{out}, i, j} = \sum_{c_{in}=1}^{C_{in}} \sum_{k_h=1}^{K_H} \sum_{k_w=1}^{K_W} X_{c_{in}, i+k_h, j+k_w} \cdot W_{c_{out}, c_{in}, k_h, k_w} + b_{c_{out}}$$</p>
+        <p>其中 \(X\) 是輸入張量，\(W\) 是卷積核，\(K_H, K_W\) 是核大小。</p>
+      </div>
+
+      <h3>卷積層參數</h3>
+
+      <pre><code>卷積層的關鍵參數：
+
+輸入：X ∈ R^{C_in × H × W}
+  - C_in：輸入通道數
+  - H, W：輸入高度、寬度
+
+卷積核：W ∈ R^{C_out × C_in × K_H × K_W}
+  - C_out：輸出通道數
+  - K_H, K_W：核高度、寬度
+
+其他參數：
+  - Stride (S)：滑動步長
+  - Padding (P)：邊緣填充
+  - Dilation (D)：膨脹係數
+
+輸出尺寸計算：
+  H_out = floor((H + 2P - D(K_H - 1) - 1) / S + 1)
+  W_out = floor((W + 2P - D(K_W - 1) - 1) / S + 1)
+
+參數量：
+  權重：C_out × C_in × K_H × K_W
+  偏置：C_out
+  總計：C_out × (C_in × K_H × K_W + 1)
+
+範例（ResNet 第一層）：
+  輸入：3 × 224 × 224
+  核：64 × 3 × 7 × 7, stride=2, padding=3
+  輸出：64 × 112 × 112
+  參數量：64 × 3 × 7 × 7 + 64 = 9,472</code></pre>
+
+      <h3>卷積的計算複雜度</h3>
+
+      <pre><code>卷積層 FLOPs 計算：
+
+每個輸出位置的計算：
+  乘法：C_in × K_H × K_W
+  加法：C_in × K_H × K_W - 1 + 1（偏置）
+
+總輸出位置數：C_out × H_out × W_out
+
+總 FLOPs：
+  = 2 × C_in × K_H × K_W × C_out × H_out × W_out
+
+範例計算：
+  輸入：64 × 56 × 56
+  核：3 × 3, C_out = 64
+
+  FLOPs = 2 × 64 × 3 × 3 × 64 × 56 × 56
+        = 231,211,008 ≈ 231M
+
+ZKML 約束數量：
+  與 FLOPs 中的乘法數成正比
+  ≈ C_in × K_H × K_W × C_out × H_out × W_out</code></pre>
+
+      <h3>Im2col 轉換</h3>
+
+      <pre><code>Im2col：將卷積轉換為矩陣乘法
+
+原理：
+  將輸入的滑動窗口展開成矩陣列
+  卷積核展開成矩陣行
+  卷積 → 矩陣乘法
+
+轉換示意：
+  輸入 X (C_in × H × W)
+       ↓ im2col
+  展開矩陣 (C_in × K_H × K_W) × (H_out × W_out)
+
+  卷積核 W (C_out × C_in × K_H × K_W)
+       ↓ reshape
+  權重矩陣 C_out × (C_in × K_H × K_W)
+
+  輸出 = 權重矩陣 @ 展開矩陣
+       = C_out × (H_out × W_out)
+       ↓ reshape
+  輸出張量 C_out × H_out × W_out
+
+ZKML 優勢：
+  - 統一處理為矩陣乘法電路
+  - 可重用全連接層的約束模板
+  - 記憶體換計算：需要更大中間張量
+
+約束數量不變：
+  仍然是 O(C_in × K × C_out × H_out × W_out)</code></pre>
+
+      <h3>常見 CNN 架構</h3>
+
       <table>
-        <thead><tr><th>組件</th><th>ZKML 友好度</th><th>建議</th></tr></thead>
+        <thead>
+          <tr>
+            <th>架構</th>
+            <th>年份</th>
+            <th>參數量</th>
+            <th>層數</th>
+            <th>特點</th>
+            <th>ZKML 適用性</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>全連接</td><td>高</td><td>直接使用</td></tr>
-          <tr><td>卷積</td><td>高</td><td>直接使用</td></tr>
-          <tr><td>ReLU</td><td>中（需查表）</td><td>使用查表</td></tr>
-          <tr><td>BatchNorm</td><td>中</td><td>合併到前一層</td></tr>
-          <tr><td>Softmax</td><td>低</td><td>避免或近似</td></tr>
+          <tr>
+            <td><strong>LeNet-5</strong></td>
+            <td>1998</td>
+            <td>60K</td>
+            <td>5</td>
+            <td>經典手寫識別</td>
+            <td>非常適合</td>
+          </tr>
+          <tr>
+            <td><strong>AlexNet</strong></td>
+            <td>2012</td>
+            <td>60M</td>
+            <td>8</td>
+            <td>深度學習復興</td>
+            <td>困難</td>
+          </tr>
+          <tr>
+            <td><strong>VGG-16</strong></td>
+            <td>2014</td>
+            <td>138M</td>
+            <td>16</td>
+            <td>統一 3×3 核</td>
+            <td>很困難</td>
+          </tr>
+          <tr>
+            <td><strong>ResNet-18</strong></td>
+            <td>2015</td>
+            <td>11M</td>
+            <td>18</td>
+            <td>殘差連接</td>
+            <td>中等</td>
+          </tr>
+          <tr>
+            <td><strong>MobileNet</strong></td>
+            <td>2017</td>
+            <td>3.4M</td>
+            <td>28</td>
+            <td>深度可分離卷積</td>
+            <td>適合</td>
+          </tr>
+          <tr>
+            <td><strong>EfficientNet-B0</strong></td>
+            <td>2019</td>
+            <td>5.3M</td>
+            <td>237</td>
+            <td>複合縮放</td>
+            <td>中等</td>
+          </tr>
         </tbody>
       </table>
+
+      <h3>深度可分離卷積</h3>
+
+      <pre><code>Depthwise Separable Convolution（MobileNet 核心）：
+
+標準卷積：
+  參數量：C_in × K × K × C_out
+  計算量：C_in × K × K × C_out × H × W
+
+深度可分離卷積：
+  1. Depthwise 卷積：每通道獨立卷積
+     參數量：C_in × K × K
+     計算量：C_in × K × K × H × W
+
+  2. Pointwise 卷積：1×1 卷積混合通道
+     參數量：C_in × C_out
+     計算量：C_in × C_out × H × W
+
+總參數量：C_in × (K × K + C_out)
+計算量比：(K × K + C_out) / (K × K × C_out)
+         ≈ 1/C_out + 1/K² ≈ 1/9（對於 K=3, C_out=64）
+
+ZKML 優勢：
+  - 約束數量減少 ~9x
+  - 適合資源受限的 ZKML 應用
+  - MobileNet 比 VGG 更適合 ZKML</code></pre>
+
+      <h2 id="recurrent">循環神經網路 (RNN)</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：循環神經網路</div>
+        <p>RNN 維護隱藏狀態 \(h_t\)，在時間步 \(t\) 的更新規則為：</p>
+        <p class="math">$$h_t = \sigma(W_h h_{t-1} + W_x x_t + b)$$</p>
+        <p>其中 \(x_t\) 是輸入，\(\sigma\) 是激活函數（通常為 tanh）。</p>
+      </div>
+
+      <h3>RNN 變體</h3>
+
+      <pre><code>RNN 架構比較：
+
+1. Vanilla RNN
+   h_t = tanh(W_h h_{t-1} + W_x x_t + b)
+
+   問題：梯度消失/爆炸
+   ZKML：每時間步需要 tanh 查表
+
+2. LSTM (Long Short-Term Memory)<sup><a href="#ref-2">[2]</a></sup>
+   遺忘門：f_t = σ(W_f · [h_{t-1}, x_t] + b_f)
+   輸入門：i_t = σ(W_i · [h_{t-1}, x_t] + b_i)
+   候選：  C̃_t = tanh(W_c · [h_{t-1}, x_t] + b_c)
+   細胞狀態：C_t = f_t ⊙ C_{t-1} + i_t ⊙ C̃_t
+   輸出門：o_t = σ(W_o · [h_{t-1}, x_t] + b_o)
+   隱藏狀態：h_t = o_t ⊙ tanh(C_t)
+
+   ZKML：每步需要 4 個 sigmoid + 2 個 tanh
+
+3. GRU (Gated Recurrent Unit)
+   重置門：r_t = σ(W_r · [h_{t-1}, x_t])
+   更新門：z_t = σ(W_z · [h_{t-1}, x_t])
+   候選：  h̃_t = tanh(W · [r_t ⊙ h_{t-1}, x_t])
+   輸出：  h_t = (1 - z_t) ⊙ h_{t-1} + z_t ⊙ h̃_t
+
+   ZKML：每步需要 2 個 sigmoid + 1 個 tanh
+   比 LSTM 更輕量</code></pre>
+
+      <h3>RNN 展開與 ZKML</h3>
+
+      <pre><code>RNN 展開為前饋網路：
+
+序列長度 T 的 RNN 展開：
+
+t=1: h_1 = f(x_1, h_0)
+t=2: h_2 = f(x_2, h_1)
+...
+t=T: h_T = f(x_T, h_{T-1})
+
+展開後的約束數量：
+  單步約束 × 時間步數 T
+
+LSTM 每步約束估計（隱藏維度 d）：
+  矩陣乘法：4 × (2d × d) = 8d² 乘法約束
+  Sigmoid：4d × (查表成本)
+  Tanh：2d × (查表成本)
+  逐元素操作：O(d) 乘法
+
+對於 d=256, T=100：
+  矩陣乘法約束：8 × 256² × 100 = 52.4M
+  激活約束：6 × 256 × 100 × (查表) ≈ 153K（使用查表）
+
+ZKML 建議：
+  - 優先使用 GRU（比 LSTM 少 ~33% 約束）
+  - 限制序列長度
+  - 考慮使用 Transformer 替代（並行化更好）</code></pre>
+
+      <h2 id="normalization">歸一化層</h2>
+
+      <h3>Batch Normalization</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：批歸一化</div>
+        <p>對於 mini-batch \(\mathcal{B} = \{x_1, ..., x_m\}\)，批歸一化<sup><a href="#ref-3">[3]</a></sup>定義為：</p>
+        <p class="math">$$\hat{x}_i = \frac{x_i - \mu_\mathcal{B}}{\sqrt{\sigma^2_\mathcal{B} + \epsilon}}$$</p>
+        <p class="math">$$y_i = \gamma \hat{x}_i + \beta$$</p>
+        <p>其中 \(\mu_\mathcal{B} = \frac{1}{m}\sum_{i=1}^{m} x_i\) 是批均值，\(\sigma^2_\mathcal{B}\) 是批方差。</p>
+      </div>
+
+      <pre><code>BatchNorm 的訓練與推理差異：
+
+訓練時：
+  使用當前 batch 的統計量
+  μ_batch, σ²_batch
+
+推理時（重要！）：
+  使用訓練期間累積的移動平均
+  μ_running, σ²_running（固定常數）
+
+  計算：
+    y = γ · (x - μ_running) / √(σ²_running + ε) + β
+
+  簡化（可合併到前一層）：
+    y = γ/√(σ²+ε) · x + (β - γ·μ/√(σ²+ε))
+    y = scale · x + bias
+
+    其中 scale, bias 是預計算的常數
+
+ZKML 優化：
+  推理時 BatchNorm 可完全合併到前一層
+  卷積+BatchNorm → 融合卷積
+  W_fused = γ/√(σ²+ε) · W
+  b_fused = γ/√(σ²+ε) · (b - μ) + β
+
+  結果：零額外約束！</code></pre>
+
+      <h3>Layer Normalization</h3>
+
+      <pre><code>LayerNorm vs BatchNorm：
+
+BatchNorm：沿 batch 維度歸一化
+  適用：CNN，batch size > 1
+  統計：μ, σ² 在 (N,) 維度計算
+
+LayerNorm：沿 feature 維度歸一化
+  適用：Transformer, RNN，batch size = 1 也可用
+  統計：μ, σ² 在 (D,) 維度計算
+
+LayerNorm 計算：
+  輸入：x ∈ R^d
+  μ = (1/d) Σ x_i
+  σ² = (1/d) Σ (x_i - μ)²
+  y = γ ⊙ (x - μ) / √(σ² + ε) + β
+
+ZKML 挑戰：
+  - 不能像 BatchNorm 那樣融合
+  - 每個樣本都需要計算 μ, σ²
+  - 需要除法和開根號
+
+約束估計（維度 d）：
+  均值：d-1 加法 + 1 除法
+  方差：d 減法 + d 乘法 + d-1 加法 + 1 除法
+  歸一化：d 減法 + 1 開根號 + d 除法
+  縮放偏移：d 乘法 + d 加法
+
+  總計：~O(d) 乘法 + 複雜的除法/開根號
+
+優化策略：
+  - 使用定點數近似除法
+  - 查表實現 1/√x
+  - 考慮 RMSNorm 簡化版本</code></pre>
+
+      <h3>RMSNorm</h3>
+
+      <pre><code>RMSNorm（Root Mean Square Layer Normalization）：
+
+簡化版 LayerNorm，省去均值計算：
+
+  RMS(x) = √(1/d · Σ x_i²)
+  y = x / RMS(x) · γ
+
+等價形式：
+  y = γ · x / √(1/d · Σ x_i² + ε)
+
+優勢：
+  - 省去均值計算
+  - 約 15% 計算量減少
+  - 在 LLaMA 等模型中使用
+
+ZKML 約束：
+  - 平方和：d 乘法
+  - 均值：1 除法（常數 d）
+  - 開根號：查表或近似
+  - 除法：d 乘法（乘以逆元）
+  - 縮放：d 乘法
+
+  比 LayerNorm 更簡單</code></pre>
+
+      <h2 id="pooling">池化層</h2>
+
+      <h3>Max Pooling</h3>
+
+      <pre><code>Max Pooling：
+
+操作：在每個池化窗口中選取最大值
+
+y_{i,j} = max(X[i·s : i·s+k, j·s : j·s+k])
+
+參數：
+  - 窗口大小：k × k（常見 2×2）
+  - 步長：s（常見 2）
+
+ZKML 挑戰：
+  max 需要比較操作
+
+比較的電路實現：
+  判斷 a > b：
+
+  方法 1：位元分解
+    將 a, b 分解為位元
+    從最高位開始比較
+    約束：~254 位（254-bit 域元素）
+
+  方法 2：範圍證明
+    證明 a - b 在合理範圍內
+    使用 lookup table
+    約束：取決於範圍大小
+
+2×2 Max Pooling 約束：
+  每個輸出需要 3 次比較（4 選 1）
+  每次比較 ~254 約束（位分解）或 ~10 約束（查表）
+
+  對於 64 × 28 × 28 → 64 × 14 × 14：
+  輸出元素：64 × 14 × 14 = 12,544
+  約束（位分解）：12,544 × 3 × 254 ≈ 9.5M
+  約束（查表）：12,544 × 3 × 10 ≈ 377K</code></pre>
+
+      <h3>Average Pooling</h3>
+
+      <pre><code>Average Pooling：
+
+操作：計算池化窗口的平均值
+
+y_{i,j} = (1/k²) · Σ X[i·s : i·s+k, j·s : j·s+k]
+
+ZKML 優勢：
+  純線性操作！
+
+  計算：
+    sum = Σ x_i    （k²-1 次加法）
+    avg = sum / k²  （除以常數）
+
+  由於 k 是常數，除法可預處理：
+    avg = sum · (1/k²)
+    其中 1/k² 是預計算的域元素逆
+
+  約束：O(k²) 加法 + 1 乘法 = O(1) 有效約束
+
+Global Average Pooling：
+  將整個特徵圖平均為單一值
+  常用於現代 CNN 的最後一層（取代全連接）
+
+  ZKML：非常高效，只需 HW-1 次加法
+
+ZKML 建議：
+  ✓ 優先使用 Average Pooling
+  ✓ 使用 Global Average Pooling 替代大型全連接層
+  ✗ 避免 Max Pooling（或使用查表優化）</code></pre>
+
+      <h2 id="residual">殘差連接</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：殘差連接</div>
+        <p>殘差學習<sup><a href="#ref-4">[4]</a></sup>通過跳躍連接 (skip connection) 將輸入直接加到輸出：</p>
+        <p class="math">$$y = \mathcal{F}(x) + x$$</p>
+        <p>其中 \(\mathcal{F}(x)\) 是需要學習的殘差映射。</p>
+      </div>
+
+      <pre><code>殘差塊結構：
+
+基本殘差塊（ResNet）：
+  ┌────────────────────────┐
+  │         x              │
+  └────────────┬───────────┘
+               │
+       ┌───────▼───────┐
+       │    Conv 3×3   │
+       │   BatchNorm   │
+       │     ReLU      │
+       ├───────────────┤
+       │    Conv 3×3   │
+       │   BatchNorm   │
+       └───────┬───────┘
+               │
+  ┌────────────┼───────────┐
+  │            │           │
+  │     ┌──────▼──────┐    │
+  │     │      +      │◄───┤ (identity shortcut)
+  │     └──────┬──────┘    │
+  │            │           │
+  └────────────▼───────────┘
+           ReLU
+             │
+             y
+
+當維度不匹配時（下採樣）：
+  shortcut = Conv 1×1(stride=2) + BatchNorm
+
+ZKML 考量：
+  - 加法是免費的（線性約束合併）
+  - 不增加額外約束
+  - 深度網路：殘差連接提供了更直接的梯度流
+
+  殘差塊約束 ≈ 兩個卷積層約束 + ReLU
+  (跳躍連接的加法不增加約束)</code></pre>
+
+      <h3>Bottleneck 殘差塊</h3>
+
+      <pre><code>Bottleneck 設計（ResNet-50+）：
+
+結構：
+  1×1 Conv (降維) → 3×3 Conv → 1×1 Conv (升維)
+
+範例（輸入 256 通道）：
+  輸入：256 × H × W
+    ↓ 1×1 Conv, 64 filters
+  中間：64 × H × W
+    ↓ 3×3 Conv, 64 filters
+  中間：64 × H × W
+    ↓ 1×1 Conv, 256 filters
+  輸出：256 × H × W
+
+參數量比較（H=W=14, 輸入 256 通道）：
+
+  基本塊：
+    2 × (256 × 256 × 3 × 3) = 1.18M
+
+  Bottleneck：
+    256 × 64 × 1 × 1 + 64 × 64 × 3 × 3 + 64 × 256 × 1 × 1
+    = 16K + 37K + 16K = 69K
+
+減少約 17 倍！
+
+ZKML 意義：
+  - Bottleneck 大幅減少約束
+  - 可以構建更深的 ZKML 友好網路
+  - 推薦用於需要深度的 ZKML 應用</code></pre>
+
+      <h2 id="forward-pass">前向傳播與電路映射</h2>
+
+      <h3>計算圖到電路</h3>
+
+      <pre><code>神經網路前向傳播的電路映射：
+
+計算圖：
+  輸入 x
+    ↓
+  Layer 1: y₁ = W₁x + b₁
+    ↓
+  Activation: a₁ = σ(y₁)
+    ↓
+  Layer 2: y₂ = W₂a₁ + b₂
+    ↓
+  Activation: a₂ = σ(y₂)
+    ↓
+  輸出
+
+電路映射步驟：
+
+1. 分配變數
+   - 輸入變數：x₁, x₂, ..., xₙ
+   - 中間變數：每層的輸出
+   - 輸出變數：最終預測
+
+2. 生成約束
+   對於每個操作：
+
+   乘法 c = a × b：
+     添加 R1CS 約束：a × b = c
+
+   加法 c = a + b：
+     線性約束，可合併
+
+   激活 y = σ(x)：
+     使用查表或分段近似
+
+3. 設置公開/私密輸入
+   公開輸入（public）：
+     - 模型架構
+     - 可能的模型參數（或其承諾）
+     - 可能的預測結果
+
+   私密輸入（witness）：
+     - 用戶數據
+     - 可能的模型參數
+     - 所有中間計算值
+
+電路大小估算：
+  |C| ≈ Σ(層的乘法數) + Σ(激活約束)</code></pre>
+
+      <h3>中間值處理</h3>
+
+      <pre><code>ZKML 中間值的角色：
+
+問題：神經網路中間值在 ZK 中如何處理？
+
+答案：作為 witness（私密見證）
+
+網路：x → L₁ → L₂ → L₃ → y
+
+見證分配：
+  w₁ = L₁(x)     # 第一層輸出，私密
+  w₂ = L₂(w₁)    # 第二層輸出，私密
+  w₃ = L₃(w₂)    # 第三層輸出，私密
+  y = w₃         # 最終輸出，可公開
+
+約束確保：
+  每個中間值都被正確計算
+  驗證者可驗證，但不知道具體值
+
+複製約束（Copy Constraints）：
+  當同一變數用於多個操作時
+  需要複製約束確保一致性
+
+  例：殘差連接中，x 同時用於：
+    - F(x) 的輸入
+    - 跳躍連接的加法
+  複製約束：x_in_F = x_in_skip
+
+Plonkish 系統的優勢：
+  使用置換參數自動處理複製約束
+  不增加顯著的約束數量</code></pre>
+
+      <h2 id="zkml-friendly">ZKML 友好架構設計</h2>
+
+      <h3>組件選擇指南</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>組件類型</th>
+            <th>ZKML 友好度</th>
+            <th>約束成本</th>
+            <th>建議</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>全連接層</strong></td>
+            <td>高</td>
+            <td>O(m × n)</td>
+            <td>直接使用，考慮量化</td>
+          </tr>
+          <tr>
+            <td><strong>標準卷積</strong></td>
+            <td>高</td>
+            <td>O(C × K² × H × W)</td>
+            <td>直接使用，考慮深度可分離</td>
+          </tr>
+          <tr>
+            <td><strong>深度可分離卷積</strong></td>
+            <td>非常高</td>
+            <td>~1/9 標準卷積</td>
+            <td>優先使用</td>
+          </tr>
+          <tr>
+            <td><strong>ReLU</strong></td>
+            <td>中</td>
+            <td>~1（查表）</td>
+            <td>使用查表實現</td>
+          </tr>
+          <tr>
+            <td><strong>Sigmoid/Tanh</strong></td>
+            <td>低-中</td>
+            <td>~1（查表）</td>
+            <td>查表或替換為 ReLU</td>
+          </tr>
+          <tr>
+            <td><strong>GELU/SiLU</strong></td>
+            <td>低</td>
+            <td>~1（查表）</td>
+            <td>必須時使用查表</td>
+          </tr>
+          <tr>
+            <td><strong>Softmax</strong></td>
+            <td>很低</td>
+            <td>~5000（無優化）</td>
+            <td>避免或使用 tlookup</td>
+          </tr>
+          <tr>
+            <td><strong>BatchNorm（推理）</strong></td>
+            <td>非常高</td>
+            <td>0（可融合）</td>
+            <td>融合到前一層</td>
+          </tr>
+          <tr>
+            <td><strong>LayerNorm</strong></td>
+            <td>中</td>
+            <td>O(d) + 非線性</td>
+            <td>使用 RMSNorm 替代</td>
+          </tr>
+          <tr>
+            <td><strong>Max Pooling</strong></td>
+            <td>低</td>
+            <td>O(k² × H × W × 比較成本)</td>
+            <td>使用 Average Pooling</td>
+          </tr>
+          <tr>
+            <td><strong>Average Pooling</strong></td>
+            <td>非常高</td>
+            <td>O(1) 有效約束</td>
+            <td>優先使用</td>
+          </tr>
+          <tr>
+            <td><strong>殘差連接</strong></td>
+            <td>非常高</td>
+            <td>0（加法免費）</td>
+            <td>自由使用</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>設計原則</h3>
+
+      <pre><code>ZKML 友好模型設計原則：
+
+1. 選擇輕量架構
+   ✓ MobileNet 系列
+   ✓ EfficientNet（較小版本）
+   ✓ 自定義小型網路
+   ✗ VGG（太多參數）
+   ✗ ResNet-152（太深）
+
+2. 減少參數量
+   ✓ 使用 Bottleneck 結構
+   ✓ 深度可分離卷積
+   ✓ Global Average Pooling
+   ✓ 量化（INT8 或更低）
+
+3. 簡化激活函數
+   ✓ 使用 ReLU（最簡單）
+   ✓ 必要時使用查表
+   ✗ 避免 Softmax 在中間層
+   ✗ 避免複雜激活（除非必要）
+
+4. 優化歸一化
+   ✓ 融合 BatchNorm
+   ✓ 使用 RMSNorm 替代 LayerNorm
+   ✓ 考慮移除不必要的歸一化
+
+5. 控制網路規模
+   ✓ 限制總參數量 < 10M
+   ✓ 使用知識蒸餾壓縮大模型
+   ✓ 剪枝移除冗餘連接
+
+設計目標（對於實際 ZKML 應用）：
+  參數量：< 1M（理想），< 10M（可接受）
+  約束數：< 10⁸（可在分鐘內證明）
+  證明時間：< 5 分鐘（用戶友好）</code></pre>
+
+      <h2 id="complexity">複雜度分析</h2>
+
+      <h3>各層約束複雜度</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>層類型</th>
+            <th>參數</th>
+            <th>約束數量</th>
+            <th>範例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>全連接</td>
+            <td>輸入 n, 輸出 m</td>
+            <td>\(O(m \times n)\)</td>
+            <td>784→256: 200K</td>
+          </tr>
+          <tr>
+            <td>卷積 (3×3)</td>
+            <td>C_in, C_out, H×W</td>
+            <td>\(O(9 \cdot C_{in} \cdot C_{out} \cdot H \cdot W)\)</td>
+            <td>64→64, 28×28: 4.5M</td>
+          </tr>
+          <tr>
+            <td>深度可分離</td>
+            <td>C, H×W</td>
+            <td>\(O(9C + C^2) \cdot H \cdot W\)</td>
+            <td>64, 28×28: 0.5M</td>
+          </tr>
+          <tr>
+            <td>ReLU（查表）</td>
+            <td>元素數 n</td>
+            <td>\(O(n)\)</td>
+            <td>64×28×28: 50K</td>
+          </tr>
+          <tr>
+            <td>LayerNorm</td>
+            <td>維度 d</td>
+            <td>\(O(d + C_{nonlinear})\)</td>
+            <td>d=768: ~10K</td>
+          </tr>
+          <tr>
+            <td>Max Pool 2×2</td>
+            <td>H×W</td>
+            <td>\(O(3 \cdot H \cdot W \cdot C_{cmp})\)</td>
+            <td>28×28: 2.4M（位分解）</td>
+          </tr>
+          <tr>
+            <td>Avg Pool 2×2</td>
+            <td>H×W</td>
+            <td>\(O(H \cdot W)\)</td>
+            <td>28×28: 784</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>典型網路約束估計</h3>
+
+      <pre><code>常見網路的 ZKML 約束估計：
+
+1. LeNet-5（MNIST）
+   Conv 5×5×6 + Pool + Conv 5×5×16 + Pool + FC 400→120→84→10
+
+   估計約束：~1M
+   證明時間：~1 秒
+
+   非常適合 ZKML 演示
+
+2. MobileNet-V2（ImageNet，縮小版）
+   輸入：3×224×224，0.35x 寬度
+
+   估計約束：~100M
+   證明時間：~2 分鐘
+
+   適合實際 ZKML 應用
+
+3. ResNet-18（ImageNet）
+   估計約束：~500M
+   證明時間：~10-30 分鐘
+
+   挑戰性但可行
+
+4. ResNet-50（ImageNet）
+   估計約束：~2B
+   證明時間：~1-2 小時
+
+   需要優化技術
+
+5. GPT-2 Small（NLP）
+   見 Transformer 頁面
+   估計約束：~100B（每 token）
+
+   需要專門的 zkLLM 技術
+
+以上估計基於：
+  - 使用查表激活
+  - 8-bit 量化
+  - 約束處理速度 ~10⁶/秒</code></pre>
+
       <h2>相關頁面</h2>
+
       <ul>
-        <li><a href="activations.html">激活函數</a></li>
-        <li><a href="../zkml/circuit/index.html">模型 → 電路</a></li>
+        <li><a href="activations.html">激活函數</a> - 各種激活函數的 ZK 實現</li>
+        <li><a href="transformers.html">Transformer 架構</a> - 現代 NLP 模型的 ZKML</li>
+        <li><a href="../zkml/circuit/index.html">模型 → 電路</a> - ZKML 電路編譯</li>
+        <li><a href="../zkml/circuit/lookup-tables.html">查表優化</a> - 非線性函數的高效實現</li>
+        <li><a href="../ml/optimization/quantization.html">量化技術</a> - 減少約束的量化方法</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>LeCun, Y., et al. "Gradient-Based Learning Applied to Document Recognition." Proceedings of the IEEE, 1998.</cite>
+            <a href="http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf" target="_blank" rel="noopener">PDF</a>
+          </li>
+          <li id="ref-2">
+            <cite>Hochreiter, S. & Schmidhuber, J. "Long Short-Term Memory." Neural Computation, 1997.</cite>
+            <a href="https://www.bioinf.jku.at/publications/older/2604.pdf" target="_blank" rel="noopener">PDF</a>
+          </li>
+          <li id="ref-3">
+            <cite>Ioffe, S. & Szegedy, C. "Batch Normalization: Accelerating Deep Network Training." ICML 2015.</cite>
+            <a href="https://arxiv.org/abs/1502.03167" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-4">
+            <cite>He, K., et al. "Deep Residual Learning for Image Recognition." CVPR 2016.</cite>
+            <a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-5">
+            <cite>Howard, A., et al. "MobileNets: Efficient Convolutional Neural Networks for Mobile Vision Applications." arXiv 2017.</cite>
+            <a href="https://arxiv.org/abs/1704.04861" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-6">
+            <cite>Liu, J., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://arxiv.org/abs/2402.02726" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
+
     </article>
     <nav id="prev-next" aria-label="前後頁導覽"></nav>
   </main>

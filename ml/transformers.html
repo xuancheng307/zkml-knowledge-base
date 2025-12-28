@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
 </head>
 <body data-page-id="transformers">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
@@ -23,54 +24,947 @@
     <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
     <article>
       <h1>Transformer 架構</h1>
+
       <div class="callout callout-info">
-        <div class="callout-title">LLM 的基礎</div>
-        <p>Transformer 是現代大型語言模型的核心架構。理解其組件對 ZKML 處理 LLM 至關重要。</p>
+        <div class="callout-title">現代 AI 的基石</div>
+        <p>Transformer 架構由 Vaswani 等人於 2017 年提出<sup><a href="#ref-1">[1]</a></sup>，是 GPT、BERT、LLaMA 等大型語言模型的核心。本頁面詳細說明 Transformer 的數學原理、各組件的運算複雜度，以及 ZKML 系統如何處理這些組件。</p>
       </div>
-      <h2>核心組件</h2>
-      <h3>Self-Attention</h3>
-      <pre><code>計算：
-  Attention(Q, K, V) = softmax(QK^T / √d_k) · V
 
-ZKML 挑戰：
-  - 矩陣乘法：O(n² · d) 約束
-  - Softmax：每行需要特殊處理
-  - 記憶體：O(n²) 中間值
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#architecture-overview">架構總覽</a></li>
+          <li><a href="#self-attention">自注意力機制</a></li>
+          <li><a href="#multi-head-attention">多頭注意力</a></li>
+          <li><a href="#positional-encoding">位置編碼</a></li>
+          <li><a href="#feed-forward">前饋神經網路</a></li>
+          <li><a href="#layer-norm">層歸一化</a></li>
+          <li><a href="#encoder-decoder">編碼器與解碼器</a></li>
+          <li><a href="#modern-variants">現代變體</a></li>
+          <li><a href="#zkml-challenges">ZKML 挑戰與解決方案</a></li>
+          <li><a href="#complexity-analysis">複雜度分析</a></li>
+        </ol>
+      </nav>
 
-zkLLM 的 zkAttn 優化：
-  使用 tlookup 減少複雜度</code></pre>
-      <h3>Feed-Forward Network</h3>
-      <pre><code>結構：
-  FFN(x) = GELU(xW₁ + b₁)W₂ + b₂
+      <h2 id="architecture-overview">架構總覽</h2>
 
-ZKML 考量：
-  - 兩個大型矩陣乘法
-  - GELU 需要查表處理
-  - 隱藏層通常是輸入的 4 倍</code></pre>
-      <h3>LayerNorm</h3>
-      <pre><code>計算：
-  LayerNorm(x) = (x - μ) / σ · γ + β
+      <div class="definition">
+        <div class="definition-title">Definition：Transformer</div>
+        <p>Transformer 是一種基於<strong>自注意力機制</strong>（Self-Attention）的序列到序列模型，完全摒棄了循環和卷積結構。其核心思想是透過注意力機制直接建模序列中任意兩個位置之間的依賴關係。</p>
+      </div>
 
-ZKML 挑戰：
-  - 需要計算均值和標準差
-  - 除法和開根號
-  - 通常使用近似</code></pre>
-      <h2>ZKML 處理策略</h2>
+      <h3>整體結構</h3>
+
+      <pre><code>Transformer 架構圖：
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        Transformer                               │
+├─────────────────────────────┬───────────────────────────────────┤
+│         Encoder             │            Decoder                 │
+│                             │                                    │
+│  ┌───────────────────────┐  │  ┌───────────────────────────┐   │
+│  │   Input Embedding     │  │  │   Output Embedding        │   │
+│  │   + Positional Enc.   │  │  │   + Positional Enc.       │   │
+│  └───────────┬───────────┘  │  └─────────────┬─────────────┘   │
+│              │              │                │                  │
+│  ┌───────────▼───────────┐  │  ┌─────────────▼─────────────┐   │
+│  │                       │  │  │   Masked Multi-Head       │   │
+│  │   Multi-Head          │  │  │   Self-Attention          │   │
+│  │   Self-Attention      │  │  └─────────────┬─────────────┘   │
+│  │                       │  │                │                  │
+│  └───────────┬───────────┘  │  ┌─────────────▼─────────────┐   │
+│              │              │  │   Multi-Head              │   │
+│  ┌───────────▼───────────┐  │  │   Cross-Attention        │◄──┤
+│  │   Add & LayerNorm     │  │  │   (Encoder-Decoder)       │   │
+│  └───────────┬───────────┘  │  └─────────────┬─────────────┘   │
+│              │              │                │                  │
+│  ┌───────────▼───────────┐  │  ┌─────────────▼─────────────┐   │
+│  │   Feed-Forward        │  │  │   Add & LayerNorm         │   │
+│  │   Network             │  │  └─────────────┬─────────────┘   │
+│  └───────────┬───────────┘  │                │                  │
+│              │              │  ┌─────────────▼─────────────┐   │
+│  ┌───────────▼───────────┐  │  │   Feed-Forward            │   │
+│  │   Add & LayerNorm     │  │  │   Network                 │   │
+│  └───────────┬───────────┘  │  └─────────────┬─────────────┘   │
+│              │              │                │                  │
+│      × N 層 (重複)          │        × N 層 (重複)              │
+│              │              │                │                  │
+│              ▼              │  ┌─────────────▼─────────────┐   │
+│         Encoder             │  │   Linear + Softmax        │   │
+│         Output              │  └─────────────┬─────────────┘   │
+│                             │                ▼                  │
+│                             │           Output Tokens           │
+└─────────────────────────────┴───────────────────────────────────┘
+
+標準配置（Transformer-base）：
+  - 層數 N = 6
+  - 模型維度 d_model = 512
+  - 注意力頭數 h = 8
+  - FFN 隱藏層維度 d_ff = 2048
+  - 總參數量 ≈ 65M</code></pre>
+
+      <h3>核心組件</h3>
+
       <table>
-        <thead><tr><th>組件</th><th>策略</th><th>框架支援</th></tr></thead>
+        <thead>
+          <tr>
+            <th>組件</th>
+            <th>功能</th>
+            <th>計算複雜度</th>
+            <th>ZKML 難度</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>Attention</td><td>zkAttn / 分段</td><td>zkLLM</td></tr>
-          <tr><td>FFN</td><td>標準電路</td><td>所有框架</td></tr>
-          <tr><td>GELU</td><td>查表</td><td>所有框架</td></tr>
-          <tr><td>LayerNorm</td><td>近似/查表</td><td>部分框架</td></tr>
-          <tr><td>Softmax</td><td>tlookup</td><td>zkLLM</td></tr>
+          <tr>
+            <td><strong>Self-Attention</strong></td>
+            <td>建模序列內部依賴</td>
+            <td>\(O(n^2 \cdot d)\)</td>
+            <td>高（Softmax）</td>
+          </tr>
+          <tr>
+            <td><strong>Multi-Head Attention</strong></td>
+            <td>多子空間並行注意力</td>
+            <td>\(O(n^2 \cdot d)\)</td>
+            <td>高</td>
+          </tr>
+          <tr>
+            <td><strong>FFN</strong></td>
+            <td>逐位置非線性變換</td>
+            <td>\(O(n \cdot d \cdot d_{ff})\)</td>
+            <td>中（GELU）</td>
+          </tr>
+          <tr>
+            <td><strong>LayerNorm</strong></td>
+            <td>穩定訓練</td>
+            <td>\(O(n \cdot d)\)</td>
+            <td>中（除法/開根號）</td>
+          </tr>
+          <tr>
+            <td><strong>Positional Encoding</strong></td>
+            <td>注入位置資訊</td>
+            <td>\(O(n \cdot d)\)</td>
+            <td>低（常數）</td>
+          </tr>
         </tbody>
       </table>
+
+      <h2 id="self-attention">自注意力機制</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Scaled Dot-Product Attention</div>
+        <p>給定查詢矩陣 \(Q\)、鍵矩陣 \(K\)、值矩陣 \(V \in \mathbb{R}^{n \times d_k}\)，縮放點積注意力定義為：</p>
+        <p class="math">$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V$$</p>
+        <p>其中 \(\sqrt{d_k}\) 是縮放因子，用於防止點積值過大導致 softmax 飽和。</p>
+      </div>
+
+      <h3>計算步驟分解</h3>
+
+      <pre><code>自注意力計算流程：
+
+輸入：X ∈ R^{n×d}（序列長度 n，維度 d）
+
+Step 1: 線性投影（生成 Q, K, V）
+  Q = X · W_Q    (W_Q ∈ R^{d×d_k})
+  K = X · W_K    (W_K ∈ R^{d×d_k})
+  V = X · W_V    (W_V ∈ R^{d×d_v})
+
+Step 2: 計算注意力分數
+  S = Q · K^T / √d_k    (S ∈ R^{n×n})
+
+Step 3: Softmax 歸一化
+  A = softmax(S)        (A ∈ R^{n×n}，每行和為 1)
+
+Step 4: 加權求和
+  O = A · V             (O ∈ R^{n×d_v})
+
+記憶體需求：
+  - 注意力矩陣 S, A：O(n²) 元素
+  - 對於 n=1024, fp32：S 佔用 4MB
+
+ZKML 約束數量（假設 d_k = 64）：
+  - Step 1（投影）：3 × n × d × d_k 乘法
+  - Step 2（QK^T）：n × n × d_k 乘法
+  - Step 3（Softmax）：n 次 Softmax（每次 ~5000 約束）
+  - Step 4（AV）：n × n × d_v 乘法
+  - 總計：O(n² × d_k) + O(n × softmax_cost)</code></pre>
+
+      <h3>Softmax 的數學定義</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Softmax 函數</div>
+        <p>對於向量 \(x = (x_1, \ldots, x_n)\)，Softmax 定義為：</p>
+        <p class="math">$$\text{softmax}(x)_i = \frac{e^{x_i}}{\sum_{j=1}^{n} e^{x_j}}$$</p>
+        <p>為數值穩定性，實際計算時使用：</p>
+        <p class="math">$$\text{softmax}(x)_i = \frac{e^{x_i - \max(x)}}{\sum_{j=1}^{n} e^{x_j - \max(x)}}$$</p>
+      </div>
+
+      <h3>Softmax 的 ZKML 挑戰</h3>
+
+      <pre><code>Softmax 在 ZK 電路中的難點：
+
+1. 指數運算 (exp)
+   - 無法用有限次乘法精確表示
+   - 需要泰勒展開或查表近似
+   - 精度 vs 約束數量權衡
+
+2. 求最大值 (max)
+   - 需要 n-1 次比較
+   - 每次比較 ~254 約束（位元分解）
+   - 或使用排序網路
+
+3. 求和 (sum)
+   - 線性操作，相對簡單
+   - n-1 次加法
+
+4. 除法 (division)
+   - 非線性操作
+   - 需要計算逆元或查表
+
+zkLLM 的 tlookup 解決方案<sup><a href="#ref-2">[2]</a></sup>：
+  - 使用預計算的 Softmax 查找表
+  - 將 n 維 Softmax 分解為多個查表操作
+  - 顯著減少約束數量（~100x 加速）</code></pre>
+
+      <h3>注意力遮罩</h3>
+
+      <pre><code>Attention Mask 類型：
+
+1. Padding Mask（填充遮罩）
+   用途：處理變長序列
+   實現：將填充位置的注意力分數設為 -∞
+
+   mask[i,j] = -∞ if j is padding else 0
+   S_masked = S + mask
+   A = softmax(S_masked)
+
+2. Causal Mask（因果遮罩）
+   用途：自回歸生成（GPT 類模型）
+   實現：防止看到未來的 token
+
+   mask[i,j] = -∞ if j > i else 0
+
+   ┌─────────────────────┐
+   │  0   -∞  -∞  -∞  -∞ │  位置 0 只能看自己
+   │  0    0  -∞  -∞  -∞ │  位置 1 可看 0, 1
+   │  0    0   0  -∞  -∞ │  位置 2 可看 0, 1, 2
+   │  0    0   0   0  -∞ │  位置 3 可看 0, 1, 2, 3
+   │  0    0   0   0   0 │  位置 4 可看全部
+   └─────────────────────┘
+
+ZKML 考量：
+  - Mask 是常數，可預計算
+  - -∞ 實際用大負數（如 -10000）
+  - 不增加顯著約束</code></pre>
+
+      <h2 id="multi-head-attention">多頭注意力</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Multi-Head Attention</div>
+        <p>多頭注意力將輸入投影到 \(h\) 個不同的子空間，並行計算注意力後拼接：</p>
+        <p class="math">$$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h) W^O$$</p>
+        <p>其中每個頭：</p>
+        <p class="math">$$\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$$</p>
+        <p>\(W_i^Q, W_i^K \in \mathbb{R}^{d \times d_k}\)，\(W_i^V \in \mathbb{R}^{d \times d_v}\)，\(W^O \in \mathbb{R}^{hd_v \times d}\)</p>
+      </div>
+
+      <h3>多頭注意力的優勢</h3>
+
+      <pre><code>為什麼使用多頭？
+
+1. 多子空間學習
+   - 每個頭可以學習不同類型的依賴關係
+   - 例如：語法關係、語義關係、位置關係
+
+2. 計算效率
+   - 單頭 d=512 vs 8頭 d_k=64
+   - 總計算量相同
+   - 但表達能力更強
+
+3. 可解釋性
+   - 可視化不同頭的注意力模式
+   - 發現模型學到的結構
+
+標準配置（BERT/GPT-2）：
+  d_model = 768
+  h = 12 頭
+  d_k = d_v = 768 / 12 = 64
+
+大型模型（GPT-3）：
+  d_model = 12288
+  h = 96 頭
+  d_k = d_v = 128</code></pre>
+
+      <h3>多頭計算流程</h3>
+
+      <pre><code>Multi-Head Attention 實現：
+
+輸入：X ∈ R^{n×d}
+
+# 並行計算所有頭的 Q, K, V
+Q_all = X · W_Q    # W_Q ∈ R^{d×d}, 包含所有頭的權重
+K_all = X · W_K
+V_all = X · W_V
+
+# 重塑為多頭格式
+Q = reshape(Q_all, [n, h, d_k])  # 分成 h 個頭
+K = reshape(K_all, [n, h, d_k])
+V = reshape(V_all, [n, h, d_v])
+
+# 對每個頭計算注意力
+for head_i in range(h):
+    S_i = Q[:, head_i, :] @ K[:, head_i, :].T / sqrt(d_k)
+    A_i = softmax(S_i)
+    O_i = A_i @ V[:, head_i, :]
+
+# 拼接並投影
+O_concat = concat([O_1, ..., O_h], axis=-1)  # [n, h*d_v]
+output = O_concat @ W_O                        # [n, d]
+
+ZKML 優化：
+  - 各頭計算獨立，可並行電路設計
+  - 但約束總量不變
+  - 矩陣重塑是無成本操作（只是重新解釋）</code></pre>
+
+      <h2 id="positional-encoding">位置編碼</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Sinusoidal Positional Encoding</div>
+        <p>原始 Transformer 使用正弦位置編碼<sup><a href="#ref-1">[1]</a></sup>：</p>
+        <p class="math">$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right)$$</p>
+        <p class="math">$$PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)$$</p>
+        <p>其中 \(pos\) 是位置，\(i\) 是維度索引，\(d\) 是模型維度。</p>
+      </div>
+
+      <h3>位置編碼類型</h3>
+
+      <pre><code>常見位置編碼方式：
+
+1. 正弦位置編碼（Sinusoidal）
+   優點：
+   - 可外推到訓練時未見的長度
+   - 不需要學習參數
+   缺點：
+   - 表達能力有限
+
+2. 可學習位置編碼（Learned）
+   實現：PE ∈ R^{max_len × d} 作為可訓練參數
+   優點：
+   - 表達能力更強
+   缺點：
+   - 無法外推
+   使用：BERT, GPT-2
+
+3. 相對位置編碼（Relative）
+   編碼 token 之間的相對距離而非絕對位置
+   變體：
+   - Transformer-XL 的相對位置
+   - T5 的相對位置 bias
+
+4. 旋轉位置編碼（RoPE）<sup><a href="#ref-3">[3]</a></sup>
+   用於：LLaMA, GPT-NeoX
+   原理：將位置資訊編碼為旋轉矩陣
+   公式：
+     q' = R_θ(m) · q
+     k' = R_θ(n) · k
+   優點：
+     - 良好的外推性
+     - 相對位置資訊自然嵌入
+
+ZKML 考量：
+  - 正弦編碼：sin/cos 需要查表，但是常數可預計算
+  - 可學習編碼：直接作為電路常數
+  - RoPE：需要三角函數，但可預計算旋轉矩陣</code></pre>
+
+      <h3>RoPE 詳解</h3>
+
+      <pre><code>旋轉位置編碼（Rotary Position Embedding）：
+
+核心思想：
+  將 q, k 向量分成 d/2 對
+  每對乘以位置相關的旋轉矩陣
+
+數學形式：
+  對於位置 m 的 query 向量 q = [q_0, q_1, ..., q_{d-1}]
+
+  旋轉後：
+    q'_{2i}   = q_{2i} · cos(m·θ_i) - q_{2i+1} · sin(m·θ_i)
+    q'_{2i+1} = q_{2i} · sin(m·θ_i) + q_{2i+1} · cos(m·θ_i)
+
+  其中 θ_i = 10000^{-2i/d}
+
+性質：
+  q'_m · k'_n = f(q, k, m-n)
+  注意力分數只依賴相對位置 (m-n)
+
+ZKML 實現：
+  - 預計算所有位置的 cos(m·θ_i), sin(m·θ_i)
+  - 作為電路常數嵌入
+  - 旋轉操作只需乘法和加法
+  - 約束成本：O(n × d) 乘法</code></pre>
+
+      <h2 id="feed-forward">前饋神經網路</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Position-wise Feed-Forward Network</div>
+        <p>FFN 對序列中的每個位置獨立應用相同的兩層全連接網路：</p>
+        <p class="math">$$\text{FFN}(x) = \text{Activation}(xW_1 + b_1)W_2 + b_2$$</p>
+        <p>其中 \(W_1 \in \mathbb{R}^{d \times d_{ff}}\)，\(W_2 \in \mathbb{R}^{d_{ff} \times d}\)。典型設置 \(d_{ff} = 4d\)。</p>
+      </div>
+
+      <h3>激活函數選擇</h3>
+
+      <pre><code>FFN 中常用的激活函數：
+
+1. ReLU（原始 Transformer）
+   f(x) = max(0, x)
+
+   ZKML：需要比較操作，~254 約束（位分解）或 ~1 約束（查表）
+
+2. GELU（BERT, GPT-2, GPT-3）
+   f(x) = x · Φ(x) ≈ 0.5x(1 + tanh(√(2/π)(x + 0.044715x³)))
+
+   ZKML：複雜非線性，必須使用查表
+   zkLLM 使用預計算的 GELU 查找表
+
+3. SiLU / Swish（LLaMA）
+   f(x) = x · σ(x) = x / (1 + e^{-x})
+
+   ZKML：需要 sigmoid 查表
+
+4. GeGLU / SwiGLU（現代架構）
+   f(x, y) = GELU(x) · y
+   結構：
+     [x, y] = Linear(input)
+     output = Linear(GELU(x) * y)
+
+   參數效率更高，但需要門控機制
+
+ZKML 建議：
+  優先使用 ReLU（最簡單）
+  必須使用其他激活時，採用查表方法</code></pre>
+
+      <h3>FFN 計算複雜度</h3>
+
+      <pre><code>FFN 計算分析（對於序列長度 n）：
+
+參數量：
+  W_1: d × d_ff
+  b_1: d_ff
+  W_2: d_ff × d
+  b_2: d
+  總計：2 × d × d_ff + d_ff + d ≈ 2 × d × d_ff
+
+計算量（每個 token）：
+  第一層：d × d_ff 乘法 + d_ff 加法
+  激活：d_ff 次非線性操作
+  第二層：d_ff × d 乘法 + d 加法
+  總計：2 × d × d_ff 乘法
+
+整個序列：
+  2 × n × d × d_ff 乘法
+
+ZKML 約束（以 GPT-2 small 為例）：
+  d = 768, d_ff = 3072, n = 1024
+  乘法約束：2 × 1024 × 768 × 3072 ≈ 4.8 × 10⁹
+  激活約束：1024 × 3072 × (查表成本)
+
+這解釋了為何 ZKML 處理大模型如此困難</code></pre>
+
+      <h2 id="layer-norm">層歸一化</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Layer Normalization</div>
+        <p>對每個樣本的所有特徵進行歸一化<sup><a href="#ref-4">[4]</a></sup>：</p>
+        <p class="math">$$\text{LayerNorm}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta$$</p>
+        <p>其中：</p>
+        <ul>
+          <li>\(\mu = \frac{1}{d}\sum_{i=1}^{d} x_i\)（均值）</li>
+          <li>\(\sigma^2 = \frac{1}{d}\sum_{i=1}^{d} (x_i - \mu)^2\)（方差）</li>
+          <li>\(\gamma, \beta \in \mathbb{R}^d\) 是可學習的縮放和偏移參數</li>
+          <li>\(\epsilon \approx 10^{-5}\) 防止除零</li>
+        </ul>
+      </div>
+
+      <h3>Pre-Norm vs Post-Norm</h3>
+
+      <pre><code>LayerNorm 位置的兩種設計：
+
+Post-Norm（原始 Transformer）：
+  x = x + Attention(LayerNorm_placeholder(x))  # 注意：原始論文用 Post-Norm
+  x = x + FFN(x)
+  x = LayerNorm(x)
+
+  問題：深層網路訓練不穩定
+
+Pre-Norm（GPT-2, LLaMA）：
+  x = x + Attention(LayerNorm(x))
+  x = x + FFN(LayerNorm(x))
+
+  優點：
+  - 訓練更穩定
+  - 可以訓練更深的網路
+  - 殘差連接直接連通
+
+RMSNorm（LLaMA, Gemma）：
+  簡化版本，只用均方根歸一化
+  RMSNorm(x) = x / RMS(x) · γ
+  RMS(x) = √(1/d · Σx_i²)
+
+  優點：省去計算均值，約 15% 加速
+
+ZKML 考量：
+  - LayerNorm 需要：求和、除法、開根號
+  - 每個操作都有 ZK 成本
+  - RMSNorm 較簡單（省去均值計算）</code></pre>
+
+      <h3>LayerNorm 的 ZKML 實現</h3>
+
+      <pre><code>LayerNorm 的電路實現：
+
+Step 1: 計算均值
+  sum = Σ x_i            # d-1 次加法
+  mean = sum / d         # 1 次除法（d 是常數，可優化）
+
+Step 2: 計算方差
+  diff_i = x_i - mean    # d 次減法
+  sq_i = diff_i²         # d 次乘法
+  var = Σ sq_i / d       # d-1 次加法 + 1 次除法
+
+Step 3: 歸一化
+  inv_std = 1 / √(var + ε)   # 開根號 + 除法
+  norm_i = diff_i · inv_std   # d 次乘法
+
+Step 4: 縮放和偏移
+  out_i = γ_i · norm_i + β_i  # d 次乘法 + d 次加法
+
+ZK 挑戰：
+  - 開根號：需要查表或迭代近似
+  - 除法：計算模逆或查表
+
+優化策略：
+  1. 將 1/√var 作為輔助輸入（hint）
+     證明：(hint)² · var = 1
+  2. 使用查表預計算 1/√x
+  3. 使用定點數近似</code></pre>
+
+      <h2 id="encoder-decoder">編碼器與解碼器</h2>
+
+      <h3>架構比較</h3>
+
+      <pre><code>Transformer 家族架構：
+
+1. Encoder-Only（BERT 類）
+   ┌─────────────────────────┐
+   │ Input → Encoder × N    │
+   │      → Output          │
+   └─────────────────────────┘
+
+   特點：
+   - 雙向注意力（可看全部上下文）
+   - 適合理解任務：分類、NER、問答
+   代表：BERT, RoBERTa, ALBERT
+
+2. Decoder-Only（GPT 類）
+   ┌─────────────────────────┐
+   │ Input → Decoder × N    │
+   │      → Next Token      │
+   └─────────────────────────┘
+
+   特點：
+   - 因果注意力（只看過去）
+   - 適合生成任務：文字生成、對話
+   代表：GPT-2/3/4, LLaMA, Claude
+
+3. Encoder-Decoder（T5 類）
+   ┌─────────────────────────────────┐
+   │ Input → Encoder → Decoder × N  │
+   │               ↓      → Output  │
+   │        Cross-Attention         │
+   └─────────────────────────────────┘
+
+   特點：
+   - Encoder 處理輸入
+   - Decoder 生成輸出
+   - Cross-Attention 連接兩者
+   代表：T5, BART, 原始 Transformer
+
+ZKML 選擇：
+  - Decoder-only 最常用於生成
+  - 因果遮罩減少計算（下三角）
+  - 但每個 token 仍需完整推理</code></pre>
+
+      <h3>自回歸生成</h3>
+
+      <pre><code>GPT 類模型的生成過程：
+
+輸入：prompt tokens [t_1, t_2, ..., t_k]
+輸出：生成 tokens [t_{k+1}, t_{k+2}, ...]
+
+Step 1: 處理 prompt（Prefill 階段）
+  對所有 prompt tokens 並行計算
+  產生 KV Cache
+
+Step 2: 逐 token 生成（Decode 階段）
+  for each new token:
+    input = 當前 token + 過去的 KV Cache
+    output = Model(input)
+    next_token = sample(output[-1])  # 只取最後位置
+    更新 KV Cache
+
+KV Cache：
+  存儲過去 tokens 的 K, V 矩陣
+  避免重複計算
+  記憶體：O(n × d × layers)
+
+ZKML 的 KV Cache 處理：
+  - 每個 token 需要獨立的 ZK 證明
+  - 或使用遞迴證明累積
+  - zkLLM 使用 KV Cache 優化<sup><a href="#ref-2">[2]</a></sup></code></pre>
+
+      <h2 id="modern-variants">現代變體</h2>
+
+      <h3>高效注意力變體</h3>
+
+      <pre><code>降低 O(n²) 複雜度的方法：
+
+1. Sparse Attention
+   只計算部分位置的注意力
+   - Local Attention：只看鄰近 tokens
+   - Strided Attention：跳躍式
+   代表：Longformer, BigBird
+
+2. Linear Attention
+   將 Softmax(QK^T)V 改寫
+   使用核方法降至 O(n)
+   代表：Performer, Linear Transformer
+
+3. Flash Attention<sup><a href="#ref-5">[5]</a></sup>
+   不改變數學，優化記憶體訪問
+   - 分塊計算，減少 HBM 訪問
+   - 重計算而非存儲中間結果
+   複雜度仍是 O(n²)，但實際更快
+
+4. Multi-Query Attention (MQA)
+   多個 Q 頭共享同一組 K, V
+   減少 KV Cache 大小
+   代表：PaLM, Falcon
+
+5. Grouped-Query Attention (GQA)
+   MQA 和 MHA 的折中
+   幾個 Q 頭共享一組 K, V
+   代表：LLaMA 2, Mistral
+
+ZKML 影響：
+  - Sparse Attention 可減少約束
+  - Flash Attention 不影響約束數量
+  - MQA/GQA 減少參數，可能簡化電路</code></pre>
+
+      <h3>主流 LLM 架構對比</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>參數量</th>
+            <th>架構</th>
+            <th>注意力</th>
+            <th>激活</th>
+            <th>歸一化</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GPT-2</strong></td>
+            <td>117M-1.5B</td>
+            <td>Decoder</td>
+            <td>MHA</td>
+            <td>GELU</td>
+            <td>Pre-LN</td>
+          </tr>
+          <tr>
+            <td><strong>GPT-3</strong></td>
+            <td>175B</td>
+            <td>Decoder</td>
+            <td>MHA</td>
+            <td>GELU</td>
+            <td>Pre-LN</td>
+          </tr>
+          <tr>
+            <td><strong>LLaMA</strong></td>
+            <td>7B-65B</td>
+            <td>Decoder</td>
+            <td>GQA</td>
+            <td>SiLU</td>
+            <td>RMSNorm</td>
+          </tr>
+          <tr>
+            <td><strong>LLaMA 2</strong></td>
+            <td>7B-70B</td>
+            <td>Decoder</td>
+            <td>GQA</td>
+            <td>SiLU</td>
+            <td>RMSNorm</td>
+          </tr>
+          <tr>
+            <td><strong>Mistral</strong></td>
+            <td>7B</td>
+            <td>Decoder</td>
+            <td>GQA + Sliding Window</td>
+            <td>SiLU</td>
+            <td>RMSNorm</td>
+          </tr>
+          <tr>
+            <td><strong>BERT</strong></td>
+            <td>110M-340M</td>
+            <td>Encoder</td>
+            <td>MHA</td>
+            <td>GELU</td>
+            <td>Post-LN</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="zkml-challenges">ZKML 挑戰與解決方案</h2>
+
+      <h3>主要挑戰</h3>
+
+      <pre><code>Transformer 的 ZKML 挑戰：
+
+1. 注意力矩陣大小
+   問題：O(n²) 元素需要約束
+   n = 2048 時，單層注意力 = 4M 元素
+
+   解決方案：
+   - 使用更短的上下文
+   - 分段處理 + 遞迴證明
+   - 稀疏注意力模式
+
+2. Softmax 複雜度
+   問題：exp, sum, div 都是非線性
+   每行 Softmax ~5000 約束
+   n = 2048 時，單層 = 10M 約束
+
+   解決方案：
+   - zkLLM 的 tlookup<sup><a href="#ref-2">[2]</a></sup>
+   - 預計算查找表
+   - 精度與成本權衡
+
+3. 激活函數
+   問題：GELU, SiLU 無法精確表示
+
+   解決方案：
+   - 查表近似
+   - 分段線性近似
+   - 替換為 ReLU（可能降低精度）
+
+4. 模型大小
+   問題：GPT-2 small = 117M 參數
+
+   約束估計：
+   - 每層約束 ≈ 10⁹ (n=1024)
+   - 12 層 ≈ 10¹⁰ 約束
+   - 證明時間可能需要數小時
+
+   解決方案：
+   - 使用更小的模型
+   - 知識蒸餾
+   - 分層遞迴證明</code></pre>
+
+      <h3>zkLLM 解決方案</h3>
+
+      <pre><code>zkLLM 的優化技術<sup><a href="#ref-2">[2]</a></sup>：
+
+1. tlookup（Tensor Lookup）
+   將高維查表問題分解
+   Softmax(x) = tlookup(x, table)
+
+   優勢：
+   - 減少 Softmax 約束 ~100x
+   - 適用於其他非線性函數
+
+2. zkAttn（Zero-Knowledge Attention）
+   專門優化注意力計算的電路
+   利用注意力矩陣的結構特性
+
+3. 漸進式驗證
+   不一次證明整個模型
+   分 token 逐步生成證明
+
+4. KV Cache 證明
+   利用過去計算的承諾
+   避免重複證明相同內容
+
+效能數據（GPT-2, 128 tokens）：
+  證明時間：~15 分鐘/token
+  驗證時間：~10 毫秒
+  證明大小：~10 KB</code></pre>
+
+      <h3>ZKML 友好的模型設計</h3>
+
+      <pre><code>設計 ZKML 友好模型的建議：
+
+1. 模型選擇
+   ✓ 選擇較小的模型（<1B 參數）
+   ✓ 使用知識蒸餾壓縮
+   ✓ 考慮 MobileNet/EfficientNet 風格架構
+
+2. 注意力設計
+   ✓ 減少頭數（GQA 而非 MHA）
+   ✓ 限制上下文長度
+   ✓ 考慮局部注意力
+
+3. 激活函數
+   ✓ 優先使用 ReLU
+   ✓ 必須使用 GELU 時，配合查表
+   ✓ 避免 Softmax 在非必要位置
+
+4. 歸一化
+   ✓ 使用 RMSNorm 而非 LayerNorm
+   ✓ 或使用批歸一化（推理時合併）
+
+5. 量化
+   ✓ 使用 8-bit 或更低精度
+   ✓ 減少電路規模
+   ✓ 配合 ZKML 框架的量化支援</code></pre>
+
+      <h2 id="complexity-analysis">複雜度分析</h2>
+
+      <h3>計算與約束複雜度</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>計算複雜度</th>
+            <th>約束複雜度</th>
+            <th>備註</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>QKV 投影</td>
+            <td>\(O(n \cdot d^2)\)</td>
+            <td>\(O(n \cdot d^2)\)</td>
+            <td>矩陣乘法</td>
+          </tr>
+          <tr>
+            <td>注意力分數</td>
+            <td>\(O(n^2 \cdot d)\)</td>
+            <td>\(O(n^2 \cdot d)\)</td>
+            <td>QK^T</td>
+          </tr>
+          <tr>
+            <td>Softmax</td>
+            <td>\(O(n^2)\)</td>
+            <td>\(O(n^2 \cdot C_{softmax})\)</td>
+            <td>C ≈ 5000 (無優化)</td>
+          </tr>
+          <tr>
+            <td>注意力輸出</td>
+            <td>\(O(n^2 \cdot d)\)</td>
+            <td>\(O(n^2 \cdot d)\)</td>
+            <td>A·V</td>
+          </tr>
+          <tr>
+            <td>FFN 第一層</td>
+            <td>\(O(n \cdot d \cdot d_{ff})\)</td>
+            <td>\(O(n \cdot d \cdot d_{ff})\)</td>
+            <td>通常 d_ff = 4d</td>
+          </tr>
+          <tr>
+            <td>FFN 激活</td>
+            <td>\(O(n \cdot d_{ff})\)</td>
+            <td>\(O(n \cdot d_{ff} \cdot C_{act})\)</td>
+            <td>C ≈ 1 (查表)</td>
+          </tr>
+          <tr>
+            <td>FFN 第二層</td>
+            <td>\(O(n \cdot d_{ff} \cdot d)\)</td>
+            <td>\(O(n \cdot d_{ff} \cdot d)\)</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>LayerNorm</td>
+            <td>\(O(n \cdot d)\)</td>
+            <td>\(O(n \cdot d \cdot C_{ln})\)</td>
+            <td>C ≈ 100</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>實際規模估計</h3>
+
+      <pre><code>GPT-2 Small (12 層, d=768, n=1024) 的約束估計：
+
+每層約束：
+  注意力：
+    QKV投影: 3 × 1024 × 768² = 1.8 × 10⁹
+    QK^T: 1024² × 768 = 8.0 × 10⁸
+    Softmax: 1024² × 5000 = 5.2 × 10⁹ (無優化)
+    AV: 1024² × 768 = 8.0 × 10⁸
+    小計: ~8 × 10⁹
+
+  FFN：
+    第一層: 1024 × 768 × 3072 = 2.4 × 10⁹
+    激活: 1024 × 3072 × 1 = 3.1 × 10⁶
+    第二層: 1024 × 3072 × 768 = 2.4 × 10⁹
+    小計: ~4.8 × 10⁹
+
+  LayerNorm (×2):
+    2 × 1024 × 768 × 100 = 1.6 × 10⁸
+
+  每層總計: ~1.3 × 10¹⁰ 約束
+
+12 層總計: ~1.5 × 10¹¹ 約束
+
+使用 zkLLM tlookup 優化後：
+  Softmax 約束減少 ~100x
+  預估總約束: ~3 × 10¹⁰
+
+證明時間估計（假設 10⁶ 約束/秒）：
+  無優化: ~42 小時
+  優化後: ~8 小時</code></pre>
+
       <h2>相關頁面</h2>
+
       <ul>
-        <li><a href="../frameworks/academic/zkllm.html">zkLLM</a></li>
-        <li><a href="activations.html">激活函數</a></li>
+        <li><a href="neural-networks.html">神經網路基礎</a> - CNN、RNN 等其他架構</li>
+        <li><a href="activations.html">激活函數</a> - 詳細的激活函數 ZK 實現</li>
+        <li><a href="../frameworks/academic/zkllm.html">zkLLM</a> - 專門處理 LLM 的 ZKML 框架</li>
+        <li><a href="../zkml/circuit/lookup-tables.html">查表優化</a> - 非線性函數的 ZK 實現</li>
+        <li><a href="../ml/optimization/quantization.html">量化技術</a> - 減少模型大小</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Vaswani, A., et al. "Attention Is All You Need." NeurIPS 2017.</cite>
+            <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Sun, H., et al. "zkLLM: Zero Knowledge Proofs for Large Language Models." arXiv 2024.</cite>
+            <a href="https://arxiv.org/abs/2404.16109" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-3">
+            <cite>Su, J., et al. "RoFormer: Enhanced Transformer with Rotary Position Embedding." arXiv 2021.</cite>
+            <a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-4">
+            <cite>Ba, J., Kiros, J., & Hinton, G. "Layer Normalization." arXiv 2016.</cite>
+            <a href="https://arxiv.org/abs/1607.06450" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-5">
+            <cite>Dao, T., et al. "FlashAttention: Fast and Memory-Efficient Exact Attention." NeurIPS 2022.</cite>
+            <a href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-6">
+            <cite>Touvron, H., et al. "LLaMA: Open and Efficient Foundation Language Models." arXiv 2023.</cite>
+            <a href="https://arxiv.org/abs/2302.13971" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
+
     </article>
     <nav id="prev-next" aria-label="前後頁導覽"></nav>
   </main>

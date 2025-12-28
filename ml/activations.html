@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
 </head>
 <body data-page-id="activations">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
@@ -23,61 +24,1055 @@
     <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
     <article>
       <h1>激活函數</h1>
+
       <div class="callout callout-info">
         <div class="callout-title">ZKML 核心挑戰</div>
-        <p>激活函數是神經網路的非線性來源，但在 ZK 電路中表示非線性函數成本高昂。理解不同激活函數的電路成本對 ZKML 設計至關重要。</p>
+        <p>激活函數是神經網路的非線性來源，使網路能夠學習複雜的函數映射。然而，在 ZK 電路中表示非線性函數成本極高。本頁面詳細說明各種激活函數的數學定義、ZK 電路實現策略，以及查表優化技術。</p>
       </div>
-      <h2>常見激活函數</h2>
-      <h3>ReLU</h3>
-      <pre><code>定義：f(x) = max(0, x)
+
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#fundamentals">激活函數基礎</a></li>
+          <li><a href="#relu-family">ReLU 家族</a></li>
+          <li><a href="#sigmoid-tanh">Sigmoid 與 Tanh</a></li>
+          <li><a href="#gelu-silu">GELU 與 SiLU</a></li>
+          <li><a href="#softmax">Softmax</a></li>
+          <li><a href="#zk-implementation">ZK 電路實現策略</a></li>
+          <li><a href="#lookup-tables">查表優化技術</a></li>
+          <li><a href="#piecewise-linear">分段線性近似</a></li>
+          <li><a href="#comparison">綜合比較與選擇指南</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="fundamentals">激活函數基礎</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：激活函數</div>
+        <p>激活函數 \(\sigma: \mathbb{R} \to \mathbb{R}\) 是神經網路中引入非線性的組件。對於神經元輸出 \(z = wx + b\)，激活函數產生最終輸出 \(a = \sigma(z)\)。</p>
+      </div>
+
+      <h3>為什麼需要非線性？</h3>
+
+      <pre><code>線性網路的局限性：
+
+考慮兩層線性網路：
+  y = W₂(W₁x + b₁) + b₂
+    = W₂W₁x + W₂b₁ + b₂
+    = W'x + b'
+
+結論：任意多層線性網路等價於單層線性網路
+
+非線性的作用：
+  y = W₂ · σ(W₁x + b₁) + b₂
+
+σ 打破線性疊加，使網路能夠逼近任意連續函數
+（Universal Approximation Theorem<sup><a href="#ref-1">[1]</a></sup>）
+
+ZKML 的兩難：
+  - 非線性對學習必不可少
+  - 非線性在 ZK 電路中成本高昂
+  - 需要在表達力和效率之間權衡</code></pre>
+
+      <h3>理想激活函數的特性</h3>
+
+      <pre><code>從 ML 角度：
+  ✓ 非線性（表達力）
+  ✓ 可微分（梯度傳遞）
+  ✓ 有界梯度（避免梯度爆炸）
+  ✓ 零中心（加速收斂）
+  ✓ 計算高效
+
+從 ZKML 角度：
+  ✓ 簡單的數學形式
+  ✓ 可用有限次域運算表示
+  ✓ 適合查表實現
+  ✓ 低精度需求
+
+最佳平衡：ReLU（ML 性能好 + ZKML 成本低）</code></pre>
+
+      <h2 id="relu-family">ReLU 家族</h2>
+
+      <h3>ReLU (Rectified Linear Unit)</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：ReLU</div>
+        <p>ReLU 是最廣泛使用的激活函數<sup><a href="#ref-2">[2]</a></sup>，定義為：</p>
+        <p class="math">$$\text{ReLU}(x) = \max(0, x) = \begin{cases} x & \text{if } x > 0 \\ 0 & \text{if } x \leq 0 \end{cases}$$</p>
+      </div>
+
+      <pre><code>ReLU 的特性：
+
+數學性質：
+  - 分段線性
+  - 右半邊恆等，左半邊為零
+  - 導數：f'(x) = 1 if x > 0, else 0
+
+優點：
+  - 計算簡單（只需比較和選擇）
+  - 緩解梯度消失問題
+  - 稀疏激活（提高效率）
+
+缺點：
+  - 非零中心（輸出總 ≥ 0）
+  - Dead ReLU 問題（負輸入梯度為零）
+
+圖形：
+        │
+    ────┼────────────
+       ╱│
+      ╱ │
+     ╱  │
+────╱   │
+   0    │</code></pre>
+
+      <h4>ReLU 的 ZK 電路實現</h4>
+
+      <pre><code>ReLU 在 ZK 電路中的挑戰：
+
+問題：max(0, x) 需要條件分支
+
+方法 1：位元分解（Bit Decomposition）
+
+  目標：確定 x 的符號（正或負）
+
+  在有限域 F_p 中：
+    - x 可表示為位元：x = Σ bᵢ · 2ⁱ
+    - 最高位元表示符號
+
+  步驟：
+    1. 分解 x 為 254 個位元
+    2. 檢查每個 bᵢ ∈ {0, 1}
+    3. 驗證 x = Σ bᵢ · 2ⁱ
+    4. 用符號位決定輸出
+
+  約束數量：~254（每個位元 1 個約束）
+
+方法 2：查表（Lookup Table）
+
+  預計算 ReLU 值並存入表：
+    table[x] = max(0, x)  對於所有可能的 x
+
+  在電路中：
+    output = lookup(x, table)
+
+  約束數量：~1-3（取決於查表協議）
+
+  限制：輸入範圍必須有限
+    如：x ∈ [-2¹⁶, 2¹⁶]（16-bit 量化）
+
+方法 3：輔助變數 + 約束
+
+  引入輔助變數：
+    sign ∈ {0, 1}     # x 的符號
+    relu_out = x · sign  # 輸出
+
+  約束：
+    sign · (1 - sign) = 0    # sign 是 0 或 1
+    sign = 1 if x > 0        # 需要範圍證明
+    relu_out = x · sign
+
+  仍需要範圍證明，約束較多</code></pre>
+
+      <h3>Leaky ReLU</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Leaky ReLU</div>
+        <p>Leaky ReLU 允許負輸入有小的非零輸出：</p>
+        <p class="math">$$\text{LeakyReLU}(x) = \begin{cases} x & \text{if } x > 0 \\ \alpha x & \text{if } x \leq 0 \end{cases}$$</p>
+        <p>其中 \(\alpha\) 通常取 0.01。</p>
+      </div>
+
+      <pre><code>Leaky ReLU vs ReLU：
+
+優點：
+  - 解決 Dead ReLU 問題
+  - 負區域有梯度
 
 ZK 實現：
-  方法 1：位元分解（~254 約束）
-  方法 2：查表（~1 約束）
+  需要額外乘法（乘以 α）
 
-推薦：使用查表方法</code></pre>
-      <h3>Sigmoid</h3>
-      <pre><code>定義：σ(x) = 1/(1+e^{-x})
+  約束：
+    sign ∈ {0, 1}
+    output = sign · x + (1 - sign) · α · x
+           = x · (sign + (1 - sign) · α)
+
+  約束數量：略多於 ReLU
+  若 α = 0.01 = 1/100，需要處理分數
+
+ZKML 建議：
+  如非必要，優先使用 ReLU
+  Leaky ReLU 對精度敏感，量化後可能退化為 ReLU</code></pre>
+
+      <h3>PReLU 與 ELU</h3>
+
+      <pre><code>其他 ReLU 變體：
+
+PReLU (Parametric ReLU)：
+  f(x) = max(0, x) + α · min(0, x)
+  α 是可學習參數
+
+  ZKML：需要額外處理可學習的 α
+
+ELU (Exponential Linear Unit)：
+  f(x) = x              if x > 0
+       = α(eˣ - 1)      if x ≤ 0
+
+  ZKML：負區域需要指數計算，成本高
+  建議避免
+
+SELU (Scaled ELU)：
+  f(x) = λ · ELU(x)
+  自歸一化性質
+
+  ZKML：同樣需要指數，不推薦
+
+ReLU6：
+  f(x) = min(max(0, x), 6)
+
+  用於 MobileNet，限制輸出範圍
+  ZKML：兩次比較，查表友好</code></pre>
+
+      <h2 id="sigmoid-tanh">Sigmoid 與 Tanh</h2>
+
+      <h3>Sigmoid 函數</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Sigmoid</div>
+        <p>Sigmoid（邏輯函數）將輸入壓縮到 (0, 1) 區間：</p>
+        <p class="math">$$\sigma(x) = \frac{1}{1 + e^{-x}}$$</p>
+        <p>導數：\(\sigma'(x) = \sigma(x)(1 - \sigma(x))\)</p>
+      </div>
+
+      <pre><code>Sigmoid 的特性：
+
+數學性質：
+  - 輸出範圍：(0, 1)
+  - 平滑可微
+  - 單調遞增
+  - σ(0) = 0.5
+  - σ(x) + σ(-x) = 1
+
+問題：
+  - 梯度消失：|x| 大時梯度接近 0
+  - 非零中心：輸出總為正
+  - 計算成本：需要指數運算
+
+圖形：
+      1 ─────────────────
+        │               ╱
+      0.5─────────────╱
+        │           ╱
+      0 ─────────╱────────
+               0
+
+應用：
+  - 二元分類輸出層
+  - LSTM/GRU 的門控機制
+  - 概率輸出</code></pre>
+
+      <h4>Sigmoid 的 ZK 電路實現</h4>
+
+      <pre><code>Sigmoid 在 ZK 中的挑戰：
+
+σ(x) = 1 / (1 + e^{-x})
+
+涉及的難題操作：
+  1. 指數 e^{-x}
+  2. 加法（簡單）
+  3. 除法（求逆）
+
+方法 1：泰勒展開近似
+
+  e^x ≈ 1 + x + x²/2! + x³/3! + ...
+
+  截斷到 n 項：
+    e^x ≈ Σᵢ₌₀ⁿ xⁱ/i!
+
+  問題：
+    - 需要多次乘法（x² 需 1 次，x³ 需 2 次...）
+    - 除以 i! 需要逆元計算
+    - 收斂範圍有限（|x| 小時才準確）
+
+  約束估計（n=5）：~50 約束
+
+方法 2：分段線性近似
+
+  將 sigmoid 分成多段直線：
+    σ(x) ≈ a₀ + a₁x    if x ∈ [x₀, x₁]
+         ≈ b₀ + b₁x    if x ∈ [x₁, x₂]
+         ...
+
+  段數越多越精確，約束也越多
+  典型：8-16 段
+
+  約束：
+    - 確定所屬區間
+    - 計算線性近似
+
+  約束估計：~20-50
+
+方法 3：查表（推薦）
+
+  預計算查找表：
+    table[q(x)] = σ(x)
+
+    其中 q(x) 是量化函數
+
+  量化範圍：x ∈ [-8, 8]（超出範圍近似飽和）
+  精度：8-bit 輸入 → 256 個表項
+
+  約束：~1-3（查表開銷）
+
+  這是 ZKML 的標準方法</code></pre>
+
+      <h3>Tanh 函數</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Tanh</div>
+        <p>雙曲正切函數將輸入壓縮到 (-1, 1) 區間：</p>
+        <p class="math">$$\tanh(x) = \frac{e^x - e^{-x}}{e^x + e^{-x}} = \frac{1 - e^{-2x}}{1 + e^{-2x}} = 2\sigma(2x) - 1$$</p>
+      </div>
+
+      <pre><code>Tanh vs Sigmoid：
+
+數學關係：
+  tanh(x) = 2σ(2x) - 1
+
+  因此 tanh 可從 sigmoid 推導
+
+優點（相比 sigmoid）：
+  - 零中心：輸出範圍 (-1, 1)
+  - 梯度更大：tanh'(0) = 1，而 σ'(0) = 0.25
+
+缺點：
+  - 仍有梯度消失問題
+  - 計算成本與 sigmoid 相當
+
+應用：
+  - LSTM 的候選狀態計算
+  - RNN 的隱藏狀態
+  - 需要對稱輸出的場景
 
 ZK 實現：
-  - 需要指數和除法
-  - 通常使用分段線性近似
-  - 或預計算查表
+  與 sigmoid 相同的策略
+  可利用 tanh(x) = 2σ(2x) - 1 轉換
+  或獨立查表</code></pre>
 
-建議：若可能，替換為 ReLU</code></pre>
-      <h3>GELU</h3>
-      <pre><code>定義：GELU(x) = x · Φ(x)
+      <h2 id="gelu-silu">GELU 與 SiLU</h2>
 
-ZK 挑戰：
-  - 涉及累積分布函數
-  - 必須使用近似或查表
+      <h3>GELU (Gaussian Error Linear Unit)</h3>
 
-Transformer 常用，需特別處理</code></pre>
-      <h3>Softmax</h3>
-      <pre><code>定義：softmax(x)_i = exp(x_i) / Σ exp(x_j)
+      <div class="definition">
+        <div class="definition-title">Definition：GELU</div>
+        <p>GELU 使用高斯累積分布函數作為門控<sup><a href="#ref-3">[3]</a></sup>：</p>
+        <p class="math">$$\text{GELU}(x) = x \cdot \Phi(x) = x \cdot \frac{1}{2}\left[1 + \text{erf}\left(\frac{x}{\sqrt{2}}\right)\right]$$</p>
+        <p>常用近似：</p>
+        <p class="math">$$\text{GELU}(x) \approx 0.5x\left(1 + \tanh\left(\sqrt{\frac{2}{\pi}}\left(x + 0.044715x^3\right)\right)\right)$$</p>
+      </div>
 
-ZK 挑戰：
-  - 指數計算
-  - 求和
-  - 除法
+      <pre><code>GELU 的特性：
 
-通常是 ZKML 最困難的部分</code></pre>
-      <h2>ZKML 成本比較</h2>
+直觀理解：
+  - 結合了 ReLU 和 Dropout 的特性
+  - 輸入 x 以概率 Φ(x) 被保留
+  - 大的正值幾乎完全保留
+  - 小的負值可能保留少量
+
+數學性質：
+  - 平滑（處處可微）
+  - 非單調（在 x ≈ -0.75 處有最小值）
+  - GELU(0) = 0
+  - GELU(x) → x 當 x → +∞
+  - GELU(x) → 0 當 x → -∞
+
+圖形（與 ReLU 比較）：
+       │
+    ───┼─────────────
+      ╱│         ╱ ReLU
+     ╱ │      ╭─╯
+    ╱  │   ╭──╯ GELU
+───╯   │ ╭─╯
+   ╰─╮ │╭╯
+     ╰─┼╯
+       │
+
+應用：
+  - BERT, GPT-2, GPT-3
+  - 現代 Transformer 架構
+  - Vision Transformer (ViT)</code></pre>
+
+      <h4>GELU 的 ZK 電路實現</h4>
+
+      <pre><code>GELU 的 ZK 挑戰：
+
+精確形式：GELU(x) = x · Φ(x)
+  需要計算高斯 CDF，涉及積分
+
+tanh 近似：
+  GELU(x) ≈ 0.5x(1 + tanh(√(2/π)(x + 0.044715x³)))
+
+展開計算步驟：
+  1. x³ 計算：2 次乘法
+  2. 0.044715x³：1 次乘法
+  3. x + 0.044715x³：1 次加法
+  4. √(2/π) ≈ 0.7979：1 次乘法
+  5. tanh(...)：查表
+  6. 1 + tanh(...)：1 次加法
+  7. 0.5x：1 次乘法
+  8. 最終結果：1 次乘法
+
+約束估計（使用 tanh 近似 + 查表）：
+  乘法約束：~7
+  tanh 查表：~1-3
+  總計：~10 約束
+
+直接查表法：
+  預計算 GELU 查找表
+  input: 量化的 x
+  output: GELU(x)
+
+  約束：~1-3
+
+  這是 ZKML 的推薦方法
+
+EZKL 實現：
+  使用預計算的 GELU 查找表
+  支援可配置的精度/範圍權衡</code></pre>
+
+      <h3>SiLU / Swish</h3>
+
+      <div class="definition">
+        <div class="definition-title">Definition：SiLU (Sigmoid Linear Unit) / Swish</div>
+        <p>SiLU（也稱為 Swish）將輸入乘以其 sigmoid：</p>
+        <p class="math">$$\text{SiLU}(x) = x \cdot \sigma(x) = \frac{x}{1 + e^{-x}}$$</p>
+        <p>這是 Swish-1，一般形式為 \(\text{Swish}_\beta(x) = x \cdot \sigma(\beta x)\)。</p>
+      </div>
+
+      <pre><code>SiLU 的特性：
+
+數學性質：
+  - 平滑（處處可微）
+  - 非單調
+  - SiLU(0) = 0
+  - SiLU(x) → x 當 x → +∞
+  - SiLU(x) → 0 當 x → -∞
+  - 在 x ≈ -1.28 處有最小值 ≈ -0.28
+
+與 GELU 的比較：
+  - 形式更簡單（不需要 erf 或 tanh）
+  - 性能相當
+  - SiLU = x · sigmoid(x)
+  - GELU ≈ x · Φ(x)
+
+應用：
+  - LLaMA, LLaMA 2
+  - EfficientNet
+  - 現代高效模型
+
+ZK 實現：
+
+  SiLU(x) = x · σ(x)
+
+  步驟：
+    1. 計算 σ(x)：查表
+    2. x · σ(x)：1 次乘法
+
+  約束：~2-4（sigmoid 查表 + 1 次乘法）
+
+  或直接 SiLU 查表：~1-3</code></pre>
+
+      <h3>GeGLU 與 SwiGLU</h3>
+
+      <pre><code>門控激活變體（用於 FFN）：
+
+GeGLU：
+  GeGLU(x, y) = GELU(x) ⊙ y
+
+  用於 FFN：
+    [x, y] = Linear(input)  # 分割成兩部分
+    output = Linear(GELU(x) * y)
+
+SwiGLU：
+  SwiGLU(x, y) = SiLU(x) ⊙ y
+
+  用於 LLaMA 的 FFN
+
+優點：
+  - 提高模型表達力
+  - 在相同計算量下性能更好
+
+ZK 考量：
+  - 需要額外的元素乘法
+  - 激活函數仍需查表
+  - 總約束增加 ~O(hidden_dim)
+
+LLaMA FFN 結構：
+  gate = SiLU(xW_gate)    # 門控
+  up = xW_up              # 上投影
+  output = (gate ⊙ up)W_down
+
+ZKML 約束（hidden_dim = 2048）：
+  SiLU 查表：2048 × ~2 = ~4K
+  元素乘法：2048
+  矩陣乘法：主導（millions）</code></pre>
+
+      <h2 id="softmax">Softmax</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：Softmax</div>
+        <p>Softmax 將向量轉換為概率分布<sup><a href="#ref-4">[4]</a></sup>：</p>
+        <p class="math">$$\text{softmax}(x)_i = \frac{e^{x_i}}{\sum_{j=1}^{n} e^{x_j}}$$</p>
+        <p>輸出滿足 \(\sum_i \text{softmax}(x)_i = 1\) 且 \(\text{softmax}(x)_i > 0\)。</p>
+      </div>
+
+      <h3>Softmax 的數值穩定計算</h3>
+
+      <pre><code>數值穩定版本：
+
+問題：e^{x_i} 可能溢出（x 很大時）
+
+解決：減去最大值
+
+  softmax(x)_i = e^{x_i - max(x)} / Σ_j e^{x_j - max(x)}
+
+證明等價性：
+  設 M = max(x)
+
+  e^{x_i - M} / Σ e^{x_j - M}
+  = e^{x_i} · e^{-M} / (Σ e^{x_j} · e^{-M})
+  = e^{x_i} / Σ e^{x_j}
+  = 原始 softmax
+
+計算步驟：
+  1. M = max(x_1, ..., x_n)      # n-1 次比較
+  2. y_i = x_i - M               # n 次減法
+  3. z_i = exp(y_i)              # n 次指數
+  4. S = Σ z_i                   # n-1 次加法
+  5. out_i = z_i / S             # n 次除法</code></pre>
+
+      <h3>Softmax 的 ZK 電路挑戰</h3>
+
+      <pre><code>Softmax 在 ZK 中的五大挑戰：
+
+1. 求最大值 (max)
+   需要 n-1 次比較
+   每次比較：~254 約束（位分解）或 ~10（查表）
+
+   n=1024 時：~250K 約束（位分解）
+
+2. 指數運算 (exp)
+   n 次指數計算
+   每次：泰勒展開 ~50 約束 或 查表 ~1-3
+
+   n=1024 時：~3K 約束（查表）
+
+3. 求和 (sum)
+   n-1 次加法
+   線性操作，成本低
+
+4. 除法 (division)
+   n 次除法
+   計算逆元：每次 ~100 約束 或 查表 ~1-3
+
+   n=1024 時：~3K 約束（查表）
+
+5. 連動性
+   以上步驟必須依序進行
+   無法並行優化
+
+總約束估計（n=1024，無優化）：
+  max: ~250K
+  exp: ~50K
+  div: ~100K
+  總計: ~400K ≈ 5M（考慮開銷）
+
+這是為何 Softmax 被稱為「ZKML 的噩夢」</code></pre>
+
+      <h3>Softmax 的 ZKML 優化策略</h3>
+
+      <pre><code>Softmax 優化方法：
+
+策略 1：避免使用
+
+  在可能的情況下替代：
+  - 訓練時用 Softmax，推理時用 argmax
+  - 使用 hardmax（one-hot 輸出）
+  - 使用 sparsemax 或 entmax
+
+  適用：分類任務最終輸出
+
+策略 2：查表 + 近似
+
+  預計算 exp 和 1/x 的查找表
+  限制輸入範圍和精度
+
+  約束減少：~10x
+
+策略 3：分段線性 exp
+
+  exp(x) ≈ 分段線性函數
+  減少每個 exp 的成本
+
+  精度損失可接受
+
+策略 4：zkLLM 的 tlookup<sup><a href="#ref-5">[5]</a></sup>
+
+  Tensor Lookup 技術：
+  - 將高維 Softmax 分解
+  - 使用結構化查表
+  - 批量處理多個元素
+
+  約束減少：~100x
+
+  n=1024 時約束：~50K（而非 5M）
+
+策略 5：移除中間 Softmax
+
+  在 Transformer 中：
+  - 保留最終輸出的 Softmax
+  - 用近似替代注意力中的 Softmax
+
+  需要模型重訓練或微調</code></pre>
+
+      <h2 id="zk-implementation">ZK 電路實現策略</h2>
+
+      <h3>策略總覽</h3>
+
+      <pre><code>激活函數的 ZK 實現策略：
+
+┌────────────────┬────────────────┬────────────────┬────────────────┐
+│     策略       │    精度        │   約束成本     │   適用場景     │
+├────────────────┼────────────────┼────────────────┼────────────────┤
+│ 精確計算       │ 完美           │ 非常高         │ 不實用         │
+│ 泰勒展開       │ 高（有限範圍） │ 中             │ 簡單函數       │
+│ 分段線性       │ 中             │ 中-低          │ 通用           │
+│ 查表           │ 可調           │ 低             │ 推薦           │
+│ 混合方法       │ 高             │ 低-中          │ 複雜函數       │
+└────────────────┴────────────────┴────────────────┴────────────────┘
+
+決策樹：
+
+是否為 ReLU？
+  ├─ 是 → 查表（~1 約束）
+  └─ 否 → 是否需要高精度？
+           ├─ 否 → 查表（~1-3 約束）
+           └─ 是 → 分段線性或混合（~10-50 約束）</code></pre>
+
+      <h3>定點數運算</h3>
+
+      <pre><code>ZKML 中的定點數表示：
+
+為什麼用定點數？
+  - ZK 電路在有限域 F_p 上運算
+  - 浮點數無法直接表示
+  - 定點數可精確映射到域元素
+
+定點數格式：
+  Q(m.n) 格式：m 位整數 + n 位小數
+
+  例：Q(8.8) = 16-bit 定點數
+    - 範圍：[-128, 127.996]
+    - 精度：1/256 ≈ 0.004
+    - 表示：value = integer / 2^8
+
+ZKML 中的定點運算：
+
+  加法：直接加法
+    (a · 2^n) + (b · 2^n) = (a + b) · 2^n
+    無需調整
+
+  乘法：需要縮放
+    (a · 2^n) × (b · 2^n) = (a × b) · 2^{2n}
+    結果需除以 2^n 調整回正確精度
+
+    在電路中：
+      c_raw = a × b
+      c_scaled = c_raw / 2^n  # 右移 n 位
+
+  除法：計算逆元
+    a / b = a × (1/b)
+    需要 b 的乘法逆元
+
+EZKL 的 scale 參數：
+  - 控制定點數精度
+  - scale = 2^n
+  - 較大 scale = 較高精度 = 較大約束</code></pre>
+
+      <h2 id="lookup-tables">查表優化技術</h2>
+
+      <h3>查表原理</h3>
+
+      <pre><code>查表（Lookup Table）在 ZK 中的工作原理：
+
+基本思想：
+  預計算函數值並存入表中
+  證明 (input, output) 對存在於表中
+
+查表協議的演進：
+
+1. 簡單查表（plookup 之前）
+   - 將表編碼為多項式
+   - 用多項式求值證明成員關係
+   - 成本隨表大小線性增長
+
+2. Plookup<sup><a href="#ref-6">[6]</a></sup>
+   - 使用排序網路
+   - 證明兩個多項式的「非連續成員關係」
+   - 成本與查詢次數成正比
+   - 表大小幾乎免費（對數開銷）
+
+3. cq/LogUp
+   - 進一步優化
+   - 使用對數導數
+   - 支持多表查詢
+
+ZKML 中的查表：
+
+  激活函數查表：
+    table = {(x, f(x)) : x ∈ 輸入範圍}
+
+  電路約束：
+    證明 (input, output) ∈ table
+
+  約束成本（halo2 / EZKL）：
+    ~1-3 約束每次查詢
+    與函數複雜度無關！</code></pre>
+
+      <h3>查表的實踐考量</h3>
+
+      <pre><code>查表設計的關鍵決策：
+
+1. 輸入範圍
+   問題：表不能無限大
+   解決：量化輸入到有限範圍
+
+   典型設置：
+     ReLU: x ∈ [-2^15, 2^15)
+     Sigmoid: x ∈ [-8, 8]（超出範圍飽和）
+     GELU: x ∈ [-4, 4]
+
+2. 精度 vs 表大小
+   位寬    表項數    記憶體
+   8-bit   256       256B
+   10-bit  1024      1KB
+   12-bit  4096      4KB
+   16-bit  65536     64KB
+
+   更多位 = 更高精度 = 更大表 = 更高證明成本
+
+3. 範圍溢出處理
+   當輸入超出表範圍時：
+   - 選項 A：限制（clamp）到邊界值
+   - 選項 B：報錯（不允許）
+   - 選項 C：使用備用計算方法
+
+   ZKML 常用 clamp 策略
+
+4. 多輸入函數
+   如 Softmax 需要向量輸入
+   解決：分解為單輸入操作
+
+   Softmax(x) = exp(x_i) / sum(exp(x_j))
+              = 查表(x_i) / 求和 / 查表(逆元)
+
+EZKL 查表配置：
+  --lookup-range：定義查表輸入範圍
+  --lookup-bits：定義查表精度</code></pre>
+
+      <h3>查表約束分析</h3>
+
+      <pre><code>查表對電路大小的影響：
+
+不同協議的查表成本：
+
+R1CS + Plookup：
+  每次查詢：~3-5 約束
+  表設置：O(|table|) 一次性成本
+
+Plonkish (halo2)：
+  每次查詢：~1-3 約束
+  表設置：幾乎免費（作為固定多項式）
+
+約束比較（計算 1000 個 GELU）：
+
+  泰勒展開（10 項）：
+    每個 GELU ~50 約束
+    總計：~50,000 約束
+
+  分段線性（8 段）：
+    每個 GELU ~15 約束
+    總計：~15,000 約束
+
+  查表：
+    每個 GELU ~2 約束
+    總計：~2,000 約束
+
+查表減少約束 10-25 倍！
+
+表大小對證明的影響：
+  表項數    證明增加    驗證增加
+  256       可忽略      可忽略
+  4096      ~1%         ~1%
+  65536     ~5%         ~3%
+
+  適度的表大小幾乎不影響性能</code></pre>
+
+      <h2 id="piecewise-linear">分段線性近似</h2>
+
+      <h3>分段線性近似原理</h3>
+
+      <pre><code>分段線性近似（Piecewise Linear Approximation）：
+
+原理：
+  將非線性函數用多條直線段逼近
+
+  f(x) ≈ a_i · x + b_i    當 x ∈ [x_i, x_{i+1})
+
+步驟：
+  1. 選擇分段點：x_0, x_1, ..., x_n
+  2. 計算每段斜率和截距
+  3. 在電路中確定輸入所屬區間
+  4. 應用對應的線性公式
+
+Sigmoid 8 段近似範例：
+
+  區間          近似公式
+  (-∞, -5]      0
+  [-5, -2.5]    0.01x + 0.05
+  [-2.5, -1]    0.07x + 0.2
+  [-1, 0]       0.2x + 0.33
+  [0, 1]        0.2x + 0.5
+  [1, 2.5]      0.07x + 0.63
+  [2.5, 5]      0.01x + 0.78
+  [5, +∞)       1
+
+誤差分析：
+  8 段：最大誤差 ~0.03
+  16 段：最大誤差 ~0.01
+  32 段：最大誤差 ~0.003</code></pre>
+
+      <h3>分段線性的電路實現</h3>
+
+      <pre><code>分段線性在 ZK 電路中的實現：
+
+方法 1：條件選擇
+
+  對每個區間 i：
+    in_region_i = (x >= x_i) AND (x < x_{i+1})
+    result += in_region_i · (a_i · x + b_i)
+
+  約束：
+    - n 次範圍比較：n × ~10 約束（使用查表）
+    - n 次乘法（選擇）
+    - 總計：~15n 約束
+
+方法 2：輔助變數指示
+
+  引入指示變數 I_i ∈ {0, 1}
+  約束：Σ I_i = 1（恰好一個為 1）
+
+  result = Σ I_i · (a_i · x + b_i)
+
+  問題：需要證明 I_i 的正確性
+  仍需範圍證明
+
+方法 3：查表輔助
+
+  將區間索引作為查表輸出
+  table[q(x)] = (區間索引, 斜率, 截距)
+
+  result = a · x + b  （從表中獲取 a, b）
+
+  約束：~3-5（查表 + 線性計算）
+
+8 段 Sigmoid 的約束比較：
+  方法 1：~120 約束
+  方法 2：~80 約束
+  方法 3：~5 約束
+  純查表：~2 約束
+
+結論：分段線性主要用於無法查表的情況</code></pre>
+
+      <h2 id="comparison">綜合比較與選擇指南</h2>
+
+      <h3>激活函數 ZKML 成本對比</h3>
+
       <table>
-        <thead><tr><th>激活函數</th><th>傳統約束</th><th>查表約束</th><th>推薦</th></tr></thead>
+        <thead>
+          <tr>
+            <th>激活函數</th>
+            <th>精確約束</th>
+            <th>分段線性</th>
+            <th>查表約束</th>
+            <th>推薦方法</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>ReLU</td><td>~254</td><td>~1</td><td>查表</td></tr>
-          <tr><td>Sigmoid</td><td>~1000</td><td>~1</td><td>查表/避免</td></tr>
-          <tr><td>Tanh</td><td>~1000</td><td>~1</td><td>查表/避免</td></tr>
-          <tr><td>GELU</td><td>~2000</td><td>~1</td><td>查表</td></tr>
-          <tr><td>Softmax</td><td>~5000</td><td>複雜</td><td>特殊處理</td></tr>
+          <tr>
+            <td><strong>ReLU</strong></td>
+            <td>~254</td>
+            <td>N/A</td>
+            <td>~1</td>
+            <td>查表</td>
+          </tr>
+          <tr>
+            <td><strong>Leaky ReLU</strong></td>
+            <td>~260</td>
+            <td>N/A</td>
+            <td>~2</td>
+            <td>查表</td>
+          </tr>
+          <tr>
+            <td><strong>Sigmoid</strong></td>
+            <td>~1000</td>
+            <td>~50</td>
+            <td>~2</td>
+            <td>查表</td>
+          </tr>
+          <tr>
+            <td><strong>Tanh</strong></td>
+            <td>~1000</td>
+            <td>~50</td>
+            <td>~2</td>
+            <td>查表</td>
+          </tr>
+          <tr>
+            <td><strong>GELU</strong></td>
+            <td>~2000</td>
+            <td>~60</td>
+            <td>~2</td>
+            <td>查表</td>
+          </tr>
+          <tr>
+            <td><strong>SiLU / Swish</strong></td>
+            <td>~1500</td>
+            <td>~55</td>
+            <td>~2</td>
+            <td>查表</td>
+          </tr>
+          <tr>
+            <td><strong>Softmax (n=128)</strong></td>
+            <td>~500K</td>
+            <td>~10K</td>
+            <td>~5K</td>
+            <td>tlookup / 避免</td>
+          </tr>
         </tbody>
       </table>
+
+      <h3>選擇決策樹</h3>
+
+      <pre><code>ZKML 激活函數選擇指南：
+
+開始
+  │
+  ├─ 是否可以使用 ReLU？
+  │    ├─ 是 → 使用 ReLU + 查表（最佳選擇）
+  │    └─ 否 → 繼續
+  │
+  ├─ 是否必須使用 Softmax？
+  │    ├─ 是 → 在最終輸出？
+  │    │        ├─ 是 → 考慮用 argmax 替代
+  │    │        └─ 否 → 使用 tlookup 優化
+  │    └─ 否 → 繼續
+  │
+  ├─ 是否使用 Transformer？
+  │    ├─ 是 → 注意力中的激活
+  │    │        ├─ 必須 Softmax → tlookup
+  │    │        └─ FFN 激活 → GELU/SiLU 查表
+  │    └─ 否 → 繼續
+  │
+  ├─ 是否使用 LSTM/GRU？
+  │    ├─ 是 → Sigmoid + Tanh 查表
+  │    └─ 否 → 繼續
+  │
+  └─ 其他情況
+       └─ 優先查表，必要時分段線性
+
+通用建議：
+  1. 能用 ReLU 就用 ReLU
+  2. 非 ReLU 必須用查表
+  3. 避免中間層的 Softmax
+  4. 量化輸入以縮小表大小</code></pre>
+
+      <h3>框架支援</h3>
+
+      <pre><code>主流 ZKML 框架的激活函數支援：
+
+EZKL：
+  ✓ ReLU, Leaky ReLU, PReLU
+  ✓ Sigmoid, Tanh
+  ✓ GELU, SiLU
+  ✓ Softmax（內建優化）
+  ✓ 自定義查表
+
+  配置：
+    --bits：查表精度
+    --scale：定點數精度
+
+Circom/snarkjs：
+  需要手動實現
+  常用庫：circomlib
+
+halo2：
+  高度可定制
+  內建高效查表
+  EZKL 底層使用
+
+zkLLM：
+  專為 LLM 優化
+  tlookup 支援
+  Softmax 專項優化
+
+選擇框架時考慮：
+  - 目標模型的激活函數類型
+  - 精度需求
+  - 開發便利性</code></pre>
+
       <h2>相關頁面</h2>
+
       <ul>
-        <li><a href="../zkml/circuit/lookup-tables.html">查表優化</a></li>
-        <li><a href="neural-networks.html">神經網路基礎</a></li>
+        <li><a href="neural-networks.html">神經網路基礎</a> - 完整的網路層介紹</li>
+        <li><a href="transformers.html">Transformer 架構</a> - GELU/Softmax 在 Transformer 中的應用</li>
+        <li><a href="../zkml/circuit/lookup-tables.html">查表優化</a> - 深入查表技術</li>
+        <li><a href="../zkml/circuit/index.html">模型 → 電路</a> - 電路編譯流程</li>
+        <li><a href="../frameworks/tools/ezkl.html">EZKL</a> - 激活函數的實際配置</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Hornik, K., Stinchcombe, M., & White, H. "Multilayer feedforward networks are universal approximators." Neural Networks, 1989.</cite>
+            <a href="https://doi.org/10.1016/0893-6080(89)90020-8" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Nair, V. & Hinton, G. "Rectified Linear Units Improve Restricted Boltzmann Machines." ICML 2010.</cite>
+            <a href="https://www.cs.toronto.edu/~fritz/absps/reluICML.pdf" target="_blank" rel="noopener">PDF</a>
+          </li>
+          <li id="ref-3">
+            <cite>Hendrycks, D. & Gimpel, K. "Gaussian Error Linear Units (GELUs)." arXiv 2016.</cite>
+            <a href="https://arxiv.org/abs/1606.08415" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-4">
+            <cite>Bridle, J. "Training Stochastic Model Recognition Algorithms as Networks can Lead to Maximum Mutual Information Estimation of Parameters." NeurIPS 1990.</cite>
+          </li>
+          <li id="ref-5">
+            <cite>Sun, H., et al. "zkLLM: Zero Knowledge Proofs for Large Language Models." arXiv 2024.</cite>
+            <a href="https://arxiv.org/abs/2404.16109" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-6">
+            <cite>Gabizon, A. & Williamson, Z. "plookup: A simplified polynomial protocol for lookup tables." IACR ePrint 2020.</cite>
+            <a href="https://eprint.iacr.org/2020/315" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-7">
+            <cite>Liu, J., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+            <a href="https://arxiv.org/abs/2402.02726" target="_blank" rel="noopener">arXiv</a>
+          </li>
+        </ol>
+      </section>
+
     </article>
     <nav id="prev-next" aria-label="前後頁導覽"></nav>
   </main>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PLONKish / AIR 算術化 - ZKML 技術知識庫</title>
+  <title>PLONKish 算術化 - ZKML 技術知識庫</title>
 
   <script>
     (function() {
@@ -27,11 +27,11 @@
     <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
 
     <article>
-      <h1>PLONKish / AIR 算術化</h1>
+      <h1>PLONKish 算術化</h1>
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>PLONKish 是 PLONK 及其變體（如 Halo2、UltraPLONK）使用的算術化格式，透過自定義門（custom gates）和查表（lookup arguments）提供比 R1CS 更靈活的約束表達能力<sup><a href="#ref-1">[1]</a></sup>。AIR（Algebraic Intermediate Representation）是 STARK 系統使用的類似概念。</p>
+        <p>PLONKish 是 PLONK 及其變體（如 Halo2、UltraPLONK）使用的算術化格式，透過自定義門（custom gates）和查表（lookup arguments）提供比 R1CS 更靈活的約束表達能力<sup><a href="#ref-1">[1]</a></sup>。相關的 STARK 算術化格式請參見 <a href="air.html">AIR 算術化</a>。</p>
       </div>
 
       <nav class="toc">
@@ -43,7 +43,7 @@
           <li><a href="#copy-constraints">複製約束</a></li>
           <li><a href="#selector-polynomials">選擇器多項式</a></li>
           <li><a href="#plookup">Plookup 查表論證</a></li>
-          <li><a href="#air">AIR 算術化</a></li>
+          <li><a href="#air-comparison">AIR 比較</a></li>
           <li><a href="#zkml-applications">ZKML 應用</a></li>
         </ol>
       </nav>
@@ -270,6 +270,37 @@ meta.create_gate("accumulate", |meta| {
   Z(ω·X) · (a(X) + β·X + γ) · (b(X) + β·k₁·X + γ) · (c(X) + β·k₂·X + γ)
   = Z(X) · (a(X) + β·σ_a(X) + γ) · ...</code></pre>
 
+      <h3>排列論證詳細推導</h3>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 1：排列論證正確性</div>
+        <p>設 \(\sigma\) 是位置集合 \(S = \{s_1, \ldots, s_n\}\) 上的排列。向量 \(\mathbf{w} = (w_1, \ldots, w_n)\) 滿足 \(\sigma\) 當且僅當對隨機 \(\beta, \gamma \in \mathbb{F}\)：</p>
+        <p>\[\prod_{i=1}^{n} (w_i + \beta \cdot s_i + \gamma) = \prod_{i=1}^{n} (w_i + \beta \cdot \sigma(s_i) + \gamma)\]</p>
+        <p>以壓倒性機率成立。</p>
+      </div>
+
+      <pre><code>累積多項式 Z(X) 構造：
+
+1. 定義位置編碼：
+   位置 (row i, col j) → id = i + j · n
+   使用互不相同的係數 k_j 區分不同列
+
+2. 構造累積項：
+   Z(ω⁰) = 1（起始值）
+
+   Z(ω^{i+1}) = Z(ωⁱ) · ∏ⱼ [(w_j(ωⁱ) + β·k_j·ωⁱ + γ) /
+                            (w_j(ωⁱ) + β·σ_j(ωⁱ) + γ)]
+
+3. 驗證約束：
+   - 起始：Z(ω⁰) = 1
+   - 遞迴：如上述累積關係
+   - 終止：Z(ω^n) = 1（因為是合法排列）
+
+4. 多項式形式：
+   L_0(X) · (Z(X) - 1) = 0
+   Z(ωX) · ∏ⱼ(w_j(X) + β·k_j·X + γ)
+     = Z(X) · ∏ⱼ(w_j(X) + β·σ_j(X) + γ)</code></pre>
+
       <h3>佈線視覺化</h3>
 
       <pre><code>電路佈線範例：
@@ -283,30 +314,161 @@ meta.create_gate("accumulate", |meta| {
        └── 複製約束：row0.c = row1.a
 
 PLONKish 透過排列表示：
-  σ(row0, col_c) = (row1, col_a)</code></pre>
+  σ(row0, col_c) = (row1, col_a)
 
-      <h2>查表論證（Lookup Arguments）</h2>
+排列循環表示：
+  原始位置：(0,a), (0,b), (0,c), (1,a), (1,b), (1,c)
+  排列 σ：  (0,a), (0,b), (1,a), (0,c), (1,b), (1,c)
+                          └─┬─┘ └─┬─┘
+                     位置交換，值必須相等</code></pre>
 
-      <h3>Plookup</h3>
+      <h2 id="selector-polynomials">選擇器多項式（Selector Polynomials）</h2>
+
+      <h3>選擇器的作用</h3>
+
+      <p>選擇器多項式控制門約束的啟用/禁用<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>選擇器機制：
+
+門約束形式：
+  s(X) · G(a(X), b(X), c(X), ...) = 0
+
+當 s(ωⁱ) = 0 時：
+  - 約束在 row i 被「關閉」
+  - 0 · G(...) = 0 恆成立
+
+當 s(ωⁱ) = 1 時：
+  - 約束在 row i 被「啟用」
+  - 必須滿足 G(...) = 0
+
+範例：混合電路
+  Row | a  | b  | c  | s_mul | s_add | 操作
+  ----|----|----|----| ------|-------|------
+  0   | 3  | 4  | 12 | 1     | 0     | 乘法
+  1   | 5  | 7  | 12 | 0     | 1     | 加法
+  2   | 2  | 2  | 4  | 1     | 0     | 乘法</code></pre>
+
+      <h3>選擇器壓縮</h3>
+
+      <pre><code>選擇器壓縮技術：
+
+問題：多個選擇器增加 commitment 數量
+
+方法 1：二進位編碼
+  使用 ⌈log₂(m)⌉ 個選擇器編碼 m 種門
+  例如 4 種門只需 2 個選擇器列
+
+方法 2：線性組合
+  若選擇器值不僅限於 {0,1}
+  q(X) = Σᵢ αᵢ · qᵢ(X)
+  單一多項式包含多個選擇器資訊
+
+方法 3：表達式合併
+  將多個門合併為單一複合約束
+  G_combined = s₁·G₁ + s₂·G₂ + ...
+  但需注意次數限制</code></pre>
+
+      <h3>選擇器最佳化範例</h3>
+
+      <pre><code>Halo2 選擇器組合：
+
+// 未優化：每種門一個選擇器
+let s_mul = meta.selector();
+let s_add = meta.selector();
+let s_const = meta.selector();
+
+// 優化：使用組合選擇器
+// s = 0: 無操作
+// s = 1: 乘法
+// s = 2: 加法
+// s = 3: 常數
+
+meta.create_gate("combined", |meta| {
+    let s = meta.query_selector(s_combined);
+    let a = meta.query_advice(col_a, Rotation::cur());
+    let b = meta.query_advice(col_b, Rotation::cur());
+    let c = meta.query_advice(col_c, Rotation::cur());
+
+    // 使用拉格朗日基函數選擇約束
+    // L₁(s) = s(s-2)(s-3)/((1-0)(1-2)(1-3)) 在 s=1 時為 1
+    // 約束：L₁(s)·(a·b - c) + L₂(s)·(a+b - c) + ...
+    vec![...]
+});</code></pre>
+
+      <h2 id="plookup">Plookup 查表論證</h2>
+
+      <h3>Plookup 概述</h3>
 
       <p>查表是 PLONKish 的關鍵擴展<sup><a href="#ref-3">[3]</a></sup>：</p>
 
-      <pre><code>目標：證明值在預定義表格中
+      <div class="definition">
+        <div class="definition-title">Definition 7：查表問題（Lookup Problem）</div>
+        <p>給定表格 \(T = \{t_1, \ldots, t_d\} \subset \mathbb{F}\) 和查詢向量 \(\mathbf{f} = (f_1, \ldots, f_n)\)，查表論證證明：</p>
+        <p>\[\forall i \in [n] : f_i \in T\]</p>
+        <p>即每個查詢值都存在於表格中。</p>
+      </div>
 
-Plookup 協議：
-  給定表格 T = {t_1, ..., t_d}
-  查詢值 f = {f_1, ..., f_n}
-  證明 f ⊆ T（每個 f_i 都在 T 中）
+      <h3>Plookup 協議</h3>
 
-協議步驟：
-  1. 排序：對 f ∪ T 排序得到 s
-  2. 構造累積多項式 Z(X)
-  3. 驗證 Z 的起終點及遞迴關係
+      <pre><code>Plookup 協議步驟：
 
-效率：
-  - O(n + d) 證明者時間
-  - O(log(n + d)) 驗證者時間
-  - 常數額外空間</code></pre>
+輸入：
+  - 表格 T = (t_1, ..., t_d)（sorted）
+  - 查詢 f = (f_1, ..., f_n)
+
+1. 合併與排序：
+   s := sort(f ∪ T)
+   其中 s 的長度為 n + d
+
+2. 關鍵觀察：
+   若 f ⊆ T，則 s 中每對相鄰元素 (sᵢ, sᵢ₊₁) 要麼：
+   - sᵢ = sᵢ₊₁（重複元素）
+   - (sᵢ, sᵢ₊₁) 是 T 中的相鄰對
+
+3. 構造累積多項式 Z(X)：
+   Z(ω⁰) = 1
+
+   Z(ω^{i+1}) = Z(ωⁱ) · [(1 + β)(γ + fᵢ)(γ(1+β) + tᵢ + βtᵢ₊₁)] /
+                          [(γ(1+β) + sᵢ + βsᵢ₊₁)(γ(1+β) + sᵢ₊₁ + βsᵢ₊₂)]
+
+4. 驗證：
+   - Z(ω⁰) = 1
+   - Z(ωⁿ⁺ᵈ) = 1
+   - 上述遞迴關係成立</code></pre>
+
+      <h3>Plookup 複雜度</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>複雜度</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>排序</td>
+            <td>\(O((n+d) \log(n+d))\)</td>
+            <td>一次性預處理</td>
+          </tr>
+          <tr>
+            <td>證明者</td>
+            <td>\(O(n + d)\)</td>
+            <td>構造 Z(X) 和 commitment</td>
+          </tr>
+          <tr>
+            <td>驗證者</td>
+            <td>\(O(\log(n+d))\)</td>
+            <td>多項式開啟驗證</td>
+          </tr>
+          <tr>
+            <td>額外空間</td>
+            <td>\(O(1)\)</td>
+            <td>常數個多項式</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h3>ZKML 查表應用</h3>
 
@@ -318,24 +480,61 @@ Plookup 協議：
 複雜度比較：
   - R1CS 位元分解：~254 約束/ReLU
   - PLONKish 查表：~1 約束/ReLU
+  - 效率提升：~250 倍
 
 其他常見查表：
   - Sigmoid/Tanh：預計算值
   - 範圍檢查：[0, 2^k)
-  - 位元運算：XOR, AND</code></pre>
+  - 位元運算：XOR, AND
+  - 除法/開根號：預計算表</code></pre>
+
+      <h3>多列查表</h3>
+
+      <pre><code>單列 vs 多列查表：
+
+單列查表：
+  證明 fᵢ ∈ T
+  適用：範圍檢查、單輸入函數
+
+多列查表（Halo2 風格）：
+  證明 (f₁ᵢ, f₂ᵢ, ..., fₖᵢ) ∈ T
+  適用：多輸入/輸出函數
+
+實現方式：
+  1. 隨機線性組合
+     將 (f₁, f₂, ..., fₖ) 壓縮為 f₁ + θf₂ + θ²f₃ + ...
+     單列查表壓縮後的值
+
+  2. 多維 Plookup
+     直接處理多列關係
+     更高效但實現複雜</code></pre>
 
       <h3>Halo2 查表實作</h3>
 
       <pre><code>Halo2 查表配置：
 
-// 定義查表
+// 定義查表列
 let table = meta.lookup_table_column();
 
+// 定義查表約束
 meta.lookup("range_check", |meta| {
     let value = meta.query_advice(advice, Rotation::cur());
     let enable = meta.query_selector(s_lookup);
 
+    // (表達式, 表格列) 對
     vec![(enable * value, table)]
+});
+
+// 多列查表
+meta.lookup("relu", |meta| {
+    let input = meta.query_advice(col_input, Rotation::cur());
+    let output = meta.query_advice(col_output, Rotation::cur());
+    let s = meta.query_selector(s_relu);
+
+    vec![
+        (s.clone() * input, table_input),
+        (s * output, table_output)
+    ]
 });
 
 // 填充表格
@@ -351,30 +550,9 @@ layouter.assign_table(|| "range", |mut table| {
     Ok(())
 })?;</code></pre>
 
-      <h2>AIR（Algebraic Intermediate Representation）</h2>
+      <h2 id="air-comparison">AIR 與 PLONKish 比較</h2>
 
-      <h3>AIR 基礎</h3>
-
-      <p>AIR 是 STARK 使用的算術化格式<sup><a href="#ref-4">[4]</a></sup>：</p>
-
-      <pre><code>AIR 結構：
-  - 執行軌跡（Execution Trace）：w × h 矩陣
-  - 轉換約束（Transition Constraints）：相鄰行間的多項式關係
-  - 邊界約束（Boundary Constraints）：特定位置的值約束
-
-轉換約束範例（斐波那契）：
-  a_{i+2} - a_{i+1} - a_i = 0
-
-  Row | a
-  ----|----
-  0   | 1
-  1   | 1
-  2   | 2
-  3   | 3
-  4   | 5
-  ...</code></pre>
-
-      <h3>AIR vs PLONKish</h3>
+      <p>AIR（Algebraic Intermediate Representation）是 STARK 使用的算術化格式，與 PLONKish 有相似之處但也有關鍵差異。詳細的 AIR 介紹請參見 <a href="air.html">AIR 算術化</a>頁面。</p>
 
       <table>
         <thead>
@@ -385,6 +563,11 @@ layouter.assign_table(|| "range", |mut table| {
           </tr>
         </thead>
         <tbody>
+          <tr>
+            <td><strong>結構</strong></td>
+            <td>執行軌跡 + 轉換約束</td>
+            <td>表格 + 自定義門 + 排列</td>
+          </tr>
           <tr>
             <td><strong>跨行存取</strong></td>
             <td>自然支援（轉換約束）</td>
@@ -402,18 +585,28 @@ layouter.assign_table(|| "range", |mut table| {
           </tr>
           <tr>
             <td><strong>複製約束</strong></td>
-            <td>較弱</td>
+            <td>較弱（需顯式追蹤）</td>
             <td>強大的排列論證</td>
           </tr>
           <tr>
             <td><strong>代表系統</strong></td>
-            <td>STARK, Cairo</td>
+            <td>STARK, Cairo, RISC Zero</td>
             <td>PLONK, Halo2</td>
+          </tr>
+          <tr>
+            <td><strong>後量子安全</strong></td>
+            <td>是（基於 FRI）</td>
+            <td>取決於 PCS</td>
+          </tr>
+          <tr>
+            <td><strong>可信設置</strong></td>
+            <td>不需要</td>
+            <td>取決於 PCS</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>ZKML 中的應用</h2>
+      <h2 id="zkml-applications">ZKML 中的應用</h2>
 
       <h3>模型層級電路設計</h3>
 
@@ -578,9 +771,10 @@ layouter.assign_region(|| "layer2", |mut region| {
       <h2>相關頁面</h2>
 
       <ul>
+        <li><a href="air.html">AIR 算術化</a> - STARK 系統的算術化格式</li>
         <li><a href="r1cs.html">R1CS</a> - 較簡單的算術化格式</li>
         <li><a href="../proof-systems/plonk.html">PLONK</a> - PLONKish 的原始證明系統</li>
-        <li><a href="../halo2.html">Halo2</a> - 最成熟的 PLONKish 實作</li>
+        <li><a href="../proof-systems/halo2.html">Halo2</a> - 最成熟的 PLONKish 實作</li>
         <li><a href="../../zkml/circuit/lookup-tables.html">查表優化</a> - ZKML 中的查表應用</li>
       </ul>
 
