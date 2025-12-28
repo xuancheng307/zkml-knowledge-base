@@ -14,140 +14,1008 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
 </head>
 <body data-page-id="plonk">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
   <div id="sidebar-overlay"></div>
   <nav id="sidebar"></nav>
+
   <main>
     <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
     <article>
       <h1>PLONK</h1>
+
       <div class="callout callout-info">
-        <div class="callout-title">完整 PLONK 教學</div>
-        <p>PLONK 是現代 ZKML 最常用的證明系統之一。本站作者另有完整的 PLONK 專題網站，提供詳細的數學推導和實作說明。</p>
-        <p><strong><a href="https://xuancheng307.github.io/PLONK/" target="_blank" rel="noopener">→ 前往 PLONK 專題網站</a></strong></p>
+        <div class="callout-title">核心概念</div>
+        <p><strong>PLONK</strong>（Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge）是一種通用零知識 SNARK 協議，由 Gabizon、Williamson 和 Ciobotaru 於 2019 年提出<sup><a href="#ref-1">[1]</a></sup>。PLONK 使用 Lagrange 基底算術化和置換論證，實現了通用可信設置，成為現代 ZKML 系統的核心證明系統。</p>
       </div>
 
-      <h2>PLONK 概述</h2>
+      <h2>背景與動機</h2>
 
-      <h3>基本資訊</h3>
-      <pre><code>全名：Permutations over Lagrange-bases for
-      Oecumenical Noninteractive arguments of Knowledge
+      <h3>問題背景</h3>
 
-發表：Gabizon, Williamson, Ciobotaru (2019)
+      <p>在 PLONK 之前，主流的 zk-SNARK 系統面臨以下限制：</p>
 
-特點：
-  - 通用可信設置（Universal Trusted Setup）
-  - 支援自定義門（Custom Gates）
-  - 高效的查表協議（Plookup）
-  - 廣泛應用於 ZKML</code></pre>
-
-      <h3>與其他系統比較</h3>
       <table>
-        <thead><tr><th>特性</th><th>PLONK</th><th>Groth16</th><th>STARK</th></tr></thead>
+        <thead>
+          <tr>
+            <th>系統</th>
+            <th>主要限制</th>
+            <th>影響</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>設置</td><td>通用</td><td>電路特定</td><td>透明</td></tr>
-          <tr><td>證明大小</td><td>~1 KB</td><td>~200 B</td><td>~100 KB</td></tr>
-          <tr><td>驗證時間</td><td>快</td><td>最快</td><td>較慢</td></tr>
-          <tr><td>證明時間</td><td>中等</td><td>快</td><td>快</td></tr>
-          <tr><td>後量子安全</td><td>否</td><td>否</td><td>是</td></tr>
-          <tr><td>自定義門</td><td>支援</td><td>有限</td><td>支援</td></tr>
+          <tr>
+            <td><strong>Groth16</strong></td>
+            <td>電路特定設置（Circuit-specific Setup）</td>
+            <td>每個電路都需要獨立的可信設置儀式</td>
+          </tr>
+          <tr>
+            <td><strong>Sonic</strong></td>
+            <td>通用但效率較低</td>
+            <td>證明者效率不如 Groth16</td>
+          </tr>
         </tbody>
       </table>
 
-      <h2>核心技術</h2>
+      <div class="definition">
+        <div class="definition-title">定義：通用可信設置（Universal Trusted Setup）</div>
+        <p>一種結構化參考字串（SRS）生成方式，其中 SRS 可以被多個不同的電路重複使用，只要電路大小不超過預設的上界 \(d\)。與電路特定設置相比，通用設置只需執行一次，大幅降低部署成本。</p>
+      </div>
 
-      <h3>算術化：PLONKish</h3>
-      <pre><code>PLONK 使用 PLONKish 算術化：
+      <h3>PLONK 的創新</h3>
 
-門約束：
-  q_L · a + q_R · b + q_O · c + q_M · a·b + q_C = 0
+      <pre><code>PLONK 的核心貢獻：
 
-其中：
-  a, b, c = 線變量（wires）
-  q_* = 選擇器多項式
-
-特點：
-  - 固定的門結構
-  - 選擇器決定門類型
-  - 支援自定義門</code></pre>
-
-      <h3>置換論證</h3>
-      <pre><code>PLONK 使用置換論證處理複製約束：
-
-問題：證明不同位置的值相等
-方案：將相等值編碼為置換的不動點
-
-關鍵引理（Grand Product）：
-  ∏(a_i + β·σ(i) + γ) = ∏(a_i + β·i + γ)
-  當且僅當 a 符合置換 σ</code></pre>
-
-      <h3>多項式承諾</h3>
-      <pre><code>PLONK 使用 KZG 多項式承諾：
-
-優點：
-  - 常數大小承諾
-  - 常數大小開啟證明
-  - 支援批次驗證
-
-限制：
-  - 需要可信設置
-  - 基於配對假設（非後量子）</code></pre>
-
-      <h2>ZKML 中的應用</h2>
-
-      <h3>為何 ZKML 選擇 PLONK</h3>
-      <pre><code>1. 自定義門
-   - 可優化矩陣乘法
-   - 可實現高效查表
-
-2. 通用設置
+1. 通用性
    - 一次設置，多次使用
-   - 不需為每個模型重新設置
+   - 不需為每個電路重新進行 MPC 儀式
 
-3. 查表支援（Plookup）
-   - 高效實現激活函數
-   - 減少非線性約束</code></pre>
+2. 高效證明者
+   - 基於 Lagrange 基底的多項式運算
+   - 利用 FFT 加速
+   - 效率接近 Groth16
 
-      <h3>使用 PLONK 的框架</h3>
+3. 置換論證
+   - 優雅處理複製約束
+   - Grand Product 累積器技術
+
+4. 可擴展性
+   - 支援自定義門（Custom Gates）
+   - 支援查表（Plookup）
+   - 遞迴證明友好</code></pre>
+
+      <h2>系統模型與角色</h2>
+
+      <h3>參與者角色</h3>
+
       <table>
-        <thead><tr><th>框架</th><th>PLONK 變體</th><th>特點</th></tr></thead>
+        <thead>
+          <tr>
+            <th>角色</th>
+            <th>責任</th>
+            <th>輸入</th>
+            <th>輸出</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td>EZKL</td><td>Halo2 (KZG)</td><td>完整 Plookup 支援</td></tr>
-          <tr><td>ZKTorch</td><td>Halo2 (IPA)</td><td>無需可信設置</td></tr>
-          <tr><td>zkLLM</td><td>自定義</td><td>LLM 專用優化</td></tr>
+          <tr>
+            <td><strong>設置參與者</strong></td>
+            <td>執行 MPC 儀式</td>
+            <td>安全參數、最大度數</td>
+            <td>SRS</td>
+          </tr>
+          <tr>
+            <td><strong>電路設計者</strong></td>
+            <td>定義約束系統</td>
+            <td>計算問題</td>
+            <td>電路描述</td>
+          </tr>
+          <tr>
+            <td><strong>證明者</strong></td>
+            <td>生成證明</td>
+            <td>見證（witness）、電路</td>
+            <td>證明 π</td>
+          </tr>
+          <tr>
+            <td><strong>驗證者</strong></td>
+            <td>驗證證明</td>
+            <td>公開輸入、證明</td>
+            <td>接受/拒絕</td>
+          </tr>
         </tbody>
       </table>
 
-      <h2>延伸閱讀</h2>
+      <h3>安全假設</h3>
 
-      <div class="callout callout-tip">
-        <div class="callout-title">深入學習 PLONK</div>
-        <p>如需詳細了解 PLONK 的數學原理、協議細節和實作方法，請訪問：</p>
-        <p><a href="https://xuancheng307.github.io/PLONK/" target="_blank" rel="noopener"><strong>PLONK 專題網站</strong></a></p>
-        <p>包含：</p>
+      <div class="definition">
+        <div class="definition-title">定義：代數群模型（Algebraic Group Model, AGM）</div>
+        <p>AGM 假設對手只能透過群運算來操作群元素<sup><a href="#ref-2">[2]</a></sup>。在 AGM 下，對手輸出的任何群元素都必須是其接收到的群元素的線性組合。這個模型介於標準模型和通用群模型之間，提供了更強的安全保證。</p>
+      </div>
+
+      <pre><code>PLONK 安全基礎：
+
+1. 離散對數假設（DL）
+   給定 g 和 g^x，難以計算 x
+
+2. 知識離散對數假設（KoE）
+   給定 (g, g^x)，若能輸出 (h, h^x)
+   則必須「知道」某個 c 使得 h = g^c
+
+3. AGM 下的知識健全性
+   結合 AGM 和 KoE，PLONK 達成知識健全性</code></pre>
+
+      <h2>協議生命週期</h2>
+
+      <h3>四階段流程</h3>
+
+      <pre><code>PLONK 協議的四個階段：
+
+┌─────────────────────────────────────────────────────────────┐
+│ 階段 1：通用設置（Universal Setup）                          │
+│ 輸入：安全參數 λ，最大度數 d                                  │
+│ 輸出：SRS = ([1], [x], [x²], ..., [x^d], [x]₂)              │
+│ 執行者：MPC 參與者（一次性）                                  │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 階段 2：電路預處理（Circuit Preprocessing）                   │
+│ 輸入：電路描述 C，SRS                                        │
+│ 輸出：驗證金鑰 VK，證明金鑰 PK                               │
+│ 執行者：電路設計者（每電路一次）                              │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 階段 3：證明（Proving）                                       │
+│ 輸入：見證 w，公開輸入 x，PK                                 │
+│ 輸出：證明 π                                                 │
+│ 執行者：證明者（每次推理）                                    │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 階段 4：驗證（Verification）                                  │
+│ 輸入：公開輸入 x，證明 π，VK                                 │
+│ 輸出：接受/拒絕                                              │
+│ 執行者：驗證者（每次驗證）                                    │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+
+      <h3>多項式分類</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>類別</th>
+            <th>多項式</th>
+            <th>度數上界</th>
+            <th>生成時機</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>預處理</strong></td>
+            <td>選擇器 q_L, q_R, q_O, q_M, q_C</td>
+            <td>&lt; n</td>
+            <td>電路編譯</td>
+          </tr>
+          <tr>
+            <td><strong>預處理</strong></td>
+            <td>置換 S_σ1, S_σ2, S_σ3</td>
+            <td>&lt; n</td>
+            <td>電路編譯</td>
+          </tr>
+          <tr>
+            <td><strong>輔助</strong></td>
+            <td>消失 Z_H(X) = X^n - 1</td>
+            <td>= n</td>
+            <td>協議固有</td>
+          </tr>
+          <tr>
+            <td><strong>輔助</strong></td>
+            <td>Lagrange 基底 L_i(X)</td>
+            <td>&lt; n</td>
+            <td>協議固有</td>
+          </tr>
+          <tr>
+            <td><strong>每證明</strong></td>
+            <td>線多項式 a(X), b(X), c(X)</td>
+            <td>&lt; n + 3</td>
+            <td>證明者回合 1</td>
+          </tr>
+          <tr>
+            <td><strong>每證明</strong></td>
+            <td>累積器 z(X)</td>
+            <td>&lt; n + 4</td>
+            <td>證明者回合 2</td>
+          </tr>
+          <tr>
+            <td><strong>每證明</strong></td>
+            <td>商多項式 t(X)</td>
+            <td>&lt; 3n + 5</td>
+            <td>證明者回合 3</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>數學基礎</h2>
+
+      <h3>有限域與群</h3>
+
+      <div class="definition">
+        <div class="definition-title">定義：乘法子群（Multiplicative Subgroup）</div>
+        <p>設 \(\mathbb{F}_p\) 為素數域，\(\omega\) 為 \(n\) 次單位根（即 \(\omega^n = 1\) 且 \(\omega^k \neq 1\) 對於 \(0 < k < n\)）。則乘法子群定義為：</p>
+        <p style="text-align: center;">\(H = \{1, \omega, \omega^2, \ldots, \omega^{n-1}\}\)</p>
+        <p>PLONK 選擇 \(n = 2^k\) 以利用 FFT 加速。</p>
+      </div>
+
+      <h3>Lagrange 基底</h3>
+
+      <pre><code>Lagrange 基底多項式 L_i(X)：
+
+定義：
+  L_i(ω^j) = δ_{ij} = { 1 if i = j
+                      { 0 if i ≠ j
+
+顯式公式：
+  L_i(X) = (ω^{-i} · (X^n - 1)) / (n · (X - ω^i))
+
+特殊情況（L_1 在 ω 處為 1）：
+  L_1(X) = (X^n - 1) / (n · (X - 1))
+
+性質：
+  - 任何定義在 H 上的函數 f 可表示為：
+    f(X) = Σ_{i=0}^{n-1} f(ω^i) · L_i(X)
+
+  - 用於邊界條件驗證：
+    L_1(X) · (z(X) - 1) = 0 在 H 上
+    ⟺ z(ω^0) = z(1) = 1</code></pre>
+
+      <h3>KZG 多項式承諾</h3>
+
+      <div class="definition">
+        <div class="definition-title">定義：KZG 承諾方案<sup><a href="#ref-3">[3]</a></sup></div>
+        <p>KZG（Kate-Zaverucha-Goldberg）多項式承諾包含三個算法：</p>
         <ul>
-          <li>完整的數學推導</li>
-          <li>多項式 IOP 細節</li>
-          <li>KZG 承諾實作</li>
-          <li>Plookup 協議說明</li>
+          <li><strong>Commit(f)</strong>：計算 \([f]_1 = f(\tau) \cdot G_1\)，其中 \(\tau\) 是設置時的秘密值</li>
+          <li><strong>Open(f, z)</strong>：計算商多項式 \(W_z(X) = \frac{f(X) - f(z)}{X - z}\) 並輸出 \([W_z]_1\)</li>
+          <li><strong>Verify([f]_1, z, y, [W_z]_1)</strong>：檢查配對方程式</li>
         </ul>
       </div>
+
+      <pre><code>KZG 驗證方程式：
+
+e([W_z]_1, [x - z]_2) = e([f]_1 - y·[1]_1, [1]_2)
+
+等價形式（避免在 G_2 做減法）：
+e([W_z]_1, [x]_2) = e(z·[W_z]_1 + [f]_1 - y·[1]_1, [1]_2)
+
+正確性證明：
+  若 f(z) = y，則 W_z(X) = (f(X) - y)/(X - z) 是多項式
+  左式 = e(W_z(τ)·G_1, (τ - z)·G_2)
+       = e(G_1, G_2)^{W_z(τ)·(τ-z)}
+       = e(G_1, G_2)^{f(τ) - y}
+       = e((f(τ) - y)·G_1, G_2)
+       = 右式</code></pre>
+
+      <h2>置換論證</h2>
+
+      <h3>複製約束問題</h3>
+
+      <pre><code>問題定義：
+
+在電路中，我們需要證明不同位置的值相等。
+
+例如：若電路有 a_1 = b_5 = c_3 的約束
+      傳統方法需要額外的相等性驗證
+
+PLONK 解法：
+  將相等值編碼為置換的循環
+  σ: (a_1) → (b_5) → (c_3) → (a_1)
+
+關鍵洞察：
+  若 f(σ(i)) = f(i) 對所有 i 成立
+  則 f 的值在 σ 的每個循環內相同</code></pre>
+
+      <h3>Grand Product 累積器</h3>
+
+      <div class="definition">
+        <div class="definition-title">定義：Grand Product 論證</div>
+        <p>設有兩個多項式 \(f(X)\) 和 \(g(X)\)，我們希望證明：</p>
+        <p style="text-align: center;">\(\prod_{i=0}^{n-1} f(\omega^i) = \prod_{i=0}^{n-1} g(\omega^i)\)</p>
+        <p>方法是構造累積器多項式 \(z(X)\) 滿足：</p>
+        <ul>
+          <li>\(z(\omega^0) = 1\)（初始條件）</li>
+          <li>\(z(\omega \cdot X) = z(X) \cdot \frac{f(X)}{g(X)}\)（遞迴關係）</li>
+        </ul>
+        <p>若 \(z(\omega^n) = z(\omega^0) = 1\)，則兩個乘積相等。</p>
+      </div>
+
+      <pre><code>置換多項式定義：
+
+設 k_1, k_2 為不同的 coset 偏移量，β, γ 為隨機挑戰。
+
+f'(X) := (a(X) + β·X + γ)
+       · (b(X) + β·k_1·X + γ)
+       · (c(X) + β·k_2·X + γ)
+
+g'(X) := (a(X) + β·S_{σ_1}(X) + γ)
+       · (b(X) + β·S_{σ_2}(X) + γ)
+       · (c(X) + β·S_{σ_3}(X) + γ)
+
+其中 S_{σ_i}(X) 編碼置換：
+  S_{σ_1}(ω^j) = 置換後 a_j 對應的索引位置
+  S_{σ_2}(ω^j) = 置換後 b_j 對應的索引位置
+  S_{σ_3}(ω^j) = 置換後 c_j 對應的索引位置
+
+累積器約束：
+  z(ω·X) · g'(X) = z(X) · f'(X)   (mod Z_H)
+  L_1(X) · (z(X) - 1) = 0          (mod Z_H)</code></pre>
+
+      <h3>Coset 分離</h3>
+
+      <pre><code>為何需要 Coset：
+
+問題：a, b, c 三個線變量的索引可能衝突
+      例如 a_1 和 b_1 都有索引 1
+
+解法：使用不同的 coset 區分三組變量
+  a 的索引：{1, ω, ω², ..., ω^{n-1}}      = H
+  b 的索引：{k_1, k_1ω, k_1ω², ...}       = k_1·H
+  c 的索引：{k_2, k_2ω, k_2ω², ...}       = k_2·H
+
+選擇 k_1, k_2：
+  - k_1 和 k_2 是二次非剩餘（quadratic non-residue）
+  - 保證三個 coset 互不相交
+  - 常用：k_1 = 最小的二次非剩餘，k_2 = k_1 的二次非剩餘</code></pre>
+
+      <h2>通用設置</h2>
+
+      <h3>MPC 儀式</h3>
+
+      <pre><code>結構化參考字串（SRS）生成：
+
+目標：生成 [τ^i]_1 和 [τ]_2，其中 τ 是未知的「有毒廢料」
+
+單一 tau 儀式（Powers of Tau）：
+  1. 第一位參與者選擇隨機 τ_1，輸出 ([τ_1^i]_1, [τ_1]_2)
+  2. 第二位參與者選擇 τ_2，輸出 ([(τ_1·τ_2)^i]_1, ...)
+  3. 繼續...
+
+最終 τ = τ_1 · τ_2 · ... · τ_m
+
+安全性：
+  只要有一位參與者誠實地銷毀其 τ_i
+  則 τ 對所有人都是未知的
+
+實際部署：
+  Zcash Powers of Tau：87 位參與者
+  Perpetual Powers of Tau：持續進行</code></pre>
+
+      <h3>SRS 結構</h3>
+
+      <div class="definition">
+        <div class="definition-title">定義：PLONK SRS</div>
+        <p>設最大支援度數為 \(d\)，PLONK 的 SRS 包含：</p>
+        <ul>
+          <li>\(G_1\) 部分：\([1]_1, [\tau]_1, [\tau^2]_1, \ldots, [\tau^d]_1\)</li>
+          <li>\(G_2\) 部分：\([1]_2, [\tau]_2\)</li>
+        </ul>
+        <p>總大小：\(d + 3\) 個群元素（\(d+1\) 個 \(G_1\) 元素，2 個 \(G_2\) 元素）</p>
+      </div>
+
+      <h2>電路預處理</h2>
+
+      <h3>約束系統</h3>
+
+      <pre><code>PLONKish 算術化：
+
+標準 PLONK 門（fan-in-2）：
+  q_L · a + q_R · b + q_O · c + q_M · (a·b) + q_C = 0
+
+選擇器配置範例：
+
+加法門 (a + b = c)：
+  q_L = 1, q_R = 1, q_O = -1, q_M = 0, q_C = 0
+  驗證：1·a + 1·b + (-1)·c + 0·(a·b) + 0 = a + b - c = 0
+
+乘法門 (a · b = c)：
+  q_L = 0, q_R = 0, q_O = -1, q_M = 1, q_C = 0
+  驗證：0 + 0 + (-1)·c + 1·(a·b) + 0 = a·b - c = 0
+
+常數門 (a = 5)：
+  q_L = 1, q_R = 0, q_O = 0, q_M = 0, q_C = -5
+  驗證：1·a + 0 + 0 + 0 + (-5) = a - 5 = 0
+
+公開輸入門 (a = PI_i)：
+  q_L = 1, q_R = 0, q_O = 0, q_M = 0, q_C = 0
+  另外加入：PI(ω^i) = -PI_i（負號抵消）</code></pre>
+
+      <h3>選擇器多項式</h3>
+
+      <pre><code>選擇器編碼：
+
+設電路有 n 個約束（門），選擇器多項式定義為：
+
+q_L(X)：在 ω^i 處值為第 i 個門的 q_L 係數
+q_R(X)：在 ω^i 處值為第 i 個門的 q_R 係數
+q_O(X)：在 ω^i 處值為第 i 個門的 q_O 係數
+q_M(X)：在 ω^i 處值為第 i 個門的 q_M 係數
+q_C(X)：在 ω^i 處值為第 i 個門的 q_C 係數
+
+插值得到度數 < n 的多項式。
+
+公開輸入多項式 PI(X)：
+  PI(ω^i) = -x_i   若第 i 個門是公開輸入門
+  PI(ω^i) = 0      否則</code></pre>
+
+      <h3>驗證金鑰</h3>
+
+      <pre><code>VK 組成（8 個 G_1 承諾 + 常數）：
+
+[q_L]_1, [q_R]_1, [q_O]_1, [q_M]_1, [q_C]_1   // 選擇器
+[S_{σ_1}]_1, [S_{σ_2}]_1, [S_{σ_3}]_1          // 置換
+
+加上：
+  n：電路大小
+  ω：n 次單位根
+  k_1, k_2：coset 偏移
+
+驗證金鑰大小：O(1)（與電路大小無關）</code></pre>
+
+      <h2>證明者流程</h2>
+
+      <h3>五回合協議</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>回合</th>
+            <th>輸入</th>
+            <th>輸出</th>
+            <th>挑戰</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1</strong></td>
+            <td>見證 w</td>
+            <td>[a]_1, [b]_1, [c]_1</td>
+            <td>β, γ</td>
+          </tr>
+          <tr>
+            <td><strong>2</strong></td>
+            <td>β, γ</td>
+            <td>[z]_1</td>
+            <td>α</td>
+          </tr>
+          <tr>
+            <td><strong>3</strong></td>
+            <td>α</td>
+            <td>[t_lo]_1, [t_mid]_1, [t_hi]_1</td>
+            <td>ζ</td>
+          </tr>
+          <tr>
+            <td><strong>4</strong></td>
+            <td>ζ</td>
+            <td>ā, b̄, c̄, S̄_{σ_1}, S̄_{σ_2}, z̄_ω</td>
+            <td>v</td>
+          </tr>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>v</td>
+            <td>[W_ζ]_1, [W_{ζω}]_1</td>
+            <td>-</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>回合 1：線多項式承諾</h3>
+
+      <pre><code>步驟：
+
+1. 從見證構造線多項式：
+   a(ω^i) = 第 i 個門的左輸入值
+   b(ω^i) = 第 i 個門的右輸入值
+   c(ω^i) = 第 i 個門的輸出值
+
+2. 零知識盲化：
+   選擇隨機 b_1, ..., b_6 ∈ F
+
+   a'(X) = a(X) + (b_1·X + b_2)·Z_H(X)
+   b'(X) = b(X) + (b_3·X + b_4)·Z_H(X)
+   c'(X) = c(X) + (b_5·X + b_6)·Z_H(X)
+
+   效果：在 H 外的點，多項式值被完全隨機化
+         在 H 內，Z_H(X) = 0，值不變
+
+3. 承諾：
+   輸出 [a']_1, [b']_1, [c']_1
+
+4. Fiat-Shamir：
+   β = Hash(transcript, [a']_1, [b']_1, [c']_1)
+   γ = Hash(transcript, β)</code></pre>
+
+      <h3>回合 2：累積器多項式</h3>
+
+      <pre><code>步驟：
+
+1. 計算累積器值：
+   z_0 = 1
+   z_{i+1} = z_i · f'(ω^i) / g'(ω^i)
+
+   其中：
+   f'(ω^i) = (a(ω^i) + β·ω^i + γ)
+           · (b(ω^i) + β·k_1·ω^i + γ)
+           · (c(ω^i) + β·k_2·ω^i + γ)
+
+   g'(ω^i) = (a(ω^i) + β·σ_1(ω^i) + γ)
+           · (b(ω^i) + β·σ_2(ω^i) + γ)
+           · (c(ω^i) + β·σ_3(ω^i) + γ)
+
+2. 檢查：z_n 應該 = 1（驗證置換正確性）
+
+3. 插值得到 z(X)，度數 < n
+
+4. 零知識盲化：
+   z'(X) = z(X) + (b_7·X² + b_8·X + b_9)·Z_H(X)
+
+5. 承諾：輸出 [z']_1
+
+6. Fiat-Shamir：α = Hash(transcript, [z']_1)</code></pre>
+
+      <h3>回合 3：商多項式</h3>
+
+      <pre><code>核心多項式恆等式：
+
+Gate(X) + α·Perm(X) + α²·L_1(X)·(z(X) - 1) ≡ 0   (mod Z_H(X))
+
+三部分拆解：
+
+1. 門約束 Gate(X)：
+   q_L(X)·a(X) + q_R(X)·b(X) + q_O(X)·c(X)
+   + q_M(X)·a(X)·b(X) + q_C(X) + PI(X)
+
+2. 置換約束 Perm(X)：
+   z(X)·f'(X) - z(ω·X)·g'(X)
+
+3. 邊界約束：
+   L_1(X)·(z(X) - 1)
+
+商多項式：
+   t(X) = [Gate(X) + α·Perm(X) + α²·L_1(X)·(z(X) - 1)] / Z_H(X)
+
+度數分析：
+   分子度數 ≤ 3n + 5（來自置換部分的三次項）
+   Z_H(X) 度數 = n
+   t(X) 度數 < 3n + 5 - n = 2n + 5
+
+分割為三部分（每部分度數 < n）：
+   t(X) = t_lo(X) + X^n · t_mid(X) + X^{2n} · t_hi(X)
+
+輸出：[t_lo]_1, [t_mid]_1, [t_hi]_1
+
+Fiat-Shamir：ζ = Hash(transcript, [t_lo]_1, ...)</code></pre>
+
+      <h3>回合 4：點開啟</h3>
+
+      <pre><code>在隨機點 ζ 處評估多項式：
+
+ā = a(ζ)           // 左線
+b̄ = b(ζ)           // 右線
+c̄ = c(ζ)           // 輸出線
+S̄_{σ_1} = S_{σ_1}(ζ)   // 置換 1
+S̄_{σ_2} = S_{σ_2}(ζ)   // 置換 2
+z̄_ω = z(ζ·ω)       // 位移累積器
+
+注意：z(ζ) 不直接提供，由驗證者透過線性化技術計算
+
+Fiat-Shamir：v = Hash(transcript, ā, b̄, c̄, ...)</code></pre>
+
+      <h3>回合 5：開啟證明</h3>
+
+      <pre><code>線性化多項式 r(X)：
+
+目的：將多項式在 ζ 處的評估轉換為承諾的線性組合
+
+r(X) = ā·b̄·q_M(X) + ā·q_L(X) + b̄·q_R(X) + c̄·q_O(X) + q_C(X)
+     + PI(ζ)
+     + α·[(ā + β·ζ + γ)(b̄ + β·k_1·ζ + γ)(c̄ + β·k_2·ζ + γ)·z(X)
+         - (ā + β·S̄_{σ_1} + γ)(b̄ + β·S̄_{σ_2} + γ)·β·z̄_ω·S_{σ_3}(X)]
+     + α²·L_1(ζ)·z(X)
+     - α²·L_1(ζ)
+     - Z_H(ζ)·[t_lo(X) + ζ^n·t_mid(X) + ζ^{2n}·t_hi(X)]
+
+在 ζ 處，r(ζ) 應該 = 0（核心恆等式）
+
+開啟證明（在 ζ 處批次開啟）：
+  W_ζ(X) = [r(X) + v·(a(X) - ā) + v²·(b(X) - b̄) + ...] / (X - ζ)
+
+開啟證明（在 ζ·ω 處）：
+  W_{ζω}(X) = (z(X) - z̄_ω) / (X - ζ·ω)
+
+輸出：[W_ζ]_1, [W_{ζω}]_1</code></pre>
+
+      <h2>驗證者流程</h2>
+
+      <h3>驗證步驟</h3>
+
+      <pre><code>驗證者輸入：
+  - 公開輸入 x = (x_1, ..., x_l)
+  - 證明 π = ([a]_1, [b]_1, [c]_1, [z]_1,
+              [t_lo]_1, [t_mid]_1, [t_hi]_1,
+              ā, b̄, c̄, S̄_{σ_1}, S̄_{σ_2}, z̄_ω,
+              [W_ζ]_1, [W_{ζω}]_1)
+  - 驗證金鑰 VK
+
+步驟 1：重建 Fiat-Shamir 挑戰
+  β, γ, α, ζ, v, u = 依序 hash
+
+步驟 2：計算輔助值
+  Z_H(ζ) = ζ^n - 1
+  L_1(ζ) = (ζ^n - 1) / (n·(ζ - 1))
+  PI(ζ) = Σ x_i · L_i(ζ)
+
+步驟 3：計算線性化承諾 [r]_1
+  使用 VK 中的選擇器和置換承諾
+  透過 MSM（Multi-Scalar Multiplication）計算
+
+步驟 4：計算批次開啟值
+  E = r(ζ) + v·ā + v²·b̄ + v³·c̄ + v⁴·S̄_{σ_1} + v⁵·S̄_{σ_2}
+  [F]_1 = [r]_1 + v·[a]_1 + v²·[b]_1 + v³·[c]_1
+        + v⁴·[S_{σ_1}]_1 + v⁵·[S_{σ_2}]_1
+
+步驟 5：配對檢查
+  e([W_ζ]_1 + u·[W_{ζω}]_1, [x]_2)
+  = e(ζ·[W_ζ]_1 + u·ζω·[W_{ζω}]_1 + [F]_1 - E·[1]_1
+      + u·([z]_1 - z̄_ω·[1]_1), [1]_2)
+
+  等價於兩個配對運算</code></pre>
+
+      <h3>複雜度分析</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>證明者</th>
+            <th>驗證者</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>群指數運算 (G_1)</strong></td>
+            <td>~9(n + a)</td>
+            <td>~15（常數）</td>
+          </tr>
+          <tr>
+            <td><strong>配對運算</strong></td>
+            <td>0</td>
+            <td>2</td>
+          </tr>
+          <tr>
+            <td><strong>域運算</strong></td>
+            <td>O(n log n)</td>
+            <td>O(l)（公開輸入數）</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td colspan="2">7 G_1 + 6 F 元素 ≈ 800-900 bytes</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>其中 n 是電路大小，a 是加法約束數（影響 FFT 次數）。</p>
+
+      <h2>與其他系統比較</h2>
+
+      <h3>證明系統橫向比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>PLONK</th>
+            <th>Groth16</th>
+            <th>Sonic</th>
+            <th>Marlin</th>
+            <th>STARK</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>設置類型</strong></td>
+            <td>通用</td>
+            <td>電路特定</td>
+            <td>通用</td>
+            <td>通用</td>
+            <td>透明</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>~1 KB</td>
+            <td>~200 B</td>
+            <td>~1.5 KB</td>
+            <td>~1 KB</td>
+            <td>~100 KB</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td>2 配對</td>
+            <td>3 配對</td>
+            <td>2 配對 + O(log n)</td>
+            <td>4 配對</td>
+            <td>O(log² n)</td>
+          </tr>
+          <tr>
+            <td><strong>證明時間</strong></td>
+            <td>~9n G_1</td>
+            <td>~3n G_1</td>
+            <td>~20n G_1</td>
+            <td>~10n G_1</td>
+            <td>~20n F</td>
+          </tr>
+          <tr>
+            <td><strong>後量子安全</strong></td>
+            <td>否</td>
+            <td>否</td>
+            <td>否</td>
+            <td>否</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td><strong>自定義門</strong></td>
+            <td>原生支援</td>
+            <td>困難</td>
+            <td>可能</td>
+            <td>可能</td>
+            <td>原生支援</td>
+          </tr>
+          <tr>
+            <td><strong>查表支援</strong></td>
+            <td>Plookup</td>
+            <td>無</td>
+            <td>無</td>
+            <td>無</td>
+            <td>可能</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>效能基準</h3>
+
+      <pre><code>實際效能（百萬門電路，現代硬體）：
+
+PLONK：
+  - 證明時間：~20-30 秒
+  - 驗證時間：~10 ms
+  - 證明大小：~900 bytes
+
+Groth16：
+  - 證明時間：~10-15 秒
+  - 驗證時間：~5 ms
+  - 證明大小：~200 bytes
+
+STARK：
+  - 證明時間：~15-25 秒
+  - 驗證時間：~50 ms
+  - 證明大小：~50-100 KB
+
+注：實際效能取決於具體實現和硬體</code></pre>
+
+      <h2>ZKML 應用</h2>
+
+      <h3>為何 ZKML 選擇 PLONK</h3>
+
+      <pre><code>PLONK 在 ZKML 中的優勢：
+
+1. 通用設置
+   - 一次設置，所有模型共用
+   - 不需為每個 ML 模型重新設置
+   - 降低部署成本
+
+2. 自定義門
+   - 優化矩陣乘法門
+   - 向量內積門
+   - 減少約束數量
+
+3. Plookup 查表<sup><a href="#ref-4">[4]</a></sup>
+   - 高效實現激活函數（ReLU, Sigmoid, GELU）
+   - 查表成本 ≈ 約束成本
+   - 大幅減少非線性約束
+
+4. Halo2 實現<sup><a href="#ref-5">[5]</a></sup>
+   - 成熟的 Rust 實現
+   - 活躍的開發社群
+   - EZKL 和 ZKTorch 皆基於此</code></pre>
+
+      <h3>使用 PLONK 的框架</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>框架</th>
+            <th>PLONK 變體</th>
+            <th>承諾方案</th>
+            <th>特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>EZKL</strong></td>
+            <td>Halo2</td>
+            <td>KZG</td>
+            <td>完整 Plookup，生產就緒</td>
+          </tr>
+          <tr>
+            <td><strong>ZKTorch</strong></td>
+            <td>Halo2</td>
+            <td>IPA</td>
+            <td>無需可信設置</td>
+          </tr>
+          <tr>
+            <td><strong>zkLLM</strong></td>
+            <td>自定義</td>
+            <td>自定義</td>
+            <td>LLM 專門優化</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>擴展與變體</h2>
+
+      <h3>Plookup</h3>
+
+      <div class="definition">
+        <div class="definition-title">定義：Plookup 查表論證<sup><a href="#ref-4">[4]</a></sup></div>
+        <p>Plookup 是 PLONK 的擴展，用於證明向量 \(f\) 的每個元素都出現在預定義的表格 \(T\) 中。核心思想是將查表轉換為置換論證：將 \(f\) 和 \(T\) 排序後，相鄰元素的差應該來自 \(T\) 的相鄰差集合。</p>
+      </div>
+
+      <pre><code>Plookup 約束：
+
+設 f = (f_1, ..., f_m) 是查表值
+設 T = (t_1, ..., t_n) 是預定義表格
+
+證明目標：∀i, f_i ∈ T
+
+方法：
+1. 構造排序向量 s = sort(f ∪ T)
+2. 證明 s 是 f ∪ T 的排列
+3. 證明 s 中相鄰差 (s_{i+1} - s_i) 都在 T 的相鄰差集合中
+
+ZKML 應用：
+- 激活函數：ReLU(x) 查表，x ∈ [-128, 127]
+- 定點乘法：查預計算的乘積表
+- 非線性：Sigmoid, GELU 查表近似</code></pre>
+
+      <h3>遞迴證明</h3>
+
+      <pre><code>PLONK 遞迴：
+
+概念：在 PLONK 電路中驗證另一個 PLONK 證明
+
+挑戰：
+  - 需要在電路內計算配對
+  - 配對成本：數百萬約束
+
+解決方案：
+
+1. 非原生域算術
+   - 在 PLONK 約束中模擬非原生域運算
+   - 成本：~1000 約束/域運算
+
+2. 累積方案（Accumulation）
+   - Halo 技術：延遲最終配對
+   - 多個證明累積為一個
+   - 最終僅需一次配對
+
+3. Folding Scheme（Nova 系列）
+   - 增量可驗證計算
+   - 適合長鏈計算</code></pre>
+
+      <h2>安全性分析</h2>
+
+      <h3>安全屬性</h3>
+
+      <pre><code>PLONK 的安全保證：
+
+1. 完備性（Completeness）
+   誠實證明者總能生成有效證明
+   證明：構造性，跟隨協議步驟
+
+2. 知識健全性（Knowledge Soundness）
+   若驗證通過，則存在提取器能取得見證
+   假設：AGM + KoE
+   安全等級：計算安全（非資訊論）
+
+3. 零知識性（Zero-Knowledge）
+   證明不洩露見證資訊
+   技術：Z_H(X) 盲化因子
+
+安全性歸約：
+  PLONK 安全 ← KZG 安全 ← DL 困難假設</code></pre>
+
+      <h3>攻擊面</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>攻擊類型</th>
+            <th>描述</th>
+            <th>緩解措施</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>SRS 後門</strong></td>
+            <td>設置者保留 τ</td>
+            <td>MPC 儀式，單一誠實參與者即可</td>
+          </tr>
+          <tr>
+            <td><strong>量子攻擊</strong></td>
+            <td>Shor 算法破解 DL</td>
+            <td>遷移到 STARK 或 FRI-PLONK</td>
+          </tr>
+          <tr>
+            <td><strong>實現缺陷</strong></td>
+            <td>盲化不足、Fiat-Shamir 錯誤</td>
+            <td>形式化驗證、審計</td>
+          </tr>
+          <tr>
+            <td><strong>側通道</strong></td>
+            <td>計時攻擊洩露見證</td>
+            <td>常數時間實現</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h2>相關頁面</h2>
 
       <ul>
-        <li><a href="groth16.html">Groth16</a></li>
-        <li><a href="stark.html">STARK</a></li>
-        <li><a href="../halo2.html">Halo2</a></li>
-        <li><a href="../arithmetization/plonkish.html">PLONKish / AIR</a></li>
-        <li><a href="../commitments/kzg.html">KZG 多項式承諾</a></li>
-        <li><a href="../../zkml/circuit/lookup-tables.html">查表優化</a></li>
+        <li><a href="groth16.html">Groth16</a> - 更快但電路特定的設置</li>
+        <li><a href="stark.html">STARK</a> - 後量子安全的替代方案</li>
+        <li><a href="halo2.html">Halo2</a> - PLONK 的 Rust 實現</li>
+        <li><a href="../arithmetization/plonkish.html">PLONKish / AIR</a> - 算術化詳解</li>
+        <li><a href="../commitments/kzg.html">KZG 多項式承諾</a> - 承諾方案詳解</li>
+        <li><a href="../../zkml/circuit/lookup-tables.html">查表優化</a> - Plookup 在 ZKML 的應用</li>
+        <li><a href="../../frameworks/tools/ezkl.html">EZKL</a> - 基於 PLONK 的 ZKML 框架</li>
       </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Gabizon, A., Williamson, Z. J., & Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR ePrint 2019/953, 2019.</cite>
+            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-2">
+            <cite>Fuchsbauer, G., Kiltz, E., & Loss, J. "The Algebraic Group Model and its Applications." CRYPTO 2018.</cite>
+            <a href="https://eprint.iacr.org/2017/620" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-3">
+            <cite>Kate, A., Zaverucha, G. M., & Goldberg, I. "Constant-Size Commitments to Polynomials and Their Applications." ASIACRYPT 2010.</cite>
+            <a href="https://www.iacr.org/archive/asiacrypt2010/6477178/6477178.pdf" target="_blank" rel="noopener">PDF</a>
+          </li>
+          <li id="ref-4">
+            <cite>Gabizon, A., & Williamson, Z. J. "plookup: A simplified polynomial protocol for lookup tables." IACR ePrint 2020/315, 2020.</cite>
+            <a href="https://eprint.iacr.org/2020/315" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-5">
+            <cite>Zcash. "The halo2 Book." 2024.</cite>
+            <a href="https://zcash.github.io/halo2/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-6">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+        </ol>
+      </section>
+
     </article>
+
     <nav id="prev-next" aria-label="前後頁導覽"></nav>
   </main>
+
   <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
   <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
 </body>
