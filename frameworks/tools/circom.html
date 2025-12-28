@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circom - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="circom">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Circom</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>Circom 是目前最廣泛使用的零知識電路領域特定語言（DSL），由 iden3 團隊開發<sup><a href="#ref-1">[1]</a></sup>。它將高階電路描述編譯為 R1CS 約束系統，並透過 snarkjs 生成 Groth16 或 PLONK 證明。Circom 生態系統是許多 ZK 專案的基礎，包括 Tornado Cash、Semaphore、zkSNARK rollups 等。</p>
+      </div>
+
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#overview">概述與生態系統</a></li>
+          <li><a href="#language">語言特性</a></li>
+          <li><a href="#templates">模板與組件</a></li>
+          <li><a href="#signals">信號與約束</a></li>
+          <li><a href="#compilation">編譯流程</a></li>
+          <li><a href="#snarkjs">snarkjs 整合</a></li>
+          <li><a href="#libraries">標準函式庫</a></li>
+          <li><a href="#zkml-usage">ZKML 應用</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="overview">概述與生態系統</h2>
+
+      <h3>Circom 簡介</h3>
+
+      <p>Circom（Circuit Compiler）是一個專為零知識證明設計的電路編譯器<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>Circom 生態系統：
+
+┌─────────────────────────────────────────────────────────────┐
+│                      Circom 語言                             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ .circom 檔案 │ → │  Circom 編譯器 │ → │  R1CS + WASM │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                      snarkjs 工具鏈                          │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ Trusted Setup│ → │  證明生成    │ → │  驗證合約    │     │
+│  │ (Powers of τ)│    │ (Groth16/   │    │ (Solidity)  │     │
+│  │              │    │  PLONK)     │    │              │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+
+主要組件：
+  - circom：電路編譯器（Rust 實現）
+  - snarkjs：證明系統工具鏈（JavaScript）
+  - circomlib：標準電路函式庫
+  - circomlibjs：JavaScript 輔助工具</code></pre>
+
+      <h3>版本演進</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>版本</th>
+            <th>特點</th>
+            <th>發布時間</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Circom 1.0</strong></td>
+            <td>初始版本，JavaScript 編譯器</td>
+            <td>2018</td>
+          </tr>
+          <tr>
+            <td><strong>Circom 2.0</strong></td>
+            <td>Rust 重寫，效能提升 10x+</td>
+            <td>2021</td>
+          </tr>
+          <tr>
+            <td><strong>Circom 2.1</strong></td>
+            <td>支援自定義模板、改進錯誤訊息</td>
+            <td>2023</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>使用場景</h3>
+
+      <pre><code>Circom 典型應用：
+
+1. 身份驗證
+   - Semaphore：匿名群組成員證明
+   - WorldID：人類身份證明
+
+2. 隱私交易
+   - Tornado Cash：混幣協議
+   - Zcash 衍生項目
+
+3. ZK Rollups
+   - Polygon Hermez
+   - zkSync 早期版本
+
+4. 鏈上驗證
+   - zkEmail：郵件驗證
+   - zkSudoku：遊戲驗證
+
+5. ZKML
+   - 小型神經網路推理
+   - 決策樹驗證</code></pre>
+
+      <h2 id="language">語言特性</h2>
+
+      <h3>基本語法</h3>
+
+      <pre><code>// Circom 基本結構
+
+pragma circom 2.1.0;  // 版本聲明
+
+// 引入外部模板
+include "circomlib/circuits/comparators.circom";
+include "circomlib/circuits/poseidon.circom";
+
+// 定義模板（類似函數/類別）
+template Multiplier(n) {
+    // 信號聲明
+    signal input a;       // 私有輸入
+    signal input b;       // 私有輸入
+    signal output c;      // 輸出
+
+    // 中間信號
+    signal intermediate;
+
+    // 約束（使用 <== 同時賦值和約束）
+    intermediate <== a * a;
+    c <== intermediate * b;
+}
+
+// 主組件
+component main = Multiplier(64);</code></pre>
+
+      <h3>信號類型</h3>
+
+      <pre><code>信號類型說明：
+
+1. signal input：輸入信號
+   - 可以是公開或私有
+   - 由證明者提供值
+
+2. signal output：輸出信號
+   - 通常是公開的
+   - 作為計算結果
+
+3. signal（中間信號）：
+   - 內部計算用
+   - 不暴露給外部
+
+公開/私有控制（在 main 聲明時）：
+  component main {public [a, b]} = MyCircuit();
+  // a, b 為公開輸入，其他為私有</code></pre>
+
+      <h3>運算符</h3>
+
+      <pre><code>Circom 運算符：
+
+算術運算（有限域）：
+  +   加法
+  -   減法
+  *   乘法
+  **  冪運算
+  /   除法（乘以逆元）
+  \   整數除法
+  %   取餘
+
+比較運算（返回 0 或 1）：
+  ==  等於
+  !=  不等於
+  <   小於
+  >   大於
+  <=  小於等於
+  >=  大於等於
+
+邏輯運算：
+  &&  邏輯與
+  ||  邏輯或
+  !   邏輯非
+
+位元運算：
+  &   位元與
+  |   位元或
+  ^   位元異或
+  ~   位元反轉
+  <<  左移
+  >>  右移
+
+約束運算符：
+  <== 賦值並約束（最常用）
+  ==> 反向賦值約束
+  === 僅約束（不賦值）
+  <-- 僅賦值（不約束，危險！）
+  --> 反向僅賦值</code></pre>
+
+      <h2 id="templates">模板與組件</h2>
+
+      <h3>模板定義</h3>
+
+      <pre><code>// 模板是 Circom 的核心抽象單位
+
+// 帶參數的模板
+template Sum(n) {
+    signal input in[n];    // n 個輸入的陣列
+    signal output out;
+
+    signal sums[n];
+
+    sums[0] <== in[0];
+    for (var i = 1; i < n; i++) {
+        sums[i] <== sums[i-1] + in[i];
+    }
+
+    out <== sums[n-1];
+}
+
+// 使用模板
+template Main() {
+    signal input values[10];
+    signal output total;
+
+    component summer = Sum(10);
+    for (var i = 0; i < 10; i++) {
+        summer.in[i] <== values[i];
+    }
+    total <== summer.out;
+}</code></pre>
+
+      <h3>組件實例化</h3>
+
+      <pre><code>// 組件是模板的實例
+
+template ComplexCircuit() {
+    signal input a, b, c;
+    signal output result;
+
+    // 實例化多個組件
+    component mult1 = Multiplier();
+    component mult2 = Multiplier();
+    component add = Adder();
+
+    // 連接信號
+    mult1.a <== a;
+    mult1.b <== b;
+
+    mult2.a <== mult1.c;
+    mult2.b <== c;
+
+    add.a <== mult1.c;
+    add.b <== mult2.c;
+
+    result <== add.out;
+}
+
+// 陣列組件
+template ParallelHash(n) {
+    signal input in[n];
+    signal output out[n];
+
+    component hashers[n];
+    for (var i = 0; i < n; i++) {
+        hashers[i] = Poseidon(1);
+        hashers[i].inputs[0] <== in[i];
+        out[i] <== hashers[i].out;
+    }
+}</code></pre>
+
+      <h3>條件實例化</h3>
+
+      <pre><code>// 編譯時條件（不是運行時）
+
+template Conditional(useHash) {
+    signal input in;
+    signal output out;
+
+    if (useHash == 1) {
+        component hasher = Poseidon(1);
+        hasher.inputs[0] <== in;
+        out <== hasher.out;
+    } else {
+        out <== in * in;
+    }
+}
+
+// 注意：條件在編譯時評估
+// 不能用信號值作為條件</code></pre>
+
+      <h2 id="signals">信號與約束</h2>
+
+      <h3>約束系統</h3>
+
+      <pre><code>Circom 約束規則：
+
+1. 二次約束形式：
+   A * B + C = 0
+   其中 A, B, C 是信號的線性組合
+
+2. 合法約束範例：
+   a * b === c              // OK: 二次
+   a + b === c              // OK: 線性（特殊二次）
+   a * b + c * d === e      // ERROR: 不是二次形式
+
+3. 分解非二次約束：
+   // 原始：a * b * c === d
+   signal ab;
+   ab <== a * b;            // 第一個約束
+   ab * c === d;            // 第二個約束
+
+4. <== vs <-- 的區別：
+   c <== a * b;   // 安全：同時賦值和約束
+   c <-- a * b;   // 危險：僅賦值，無約束！
+
+   // <-- 適用場景：需要非確定性計算
+   signal inv;
+   inv <-- 1 / a;           // 計算逆元
+   inv * a === 1;           // 但必須加約束驗證</code></pre>
+
+      <h3>陣列與迴圈</h3>
+
+      <pre><code>// 陣列操作
+
+template ArrayOps(n) {
+    signal input arr[n];
+    signal output sum;
+    signal output product;
+
+    // 累加
+    signal sums[n+1];
+    sums[0] <== 0;
+    for (var i = 0; i < n; i++) {
+        sums[i+1] <== sums[i] + arr[i];
+    }
+    sum <== sums[n];
+
+    // 累乘
+    signal prods[n+1];
+    prods[0] <== 1;
+    for (var i = 0; i < n; i++) {
+        prods[i+1] <== prods[i] * arr[i];
+    }
+    product <== prods[n];
+}
+
+// 多維陣列
+template Matrix(rows, cols) {
+    signal input mat[rows][cols];
+    signal output trace;
+
+    signal diag[rows];
+    for (var i = 0; i < rows; i++) {
+        diag[i] <== mat[i][i];
+    }
+    // ... 計算 trace
+}</code></pre>
+
+      <h3>函數（純計算）</h3>
+
+      <pre><code>// 函數用於編譯時計算，不產生約束
+
+function factorial(n) {
+    if (n == 0) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+function log2(n) {
+    var result = 0;
+    var temp = n;
+    while (temp > 1) {
+        temp = temp >> 1;
+        result++;
+    }
+    return result;
+}
+
+template UseFunction() {
+    var fact5 = factorial(5);  // 編譯時計算：120
+    var bits = log2(256);      // 編譯時計算：8
+
+    signal input x;
+    signal output y;
+
+    // 使用編譯時常數
+    y <== x * fact5;
+}</code></pre>
+
+      <h2 id="compilation">編譯流程</h2>
+
+      <h3>編譯步驟</h3>
+
+      <pre><code>Circom 編譯流程：
+
+1. 安裝 Circom
+   $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   $ git clone https://github.com/iden3/circom.git
+   $ cd circom && cargo build --release
+   $ cargo install --path circom
+
+2. 編寫電路
+   // circuit.circom
+   pragma circom 2.1.0;
+
+   template Main() {
+       signal input a, b;
+       signal output c;
+       c <== a * b;
+   }
+
+   component main = Main();
+
+3. 編譯電路
+   $ circom circuit.circom --r1cs --wasm --sym --c
+
+   輸出檔案：
+   - circuit.r1cs      # R1CS 約束系統
+   - circuit.wasm      # WebAssembly 見證計算器
+   - circuit.sym       # 符號表（調試用）
+   - circuit_cpp/      # C++ 見證計算器（可選）
+
+4. 查看電路資訊
+   $ snarkjs r1cs info circuit.r1cs
+   # Constraints: 1
+   # Private Inputs: 2
+   # Public Inputs: 0
+   # Outputs: 1</code></pre>
+
+      <h3>編譯選項</h3>
+
+      <pre><code>Circom 編譯選項：
+
+輸出格式：
+  --r1cs          生成 R1CS 檔案
+  --wasm          生成 WASM 見證計算器
+  --sym           生成符號表
+  --c             生成 C++ 見證計算器
+  --json          生成 JSON 約束
+
+優化選項：
+  --O0            無優化
+  --O1            基本優化（預設）
+  --O2            積極優化
+  --inspect       輸出未優化的約束（調試）
+
+其他選項：
+  -o, --output    指定輸出目錄
+  -l, --link      指定函式庫路徑
+  --prime         指定素數域（預設 BN128）
+  --verbose       詳細輸出</code></pre>
+
+      <h2 id="snarkjs">snarkjs 整合</h2>
+
+      <h3>可信設置</h3>
+
+      <pre><code>snarkjs 可信設置流程：
+
+1. 安裝 snarkjs
+   $ npm install -g snarkjs
+
+2. 下載 Powers of Tau（通用設置）
+   $ wget https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_12.ptau
+
+3. Groth16 電路特定設置
+   # 初始化
+   $ snarkjs groth16 setup circuit.r1cs pot12_final.ptau circuit_0000.zkey
+
+   # 貢獻隨機性（可多次）
+   $ snarkjs zkey contribute circuit_0000.zkey circuit_0001.zkey \
+       --name="First contribution" -v
+
+   # 驗證 zkey
+   $ snarkjs zkey verify circuit.r1cs pot12_final.ptau circuit_0001.zkey
+
+   # 導出驗證密鑰
+   $ snarkjs zkey export verificationkey circuit_0001.zkey verification_key.json
+
+4. PLONK 設置（較簡單）
+   $ snarkjs plonk setup circuit.r1cs pot12_final.ptau circuit_plonk.zkey</code></pre>
+
+      <h3>證明生成與驗證</h3>
+
+      <pre><code>證明流程：
+
+1. 準備輸入
+   // input.json
+   {
+       "a": "3",
+       "b": "11"
+   }
+
+2. 計算見證
+   $ node circuit_js/generate_witness.js circuit.wasm input.json witness.wtns
+
+3. 生成證明（Groth16）
+   $ snarkjs groth16 prove circuit_final.zkey witness.wtns proof.json public.json
+
+4. 驗證證明
+   $ snarkjs groth16 verify verification_key.json public.json proof.json
+
+5. 生成 Solidity 驗證器
+   $ snarkjs zkey export solidityverifier circuit_final.zkey verifier.sol
+
+6. 生成合約調用參數
+   $ snarkjs zkey export soliditycalldata public.json proof.json</code></pre>
+
+      <h3>JavaScript 整合</h3>
+
+      <pre><code>// Node.js / 瀏覽器中使用 snarkjs
+
+const snarkjs = require("snarkjs");
+const fs = require("fs");
+
+async function generateProof() {
+    // 讀取電路檔案
+    const wasmBuffer = fs.readFileSync("circuit.wasm");
+    const zkeyBuffer = fs.readFileSync("circuit_final.zkey");
+
+    // 輸入
+    const input = { a: 3, b: 11 };
+
+    // 生成證明
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+        input,
+        wasmBuffer,
+        zkeyBuffer
+    );
+
+    console.log("Proof:", JSON.stringify(proof, null, 2));
+    console.log("Public signals:", publicSignals);
+
+    // 驗證
+    const vKey = JSON.parse(fs.readFileSync("verification_key.json"));
+    const verified = await snarkjs.groth16.verify(vKey, publicSignals, proof);
+    console.log("Verified:", verified);
+
+    return { proof, publicSignals };
+}
+
+generateProof();</code></pre>
+
+      <h2 id="libraries">標準函式庫</h2>
+
+      <h3>circomlib 概覽</h3>
+
+      <pre><code>circomlib 主要組件：
+
+基礎運算：
+  - comparators.circom   # 比較器（LessThan, IsEqual, etc.）
+  - gates.circom         # 邏輯門（AND, OR, XOR, etc.）
+  - bitify.circom        # 位元轉換（Num2Bits, Bits2Num）
+  - mux.circom           # 多工器（Mux1, Mux2, etc.）
+
+雜湊函數：
+  - poseidon.circom      # Poseidon 雜湊（ZK 友好）
+  - pedersen.circom      # Pedersen 雜湊
+  - mimcsponge.circom    # MiMC 雜湊
+  - sha256/              # SHA256（約束較多）
+
+橢圓曲線：
+  - babyjub.circom       # Baby Jubjub 曲線
+  - escalarmulfix.circom # 固定基點乘法
+  - escalarmulany.circom # 任意點乘法
+
+簽名：
+  - eddsa.circom         # EdDSA 簽名驗證
+  - eddsamimc.circom     # 使用 MiMC 的 EdDSA
+  - eddsaposeidon.circom # 使用 Poseidon 的 EdDSA
+
+Merkle 樹：
+  - smt/                 # 稀疏 Merkle 樹</code></pre>
+
+      <h3>常用模板範例</h3>
+
+      <pre><code>// 比較器使用
+
+include "circomlib/circuits/comparators.circom";
+
+template RangeCheck(n) {
+    signal input value;
+    signal output valid;
+
+    // 檢查 0 <= value < 2^n
+    component lt = LessThan(n);
+    lt.in[0] <== value;
+    lt.in[1] <== 1 << n;
+
+    component gte = GreaterEqThan(n);
+    gte.in[0] <== value;
+    gte.in[1] <== 0;
+
+    valid <== lt.out * gte.out;
+}
+
+// Poseidon 雜湊
+
+include "circomlib/circuits/poseidon.circom";
+
+template HashTwo() {
+    signal input left;
+    signal input right;
+    signal output hash;
+
+    component hasher = Poseidon(2);
+    hasher.inputs[0] <== left;
+    hasher.inputs[1] <== right;
+    hash <== hasher.out;
+}
+
+// Merkle 證明驗證
+
+template MerkleProof(depth) {
+    signal input leaf;
+    signal input pathElements[depth];
+    signal input pathIndices[depth];
+    signal output root;
+
+    component hashers[depth];
+    signal levelHashes[depth + 1];
+    levelHashes[0] <== leaf;
+
+    for (var i = 0; i < depth; i++) {
+        hashers[i] = Poseidon(2);
+
+        // pathIndices[i] = 0: leaf 在左邊
+        // pathIndices[i] = 1: leaf 在右邊
+        hashers[i].inputs[0] <== levelHashes[i] * (1 - pathIndices[i])
+                               + pathElements[i] * pathIndices[i];
+        hashers[i].inputs[1] <== levelHashes[i] * pathIndices[i]
+                               + pathElements[i] * (1 - pathIndices[i]);
+
+        levelHashes[i+1] <== hashers[i].out;
+    }
+
+    root <== levelHashes[depth];
+}</code></pre>
+
+      <h2 id="zkml-usage">ZKML 應用</h2>
+
+      <h3>神經網路電路</h3>
+
+      <pre><code>// 定點數全連接層
+
+template FullyConnected(inputSize, outputSize, scale) {
+    signal input in[inputSize];
+    signal input weights[outputSize][inputSize];
+    signal input bias[outputSize];
+    signal output out[outputSize];
+
+    signal products[outputSize][inputSize];
+    signal sums[outputSize][inputSize + 1];
+
+    for (var i = 0; i < outputSize; i++) {
+        sums[i][0] <== bias[i];
+
+        for (var j = 0; j < inputSize; j++) {
+            products[i][j] <== in[j] * weights[i][j];
+            sums[i][j+1] <== sums[i][j] + products[i][j];
+        }
+
+        // 重新縮放（定點數除法）
+        out[i] <-- sums[i][inputSize] \ scale;
+        // 需要範圍檢查確保正確性
+    }
+}
+
+// ReLU 激活函數
+
+template ReLU(n) {
+    signal input in;
+    signal output out;
+
+    // 符號位
+    signal sign;
+    sign <-- (in >= 0) ? 1 : 0;
+    sign * (sign - 1) === 0;  // sign ∈ {0, 1}
+
+    out <== in * sign;
+
+    // 驗證一致性
+    component lt = LessThan(n);
+    lt.in[0] <== in + (1 << (n-1));  // 偏移處理負數
+    lt.in[1] <== 1 << (n-1);
+    lt.out === 1 - sign;
+}</code></pre>
+
+      <h3>ZKML 限制</h3>
+
+      <pre><code>Circom 用於 ZKML 的限制：
+
+1. 效能限制
+   - 大型網路會產生數百萬約束
+   - 編譯和證明時間長
+   - 記憶體消耗大
+
+2. 語言限制
+   - 無浮點數，需定點數模擬
+   - 無動態陣列
+   - 循環必須編譯時確定
+
+3. 適用場景
+   ✓ 小型 MLP（< 10K 參數）
+   ✓ 決策樹
+   ✓ 簡單 CNN
+   ✗ 大型 Transformer
+   ✗ 複雜影像模型
+
+4. 替代方案
+   - EZKL：專為 ML 優化的 Halo2 電路
+   - RISC Zero：通用 zkVM</code></pre>
+
+      <h3>效能優化技巧</h3>
+
+      <pre><code>Circom 效能優化：
+
+1. 減少約束數
+   - 合併連續運算
+   - 避免不必要的範圍檢查
+   - 使用查表（對 Plonkish 後端）
+
+2. 見證計算優化
+   - 使用 C++ 見證計算器而非 WASM
+   - 預計算常數
+   - 批次處理
+
+3. 並行化
+   - 多執行緒 witness 生成
+   - GPU 加速證明（rapidsnark）
+
+4. 電路設計
+   - 選擇適當的位元寬度
+   - 使用 ZK 友好雜湊（Poseidon）
+   - 避免大型 SHA256 等電路
+
+5. 工具選擇
+   - snarkjs：標準工具，JavaScript
+   - rapidsnark：C++ 加速證明生成
+   - circom-pairing：更好的曲線支援</code></pre>
+
+      <h2>與其他工具比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Circom</th>
+            <th>Cairo</th>
+            <th>Noir</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>算術化</strong></td>
+            <td>R1CS</td>
+            <td>AIR</td>
+            <td>R1CS/Plonkish</td>
+          </tr>
+          <tr>
+            <td><strong>證明系統</strong></td>
+            <td>Groth16, PLONK</td>
+            <td>STARK</td>
+            <td>Barretenberg</td>
+          </tr>
+          <tr>
+            <td><strong>語言風格</strong></td>
+            <td>領域特定</td>
+            <td>類 Rust</td>
+            <td>類 Rust</td>
+          </tr>
+          <tr>
+            <td><strong>可信設置</strong></td>
+            <td>需要（Groth16）</td>
+            <td>不需要</td>
+            <td>需要/不需要</td>
+          </tr>
+          <tr>
+            <td><strong>成熟度</strong></td>
+            <td>高</td>
+            <td>高</td>
+            <td>中</td>
+          </tr>
+          <tr>
+            <td><strong>生態系統</strong></td>
+            <td>最大</td>
+            <td>StarkNet</td>
+            <td>Aztec</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="../../zkp/arithmetization/r1cs.html">R1CS</a> - Circom 使用的約束系統</li>
+        <li><a href="../../zkp/proof-systems/groth16.html">Groth16</a> - 主要證明系統</li>
+        <li><a href="../../zkp/proof-systems/plonk.html">PLONK</a> - snarkjs 支援的另一證明系統</li>
+        <li><a href="cairo.html">Cairo</a> - STARK 生態的替代方案</li>
+        <li><a href="noir.html">Noir</a> - Aztec 的 ZK 語言</li>
+        <li><a href="ezkl.html">EZKL</a> - ZKML 專用工具</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>iden3. "Circom Documentation." 2024.</cite>
+            <a href="https://docs.circom.io/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-2">
+            <cite>iden3. "circomlib - Circom Standard Library." GitHub.</cite>
+            <a href="https://github.com/iden3/circomlib" target="_blank" rel="noopener">GitHub</a>
+          </li>
+          <li id="ref-3">
+            <cite>iden3. "snarkjs - zkSNARK implementation in JavaScript." GitHub.</cite>
+            <a href="https://github.com/iden3/snarkjs" target="_blank" rel="noopener">GitHub</a>
+          </li>
+          <li id="ref-4">
+            <cite>Belles, M., et al. "Circom: A Circuit Description Language for Building Zero-Knowledge Applications." 2022.</cite>
+            <a href="https://www.techrxiv.org/articles/preprint/circom_A_Robust_and_Scalable_Language_for_Building_Complex_Zero-Knowledge_Circuits/19374986" target="_blank" rel="noopener">論文</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

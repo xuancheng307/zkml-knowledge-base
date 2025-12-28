@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noir - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="noir">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Noir</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p><strong>Noir</strong>（法語「黑色」）是由 Aztec Protocol 開發的開源零知識領域專用語言（DSL）<sup><a href="#ref-1">[1]</a></sup>。Noir 採用類 Rust 語法設計，專注於提供簡潔、安全且高效的 ZK 電路開發體驗。其核心理念是讓開發者能夠以接近傳統程式設計的方式撰寫 ZK 電路，而無需深入了解底層密碼學細節。</p>
+      </div>
+
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#overview">概述與特點</a></li>
+          <li><a href="#acir">ACIR 中間表示</a></li>
+          <li><a href="#language-features">語言特性</a></li>
+          <li><a href="#constraints">約束系統</a></li>
+          <li><a href="#stdlib">標準庫</a></li>
+          <li><a href="#recursion">遞迴證明</a></li>
+          <li><a href="#nargo">Nargo 工具鏈</a></li>
+          <li><a href="#examples">應用範例</a></li>
+          <li><a href="#aztec">Aztec 整合</a></li>
+          <li><a href="#zkml-applications">ZKML 應用</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="overview">概述與特點</h2>
+
+      <h3>Noir 核心特點</h3>
+
+      <ul>
+        <li><strong>類 Rust 語法</strong>：熟悉的現代程式語言風格</li>
+        <li><strong>後端無關</strong>：支援多種證明系統（Barretenberg、Plonky2 等）</li>
+        <li><strong>強型別系統</strong>：編譯時期捕捉約束錯誤</li>
+        <li><strong>標準庫豐富</strong>：內建密碼學原語與常用函數</li>
+        <li><strong>遞迴證明支援</strong>：原生支援證明組合</li>
+        <li><strong>ACIR 中間表示</strong>：抽象電路中間表示法</li>
+      </ul>
+
+      <h3>工具鏈架構</h3>
+
+      <pre><code>Noir 開發流程：
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Noir 開發流程                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐   │
+│   │   .nr 檔案   │───▶│   Nargo     │───▶│  ACIR (抽象電路IR) │   │
+│   │  (Noir 源碼) │    │  (編譯器)   │    │                     │   │
+│   └─────────────┘    └─────────────┘    └──────────┬──────────┘   │
+│                                                     │               │
+│                       ┌─────────────────────────────┼───────────┐   │
+│                       │           Backend 選擇       ▼           │   │
+│                       │  ┌─────────────────────────────────────┐│   │
+│                       │  │         Barretenberg (預設)         ││   │
+│                       │  │        Ultra-PLONK + Plookup        ││   │
+│                       │  └─────────────────────────────────────┘│   │
+│                       │  ┌─────────────────────────────────────┐│   │
+│                       │  │           Plonky2                   ││   │
+│                       │  │        PLONK + FRI                  ││   │
+│                       │  └─────────────────────────────────────┘│   │
+│                       │  ┌─────────────────────────────────────┐│   │
+│                       │  │        其他自訂後端                  ││   │
+│                       │  │        (實驗性支援)                  ││   │
+│                       │  └─────────────────────────────────────┘│   │
+│                       └─────────────────────────────────────────┘   │
+│                                          │                          │
+│                                          ▼                          │
+│                       ┌─────────────────────────────────────────┐   │
+│                       │    Proof Generation / Verification      │   │
+│                       │         證明生成 / 驗證                   │   │
+│                       └─────────────────────────────────────────┘   │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘</code></pre>
+
+      <h2 id="acir">ACIR 中間表示</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition：ACIR</div>
+        <p><strong>Abstract Circuit Intermediate Representation (ACIR)</strong> 是 Noir 編譯器產生的中間表示格式。ACIR 定義了一組通用的約束原語，可被轉換為不同後端的具體電路格式：</p>
+        <p class="math">$$\text{ACIR} = \{(\text{opcode}_i, \text{inputs}_i, \text{outputs}_i)\}_{i=1}^{n}$$</p>
+        <p>每個 opcode 對應一種電路操作，例如算術運算、範圍檢查、雜湊函數等。</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ACIR Opcode</th>
+            <th>功能說明</th>
+            <th>約束類型</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>AssertZero</code></td>
+            <td>驗證多項式等於零</td>
+            <td>算術約束</td>
+          </tr>
+          <tr>
+            <td><code>BlackBoxFuncCall</code></td>
+            <td>呼叫預定義黑盒函數</td>
+            <td>專用電路</td>
+          </tr>
+          <tr>
+            <td><code>Brillig</code></td>
+            <td>未約束計算區塊</td>
+            <td>輔助計算</td>
+          </tr>
+          <tr>
+            <td><code>MemoryOp</code></td>
+            <td>記憶體讀寫操作</td>
+            <td>查表約束</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>ACIR 範例結構</h3>
+
+      <pre><code class="language-json">{
+  "current_witness_index": 5,
+  "opcodes": [
+    {
+      "AssertZero": {
+        "linear_combinations": [
+          [1, {"witness_index": 0}],
+          [1, {"witness_index": 1}],
+          [-1, {"witness_index": 2}]
+        ],
+        "q_c": 0
+      }
+    },
+    {
+      "BlackBoxFuncCall": {
+        "name": "RANGE",
+        "inputs": [{"witness_index": 0}],
+        "outputs": [],
+        "bit_size": 32
+      }
+    }
+  ],
+  "public_parameters": {
+    "inputs": [0, 1],
+    "outputs": [2]
+  }
+}</code></pre>
+
+      <h2 id="language-features">語言特性</h2>
+
+      <h3>基本型別系統</h3>
+
+      <pre><code class="language-rust">// 有限域元素（預設型別）
+fn main(x: Field, y: Field) -> pub Field {
+    x * y + 1
+}
+
+// 固定位元整數
+fn integer_ops(a: u8, b: u32, c: i64) {
+    let sum: u32 = a as u32 + b;       // 型別轉換
+    let product: i64 = b as i64 * c;    // 有號整數
+}
+
+// 布林型別
+fn boolean_logic(flag: bool) -> bool {
+    let result = flag & true;           // 邏輯 AND
+    result | false                       // 邏輯 OR
+}
+
+// 陣列型別（固定長度）
+fn array_example(arr: [Field; 4]) -> Field {
+    let mut sum: Field = 0;
+    for i in 0..4 {
+        sum += arr[i];
+    }
+    sum
+}
+
+// 元組型別
+fn tuple_example() -> (Field, bool) {
+    let pair = (42, true);
+    pair
+}
+
+// 字串型別（固定長度）
+fn string_example(s: str<11>) {
+    assert(s == "Hello Noir");
+}</code></pre>
+
+      <h3>結構體與實作</h3>
+
+      <pre><code class="language-rust">// 結構體定義
+struct Point {
+    x: Field,
+    y: Field,
+}
+
+// 結構體實作
+impl Point {
+    fn new(x: Field, y: Field) -> Self {
+        Point { x, y }
+    }
+
+    fn add(self, other: Point) -> Point {
+        Point {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+
+    fn is_origin(self) -> bool {
+        (self.x == 0) & (self.y == 0)
+    }
+}
+
+// 泛型結構體
+struct Pair<T, U> {
+    first: T,
+    second: U,
+}
+
+// 使用範例
+fn struct_example() {
+    let p1 = Point::new(3, 4);
+    let p2 = Point::new(1, 2);
+    let p3 = p1.add(p2);
+
+    assert(p3.x == 4);
+    assert(p3.y == 6);
+}</code></pre>
+
+      <h3>控制流程</h3>
+
+      <pre><code class="language-rust">// 條件表達式
+fn conditional(x: Field, flag: bool) -> Field {
+    // if-else 表達式（非語句）
+    let result = if flag {
+        x * 2
+    } else {
+        x + 1
+    };
+    result
+}
+
+// 編譯時期迴圈
+fn compile_time_loop() -> Field {
+    let mut sum: Field = 0;
+    // 迴圈次數必須在編譯時確定
+    for i in 0..10 {
+        sum += i as Field;
+    }
+    sum
+}
+
+// 巢狀迴圈
+fn matrix_sum(matrix: [[Field; 3]; 3]) -> Field {
+    let mut total: Field = 0;
+    for i in 0..3 {
+        for j in 0..3 {
+            total += matrix[i][j];
+        }
+    }
+    total
+}</code></pre>
+
+      <h3>Trait 系統</h3>
+
+      <pre><code class="language-rust">// Trait 定義
+trait Hashable {
+    fn hash(self) -> Field;
+}
+
+// 泛型函數
+fn generic_add<T>(a: T, b: T) -> T where T: std::ops::Add {
+    a + b
+}
+
+// 為自訂型別實作 Trait
+impl Hashable for Point {
+    fn hash(self) -> Field {
+        std::hash::pedersen_hash([self.x, self.y])
+    }
+}
+
+// 泛型結構體與 Trait 約束
+struct Container<T> where T: Hashable {
+    value: T,
+    hash: Field,
+}
+
+impl<T> Container<T> where T: Hashable {
+    fn new(value: T) -> Self {
+        Container {
+            value,
+            hash: value.hash(),
+        }
+    }
+}</code></pre>
+
+      <h2 id="constraints">約束系統</h2>
+
+      <div class="callout callout-info">
+        <div class="callout-title">約束 vs 計算</div>
+        <p>在 Noir 中，區分<strong>約束計算</strong>（constrained）與<strong>非約束計算</strong>（unconstrained）至關重要：</p>
+        <ul>
+          <li><strong>約束計算</strong>：產生 ACIR opcodes，在證明中被驗證</li>
+          <li><strong>非約束計算</strong>：僅作為輔助計算，不納入證明</li>
+        </ul>
+      </div>
+
+      <h3>約束與斷言</h3>
+
+      <pre><code class="language-rust">// assert 創建約束
+fn constrained_example(x: Field, y: Field) {
+    // 這個斷言會被編譯為電路約束
+    assert(x * x + y * y == 25);
+
+    // 等價於要求存在滿足條件的 witness
+    // 驗證者會檢查此約束
+}
+
+// 範圍約束（隱式）
+fn range_constraint(x: u8) {
+    // u8 型別自動添加 x < 256 的範圍約束
+    let doubled = x * 2;  // 可能溢位，需小心
+}
+
+// 明確範圍檢查
+fn explicit_range(x: Field) {
+    // 使用標準庫進行範圍檢查
+    let x_u32: u32 = x as u32;  // 添加 32-bit 範圍約束
+    assert(x_u32 < 1000);
+}</code></pre>
+
+      <h3>非約束函數（Brillig）</h3>
+
+      <pre><code class="language-rust">// 非約束函數 - 不產生電路約束
+unconstrained fn compute_hint(x: Field) -> Field {
+    // 這段計算不會被證明
+    // 用於計算 witness hint
+    let mut result = x;
+    for _ in 0..100 {
+        result = result * result;
+    }
+    result
+}
+
+// 結合約束與非約束計算
+fn verified_sqrt(x: Field) -> Field {
+    // 步驟 1: 非約束計算 - 找出平方根（hint）
+    let sqrt_hint = unsafe {
+        compute_sqrt_hint(x)
+    };
+
+    // 步驟 2: 約束驗證 - 確認結果正確
+    assert(sqrt_hint * sqrt_hint == x);
+
+    sqrt_hint
+}
+
+unconstrained fn compute_sqrt_hint(x: Field) -> Field {
+    // 使用迭代法計算平方根
+    // 這是輔助計算，不進入證明
+    x  // 簡化示例
+}</code></pre>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">安全注意事項</div>
+        <ul>
+          <li><strong>非約束結果必須驗證</strong>：使用 unconstrained 計算的 hint 必須透過 assert 確認</li>
+          <li><strong>Prover 可操控 hint</strong>：惡意 prover 可提供任意 hint 值</li>
+          <li><strong>約束完整性</strong>：確保所有關鍵邏輯都有對應約束</li>
+        </ul>
+      </div>
+
+      <h2 id="stdlib">標準庫</h2>
+
+      <h3>密碼學原語</h3>
+
+      <pre><code class="language-rust">use std::hash::{pedersen_hash, poseidon, keccak256, sha256};
+
+fn hash_examples(data: [Field; 2]) {
+    // Pedersen Hash - ZK 友好
+    let h1 = pedersen_hash(data);
+
+    // Poseidon Hash - 更高效的 ZK 雜湊
+    let h2 = poseidon::bn254::hash_2(data);
+
+    // Keccak256 - 以太坊相容
+    let preimage: [u8; 32] = [0; 32];
+    let h3 = keccak256(preimage, 32);
+
+    // SHA256
+    let h4 = sha256(preimage);
+}
+
+// Merkle Tree 驗證
+fn verify_merkle_proof(
+    leaf: Field,
+    path: [Field; 32],
+    indices: [bool; 32],
+    root: Field
+) {
+    let mut current = leaf;
+
+    for i in 0..32 {
+        let (left, right) = if indices[i] {
+            (path[i], current)
+        } else {
+            (current, path[i])
+        };
+        current = pedersen_hash([left, right]);
+    }
+
+    assert(current == root);
+}</code></pre>
+
+      <h3>數位簽章</h3>
+
+      <pre><code class="language-rust">use std::ecdsa_secp256k1;
+use std::schnorr;
+
+// ECDSA 簽章驗證（secp256k1）
+fn verify_ecdsa(
+    public_key_x: [u8; 32],
+    public_key_y: [u8; 32],
+    signature: [u8; 64],
+    message_hash: [u8; 32]
+) {
+    let valid = ecdsa_secp256k1::verify_signature(
+        public_key_x,
+        public_key_y,
+        signature,
+        message_hash
+    );
+    assert(valid);
+}
+
+// Schnorr 簽章驗證
+fn verify_schnorr(
+    public_key_x: Field,
+    public_key_y: Field,
+    signature: [u8; 64],
+    message: [u8; 32]
+) {
+    let valid = schnorr::verify_signature(
+        public_key_x,
+        public_key_y,
+        signature,
+        message
+    );
+    assert(valid);
+}</code></pre>
+
+      <h2 id="recursion">遞迴證明</h2>
+
+      <div class="definition">
+        <div class="definition-title">遞迴證明概念</div>
+        <p>Noir 原生支援<strong>遞迴證明</strong>（Recursive Proofs），允許在電路內部驗證另一個證明。這是實現 zkRollup、證明聚合等應用的關鍵技術。</p>
+        <p>遞迴驗證核心：</p>
+        <p class="math">$$\text{verify}(\pi_{\text{inner}}, \text{vk}, \text{public\_inputs}) \rightarrow \{0, 1\}$$</p>
+        <p>在外層電路中驗證內層證明 \(\pi_{\text{inner}}\) 的有效性。</p>
+      </div>
+
+      <pre><code class="language-rust">use std::verify_proof;
+
+// 遞迴驗證器電路
+fn recursive_verifier(
+    // 內層證明
+    proof: [Field; PROOF_SIZE],
+    // 驗證金鑰
+    verification_key: [Field; VK_SIZE],
+    // 內層公開輸入
+    public_inputs: [Field; NUM_PUBLIC_INPUTS],
+    // 新的計算
+    additional_input: Field
+) -> pub Field {
+    // 步驟 1: 驗證內層證明
+    assert(verify_proof(
+        verification_key,
+        proof,
+        public_inputs
+    ));
+
+    // 步驟 2: 基於驗證結果進行額外計算
+    let inner_output = public_inputs[0];
+    let combined_result = inner_output + additional_input;
+
+    combined_result
+}
+
+// 證明聚合
+fn aggregate_proofs(
+    proof1: [Field; PROOF_SIZE],
+    proof2: [Field; PROOF_SIZE],
+    vk: [Field; VK_SIZE],
+    inputs1: [Field; N],
+    inputs2: [Field; N]
+) -> pub Field {
+    // 驗證兩個獨立證明
+    assert(verify_proof(vk, proof1, inputs1));
+    assert(verify_proof(vk, proof2, inputs2));
+
+    // 聚合結果
+    inputs1[0] + inputs2[0]
+}</code></pre>
+
+      <h3>遞迴證明應用</h3>
+
+      <ul>
+        <li><strong>zkRollup</strong>：將多筆交易證明聚合為單一證明</li>
+        <li><strong>IVC（增量驗證計算）</strong>：持續累積計算的正確性證明</li>
+        <li><strong>跨鏈橋</strong>：在目標鏈驗證源鏈的共識證明</li>
+        <li><strong>隱私協議</strong>：組合多個隱私證明</li>
+      </ul>
+
+      <h2 id="nargo">Nargo 工具鏈</h2>
+
+      <h3>安裝與設置</h3>
+
+      <pre><code class="language-bash"># 安裝 Noirup（Noir 版本管理器）
+curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+
+# 安裝最新穩定版
+noirup
+
+# 安裝特定版本
+noirup --version 0.24.0
+
+# 驗證安裝
+nargo --version</code></pre>
+
+      <h3>專案管理</h3>
+
+      <pre><code class="language-bash"># 創建新專案
+nargo new my_circuit
+cd my_circuit
+
+# 專案結構
+# my_circuit/
+# ├── Nargo.toml          # 專案配置
+# ├── src/
+# │   └── main.nr         # 主電路檔案
+# └── Prover.toml         # 測試輸入（可選）
+
+# 檢查語法
+nargo check
+
+# 編譯為 ACIR
+nargo compile
+
+# 執行（生成 witness）
+nargo execute
+
+# 生成證明
+nargo prove
+
+# 驗證證明
+nargo verify</code></pre>
+
+      <h3>Nargo.toml 配置</h3>
+
+      <pre><code class="language-toml">[package]
+name = "my_zkml_circuit"
+type = "bin"
+authors = ["Your Name"]
+compiler_version = ">=0.24.0"
+
+[dependencies]
+# 使用 GitHub 依賴
+standard_library = { git = "https://github.com/noir-lang/noir", tag = "v0.24.0", directory = "noir_stdlib" }
+
+# 本地依賴
+my_utils = { path = "../my_utils" }
+
+# 指定後端
+[backend]
+name = "barretenberg"</code></pre>
+
+      <h3>測試與偵錯</h3>
+
+      <pre><code class="language-rust">// 單元測試
+#[test]
+fn test_addition() {
+    let result = add(2, 3);
+    assert(result == 5);
+}
+
+// 測試應失敗的情況
+#[test(should_fail)]
+fn test_division_by_zero() {
+    let _ = divide(10, 0);  // 應該 panic
+}
+
+// 帶有輸入的測試
+#[test]
+fn test_with_prover_input() {
+    // Prover.toml 中定義的輸入會被讀取
+    let x = 10;
+    let y = 20;
+    assert(add(x, y) == 30);
+}
+
+// 偵錯輸出（非約束）
+unconstrained fn debug_print<T>(label: str<10>, value: T) {
+    // 在開發時輸出偵錯訊息
+    std::println(label);
+    std::println(value);
+}</code></pre>
+
+      <pre><code class="language-bash"># 執行測試
+nargo test
+
+# 執行特定測試
+nargo test test_addition
+
+# 顯示詳細輸出
+nargo test --show-output</code></pre>
+
+      <h2 id="examples">應用範例</h2>
+
+      <h3>隱私投票系統</h3>
+
+      <pre><code class="language-rust">use std::hash::pedersen_hash;
+
+// 投票電路
+fn main(
+    // 私密輸入
+    voter_secret: Field,           // 選民秘密
+    vote_option: u8,               // 投票選項 (0 或 1)
+    merkle_path: [Field; 20],      // Merkle 路徑
+    merkle_indices: [bool; 20],    // 路徑方向
+
+    // 公開輸入
+    nullifier_hash: pub Field,     // 防重複投票
+    merkle_root: pub Field,        // 選民名單根
+    vote_commitment: pub Field     // 投票承諾
+) {
+    // 1. 驗證選民身份（在 Merkle 樹中）
+    let voter_leaf = pedersen_hash([voter_secret]);
+    let mut current = voter_leaf;
+
+    for i in 0..20 {
+        let (left, right) = if merkle_indices[i] {
+            (merkle_path[i], current)
+        } else {
+            (current, merkle_path[i])
+        };
+        current = pedersen_hash([left, right]);
+    }
+    assert(current == merkle_root);
+
+    // 2. 驗證 nullifier（防重複投票）
+    let computed_nullifier = pedersen_hash([voter_secret, 1]);
+    assert(computed_nullifier == nullifier_hash);
+
+    // 3. 驗證投票有效（0 或 1）
+    assert((vote_option == 0) | (vote_option == 1));
+
+    // 4. 驗證投票承諾
+    let computed_commitment = pedersen_hash([voter_secret, vote_option as Field]);
+    assert(computed_commitment == vote_commitment);
+}</code></pre>
+
+      <h3>隱私代幣轉帳</h3>
+
+      <pre><code class="language-rust">use std::hash::poseidon;
+
+struct Note {
+    owner: Field,      // 所有者公鑰
+    amount: Field,     // 金額
+    salt: Field,       // 隨機鹽值
+}
+
+impl Note {
+    fn commitment(self) -> Field {
+        poseidon::bn254::hash_3([self.owner, self.amount, self.salt])
+    }
+
+    fn nullifier(self, secret_key: Field) -> Field {
+        poseidon::bn254::hash_2([self.commitment(), secret_key])
+    }
+}
+
+// 隱私轉帳電路
+fn transfer(
+    // 輸入 note（私密）
+    input_note: Note,
+    input_secret_key: Field,
+    input_merkle_path: [Field; 32],
+    input_merkle_indices: [bool; 32],
+
+    // 輸出 notes（私密）
+    output_note_1: Note,
+    output_note_2: Note,  // 找零
+
+    // 公開輸入
+    input_nullifier: pub Field,
+    output_commitment_1: pub Field,
+    output_commitment_2: pub Field,
+    merkle_root: pub Field
+) {
+    // 1. 驗證輸入 note 存在於樹中
+    let input_commitment = input_note.commitment();
+    let mut current = input_commitment;
+
+    for i in 0..32 {
+        let (left, right) = if input_merkle_indices[i] {
+            (input_merkle_path[i], current)
+        } else {
+            (current, input_merkle_path[i])
+        };
+        current = poseidon::bn254::hash_2([left, right]);
+    }
+    assert(current == merkle_root);
+
+    // 2. 驗證所有權
+    let owner_pubkey = poseidon::bn254::hash_1([input_secret_key]);
+    assert(owner_pubkey == input_note.owner);
+
+    // 3. 驗證 nullifier
+    let computed_nullifier = input_note.nullifier(input_secret_key);
+    assert(computed_nullifier == input_nullifier);
+
+    // 4. 驗證金額守恆
+    assert(input_note.amount == output_note_1.amount + output_note_2.amount);
+
+    // 5. 驗證輸出承諾
+    assert(output_note_1.commitment() == output_commitment_1);
+    assert(output_note_2.commitment() == output_commitment_2);
+}</code></pre>
+
+      <h2 id="aztec">Aztec Protocol 整合</h2>
+
+      <div class="callout callout-info">
+        <div class="callout-title">Aztec 與 Noir 的關係</div>
+        <p>Noir 是 Aztec Protocol 開發的語言，專為 Aztec 的隱私 Layer 2 設計。Aztec Network 使用 Noir 來編寫智能合約（稱為「Aztec.nr」）。</p>
+      </div>
+
+      <h3>Aztec 架構中的 Noir</h3>
+
+      <pre><code>Aztec Network 架構：
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Aztec Network 架構                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   ┌─────────────────────────────────────────────────────────────┐  │
+│   │                  Aztec.nr 智能合約                            │  │
+│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │  │
+│   │  │ Private     │  │ Public      │  │ Unconstrained      │ │  │
+│   │  │ Functions   │  │ Functions   │  │ Functions          │ │  │
+│   │  │ (ZK 電路)   │  │ (L2 執行)   │  │ (輔助計算)          │ │  │
+│   │  └─────────────┘  └─────────────┘  └─────────────────────┘ │  │
+│   └─────────────────────────────────────────────────────────────┘  │
+│                               │                                     │
+│                               ▼                                     │
+│   ┌─────────────────────────────────────────────────────────────┐  │
+│   │                    Aztec Kernel                              │  │
+│   │              (處理交易、狀態轉換)                             │  │
+│   └─────────────────────────────────────────────────────────────┘  │
+│                               │                                     │
+│                               ▼                                     │
+│   ┌─────────────────────────────────────────────────────────────┐  │
+│   │                  Aztec Rollup                                │  │
+│   │           (聚合證明、提交至 L1)                               │  │
+│   └─────────────────────────────────────────────────────────────┘  │
+│                               │                                     │
+│                               ▼                                     │
+│   ┌─────────────────────────────────────────────────────────────┐  │
+│   │                  Ethereum L1                                 │  │
+│   │              (驗證 Rollup 證明)                               │  │
+│   └─────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘</code></pre>
+
+      <h3>Aztec.nr 合約範例</h3>
+
+      <pre><code class="language-rust">// Aztec.nr 私密代幣合約（簡化示例）
+contract PrivateToken {
+    use dep::aztec::prelude::{
+        AztecAddress, FunctionSelector, NoteHeader, NoteInterface,
+        PrivateContext, PublicContext, Map, PublicMutable, PrivateSet
+    };
+
+    // 狀態
+    struct Storage {
+        balances: Map<AztecAddress, PrivateSet<TokenNote>>,
+        total_supply: PublicMutable<Field>,
+    }
+
+    // 私密轉帳函數
+    #[aztec(private)]
+    fn transfer(
+        &mut self,
+        from: AztecAddress,
+        to: AztecAddress,
+        amount: Field
+    ) {
+        // 從發送者銷毀 note
+        let sender_notes = storage.balances.at(from);
+        let notes = sender_notes.get_notes(NoteGetterOptions::new());
+
+        // 驗證餘額足夠並創建新 notes
+        let change = notes.sum() - amount;
+        assert(change >= 0);
+
+        // 創建收款者 note
+        let recipient_notes = storage.balances.at(to);
+        recipient_notes.insert(TokenNote::new(amount, to));
+
+        // 創建找零 note
+        if change > 0 {
+            sender_notes.insert(TokenNote::new(change, from));
+        }
+    }
+
+    // 公開鑄造函數
+    #[aztec(public)]
+    fn mint_public(
+        &mut self,
+        to: AztecAddress,
+        amount: Field
+    ) {
+        storage.total_supply.write(
+            storage.total_supply.read() + amount
+        );
+    }
+}</code></pre>
+
+      <h2 id="zkml-applications">ZKML 應用</h2>
+
+      <div class="callout callout-info">
+        <div class="callout-title">Noir 在 ZKML 中的應用</div>
+        <p>雖然 Noir 尚未有專門的 ZKML 框架（如 EZKL 之於 Halo2），但其特性使其適合 ZKML 開發。</p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ZKML 需求</th>
+            <th>Noir 支援</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>定點數運算</td>
+            <td>Field 型別 + 手動縮放</td>
+          </tr>
+          <tr>
+            <td>矩陣運算</td>
+            <td>泛型陣列 + 編譯時迴圈</td>
+          </tr>
+          <tr>
+            <td>非線性激活</td>
+            <td>查表 + unconstrained hints</td>
+          </tr>
+          <tr>
+            <td>大型模型</td>
+            <td>遞迴證明分層處理</td>
+          </tr>
+          <tr>
+            <td>模型隱私</td>
+            <td>權重作為私密輸入</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>簡化 MLP 電路</h3>
+
+      <pre><code class="language-rust">// 定點數精度
+global SCALE: Field = 1000;  // 3 位小數
+
+// ReLU 激活函數
+fn relu(x: Field) -> Field {
+    // 使用 unconstrained 判斷符號
+    let is_positive = unsafe { x_is_positive_hint(x) };
+
+    // 約束驗證
+    if is_positive {
+        x
+    } else {
+        0
+    }
+}
+
+unconstrained fn x_is_positive_hint(x: Field) -> bool {
+    // 非約束判斷（簡化示例）
+    true
+}
+
+// 兩層 MLP
+fn mlp_forward(
+    input: [Field; 4],
+    weights_1: [[Field; 4]; 8],   // 4x8
+    bias_1: [Field; 8],
+    weights_2: [[Field; 8]; 2],   // 8x2
+    bias_2: [Field; 2]
+) -> [Field; 2] {
+    // 第一層
+    let mut hidden = [0; 8];
+    for i in 0..8 {
+        let mut sum: Field = 0;
+        for j in 0..4 {
+            sum += input[j] * weights_1[i][j];
+        }
+        sum = sum / SCALE + bias_1[i];
+        hidden[i] = relu(sum);
+    }
+
+    // 第二層
+    let mut output = [0; 2];
+    for i in 0..2 {
+        let mut sum: Field = 0;
+        for j in 0..8 {
+            sum += hidden[j] * weights_2[i][j];
+        }
+        output[i] = sum / SCALE + bias_2[i];
+    }
+
+    output
+}
+
+// 主電路：驗證推理結果
+fn main(
+    // 私密輸入
+    input: [Field; 4],
+    weights_1: [[Field; 4]; 8],
+    bias_1: [Field; 8],
+    weights_2: [[Field; 8]; 2],
+    bias_2: [Field; 2],
+
+    // 公開輸入
+    expected_output: pub [Field; 2],
+    model_hash: pub Field
+) {
+    // 執行推理
+    let output = mlp_forward(input, weights_1, bias_1, weights_2, bias_2);
+
+    // 驗證輸出
+    assert(output[0] == expected_output[0]);
+    assert(output[1] == expected_output[1]);
+}</code></pre>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">ZKML 開發注意事項</div>
+        <ul>
+          <li><strong>電路大小</strong>：大型模型需要分層處理，單一電路有限制</li>
+          <li><strong>精度損失</strong>：定點數轉換需仔細處理累積誤差</li>
+          <li><strong>開發成本</strong>：目前需手動實現 ML 算子</li>
+          <li><strong>效能優化</strong>：需針對 PLONKish 約束系統優化</li>
+        </ul>
+      </div>
+
+      <h2>與其他 ZK 語言比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Noir</th>
+            <th>Circom</th>
+            <th>Cairo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>語法風格</strong></td>
+            <td>類 Rust</td>
+            <td>類 JavaScript</td>
+            <td>類 Rust</td>
+          </tr>
+          <tr>
+            <td><strong>算術化</strong></td>
+            <td>PLONKish</td>
+            <td>R1CS</td>
+            <td>AIR (Cairo)</td>
+          </tr>
+          <tr>
+            <td><strong>後端</strong></td>
+            <td>多後端（Barretenberg 預設）</td>
+            <td>snarkjs (Groth16/PLONK)</td>
+            <td>STARK</td>
+          </tr>
+          <tr>
+            <td><strong>開發者</strong></td>
+            <td>Aztec Protocol</td>
+            <td>iden3</td>
+            <td>StarkWare</td>
+          </tr>
+          <tr>
+            <td><strong>遞迴證明</strong></td>
+            <td>原生支援</td>
+            <td>需手動實作</td>
+            <td>原生支援</td>
+          </tr>
+          <tr>
+            <td><strong>標準庫</strong></td>
+            <td>豐富</td>
+            <td>circomlib</td>
+            <td>Cairo 標準庫</td>
+          </tr>
+          <tr>
+            <td><strong>學習曲線</strong></td>
+            <td>中等</td>
+            <td>較平緩</td>
+            <td>較陡峭</td>
+          </tr>
+          <tr>
+            <td><strong>生態系統</strong></td>
+            <td>Aztec Network</td>
+            <td>Polygon zkEVM, Hermez</td>
+            <td>StarkNet</td>
+          </tr>
+          <tr>
+            <td><strong>Trusted Setup</strong></td>
+            <td>需要（PLONK）</td>
+            <td>需要</td>
+            <td>不需要（STARK）</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>小（~2KB）</td>
+            <td>小（~200B Groth16）</td>
+            <td>大（~100KB）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>選擇 Noir 的場景</h3>
+
+      <ul>
+        <li><strong>Aztec 生態系統開發</strong>：原生支援 Aztec Network</li>
+        <li><strong>熟悉 Rust 語法</strong>：降低學習曲線</li>
+        <li><strong>需要遞迴證明</strong>：原生 API 支援</li>
+        <li><strong>追求開發體驗</strong>：現代工具鏈與偵錯支援</li>
+        <li><strong>後端靈活性</strong>：可切換不同證明系統</li>
+      </ul>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="circom.html">Circom</a> - R1CS 生態的 ZK 語言</li>
+        <li><a href="cairo.html">Cairo</a> - STARK 生態的 ZK 語言</li>
+        <li><a href="ezkl.html">EZKL</a> - ZKML 專用工具</li>
+        <li><a href="../../zkp/proof-systems/plonk.html">PLONK</a> - Noir 預設後端的證明系統</li>
+        <li><a href="../../zkp/arithmetization/plonkish.html">PLONKish</a> - Noir 的算術化格式</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Aztec Protocol. "Noir Documentation." 2024.</cite>
+            <a href="https://noir-lang.org/docs" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-2">
+            <cite>Aztec Protocol. "Noir GitHub Repository." 2024.</cite>
+            <a href="https://github.com/noir-lang/noir" target="_blank" rel="noopener">GitHub</a>
+          </li>
+          <li id="ref-3">
+            <cite>Aztec Protocol. "Aztec.nr - Private Smart Contracts." 2024.</cite>
+            <a href="https://aztec.network/" target="_blank" rel="noopener">網站</a>
+          </li>
+          <li id="ref-4">
+            <cite>Noir Lang. "Awesome Noir - Community Resources." GitHub.</cite>
+            <a href="https://github.com/noir-lang/awesome-noir" target="_blank" rel="noopener">GitHub</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

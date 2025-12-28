@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cairo - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="cairo">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Cairo</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>Cairo 是 StarkWare 開發的圖靈完備程式語言，專為 STARK 證明系統設計<sup><a href="#ref-1">[1]</a></sup>。Cairo 程式編譯為 AIR（Algebraic Intermediate Representation）約束，透過 STARK 生成可驗證的計算證明。Cairo 是 StarkNet L2 的原生語言，也用於 StarkEx 等產品。</p>
+      </div>
+
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#overview">概述與生態系統</a></li>
+          <li><a href="#versions">版本演進</a></li>
+          <li><a href="#language">語言特性</a></li>
+          <li><a href="#memory-model">記憶體模型</a></li>
+          <li><a href="#builtins">內建功能</a></li>
+          <li><a href="#cairo-vm">Cairo VM</a></li>
+          <li><a href="#starknet">StarkNet 整合</a></li>
+          <li><a href="#zkml-usage">ZKML 應用</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="overview">概述與生態系統</h2>
+
+      <h3>Cairo 簡介</h3>
+
+      <p>Cairo（CPU AIR）是第一個為通用可證明計算設計的生產級語言<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>Cairo 生態系統：
+
+┌─────────────────────────────────────────────────────────────┐
+│                    Cairo 語言                                │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ .cairo 檔案  │ → │ Sierra/CASM │ → │   AIR 約束   │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    STARK 證明系統                            │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │ Cairo VM    │ → │ STARK Prover│ → │   證明驗證   │     │
+│  │ 執行軌跡    │    │ (STONE/     │    │ (L1/L2)    │     │
+│  │             │    │  Platinum)  │    │             │     │
+│  └─────────────┘    └─────────────┘    └─────────────┘     │
+└─────────────────────────────────────────────────────────────┘
+
+主要組件：
+  - Cairo 編譯器：.cairo → Sierra → CASM
+  - Cairo VM：執行 CASM 並生成軌跡
+  - STONE/Platinum：STARK 證明器
+  - StarkNet：L2 網路</code></pre>
+
+      <h3>核心優勢</h3>
+
+      <pre><code>Cairo 的獨特優勢：
+
+1. 透明設置
+   - 無需可信設置
+   - 任何人可驗證
+
+2. 後量子安全
+   - 僅依賴雜湊函數
+   - 抵抗量子攻擊
+
+3. 高效擴展
+   - 證明大小 O(log n)
+   - 驗證時間 O(log n)
+
+4. 通用計算
+   - 圖靈完備
+   - 支援遞迴
+
+5. 生產就緒
+   - StarkNet 主網運行
+   - 數十億美元 TVL</code></pre>
+
+      <h2 id="versions">版本演進</h2>
+
+      <h3>Cairo 0 vs Cairo 1</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Cairo 0</th>
+            <th>Cairo 1 (當前)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>語法風格</strong></td>
+            <td>Python-like</td>
+            <td>Rust-like</td>
+          </tr>
+          <tr>
+            <td><strong>類型系統</strong></td>
+            <td>弱類型</td>
+            <td>強類型 + 泛型</td>
+          </tr>
+          <tr>
+            <td><strong>記憶體安全</strong></td>
+            <td>手動管理</td>
+            <td>自動管理</td>
+          </tr>
+          <tr>
+            <td><strong>編譯目標</strong></td>
+            <td>CASM</td>
+            <td>Sierra → CASM</td>
+          </tr>
+          <tr>
+            <td><strong>Gas 計量</strong></td>
+            <td>無保證</td>
+            <td>編譯時保證</td>
+          </tr>
+          <tr>
+            <td><strong>狀態</strong></td>
+            <td>維護中</td>
+            <td>活躍開發</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Sierra 中間層</h3>
+
+      <pre><code>Sierra（Safe Intermediate Representation）：
+
+Cairo 1 編譯流程：
+  Cairo → Sierra → CASM → 執行
+
+Sierra 的作用：
+  1. 保證程式終止
+     - 所有執行路徑都有明確結束
+     - 防止無限迴圈
+
+  2. Gas 安全
+     - 編譯時計算最大 gas 消耗
+     - 防止 DoS 攻擊
+
+  3. 類型安全
+     - 強類型系統
+     - 編譯時錯誤檢查
+
+  4. 可升級性
+     - CASM 可能改變
+     - Sierra 提供穩定抽象</code></pre>
+
+      <h2 id="language">語言特性</h2>
+
+      <h3>基本語法（Cairo 1）</h3>
+
+      <pre><code>// Cairo 1 基本結構
+
+// 函數定義
+fn main() {
+    let x: felt252 = 10;
+    let y = 20_felt252;
+    let sum = add(x, y);
+    println!("Sum: {}", sum);
+}
+
+fn add(a: felt252, b: felt252) -> felt252 {
+    a + b
+}
+
+// 結構體
+#[derive(Drop)]
+struct Point {
+    x: felt252,
+    y: felt252,
+}
+
+// 列舉
+#[derive(Drop)]
+enum Color {
+    Red,
+    Green,
+    Blue,
+}
+
+// 泛型
+fn swap<T, impl TDrop: Drop<T>>(a: T, b: T) -> (T, T) {
+    (b, a)
+}</code></pre>
+
+      <h3>資料類型</h3>
+
+      <pre><code>Cairo 資料類型：
+
+基本類型：
+  felt252     # 域元素（0 到 P-1）
+  bool        # 布林值
+  u8, u16, u32, u64, u128, u256  # 無符號整數
+  i8, i16, i32, i64, i128        # 有符號整數
+
+複合類型：
+  (T1, T2, ...)  # 元組
+  [T; N]         # 固定長度陣列
+  Array<T>       # 動態陣列
+  Span<T>        # 陣列切片（唯讀）
+
+特殊類型：
+  Option<T>      # Some(value) 或 None
+  Result<T, E>   # Ok(value) 或 Err(error)
+  Box<T>         # 堆分配指標
+  Nullable<T>    # 可為空指標
+
+felt252 說明：
+  - 域元素，範圍 [0, P-1]
+  - P ≈ 2^251 + 17 * 2^192 + 1
+  - 加減乘除都是域運算</code></pre>
+
+      <h3>控制流程</h3>
+
+      <pre><code>// 條件判斷
+fn abs(x: i32) -> i32 {
+    if x >= 0 {
+        x
+    } else {
+        -x
+    }
+}
+
+// 模式匹配
+fn describe(color: Color) -> felt252 {
+    match color {
+        Color::Red => 'red',
+        Color::Green => 'green',
+        Color::Blue => 'blue',
+    }
+}
+
+// 迴圈
+fn sum_array(arr: Span<felt252>) -> felt252 {
+    let mut sum = 0;
+    let mut i = 0;
+    loop {
+        if i >= arr.len() {
+            break;
+        }
+        sum += *arr.at(i);
+        i += 1;
+    };
+    sum
+}
+
+// 迭代器（更慣用）
+fn sum_array_iter(arr: Span<felt252>) -> felt252 {
+    let mut sum = 0;
+    for value in arr {
+        sum += *value;
+    };
+    sum
+}</code></pre>
+
+      <h3>Trait 系統</h3>
+
+      <pre><code>// Trait 定義
+trait Arithmetic<T> {
+    fn add(self: T, other: T) -> T;
+    fn mul(self: T, other: T) -> T;
+}
+
+// Trait 實作
+impl PointArithmetic of Arithmetic<Point> {
+    fn add(self: Point, other: Point) -> Point {
+        Point {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+
+    fn mul(self: Point, other: Point) -> Point {
+        Point {
+            x: self.x * other.x,
+            y: self.y * other.y,
+        }
+    }
+}
+
+// 常見內建 Trait
+// Drop - 允許值被丟棄
+// Copy - 允許值被複製
+// Clone - 顯式複製
+// PartialEq - 相等比較
+// Debug - 調試輸出</code></pre>
+
+      <h2 id="memory-model">記憶體模型</h2>
+
+      <h3>唯讀記憶體</h3>
+
+      <pre><code>Cairo 記憶體特性：
+
+1. 唯讀（Immutable）
+   - 一旦寫入，不可更改
+   - 符合 STARK 證明需求
+
+2. 非確定性
+   - 可以「猜測」值
+   - 用約束驗證正確性
+
+3. 連續分配
+   - 記憶體地址連續
+   - 簡化約束
+
+範例：
+  // 「修改」實際上是重新分配
+  let x = 10;
+  let x = x + 1;  // 新的 x，不是修改
+
+  // 陣列操作
+  let mut arr = array![1, 2, 3];
+  arr.append(4);  // 追加到新位置</code></pre>
+
+      <h3>Segment 結構</h3>
+
+      <pre><code>Cairo 記憶體分段：
+
+┌─────────────────────────────────────────┐
+│            Cairo 記憶體空間              │
+├─────────────────────────────────────────┤
+│ Segment 0: 程式碼                       │
+│   - 編譯後的 CASM 指令                  │
+├─────────────────────────────────────────┤
+│ Segment 1: 執行                         │
+│   - 程式計數器軌跡                      │
+│   - 幀指標、分配指標                    │
+├─────────────────────────────────────────┤
+│ Segment 2: 輸出                         │
+│   - 程式輸出值                          │
+├─────────────────────────────────────────┤
+│ Segment 3+: Builtin 段                  │
+│   - Range Check                         │
+│   - Pedersen                            │
+│   - Poseidon                            │
+│   - ECDSA 等                            │
+└─────────────────────────────────────────┘</code></pre>
+
+      <h2 id="builtins">內建功能</h2>
+
+      <h3>Builtins 概覽</h3>
+
+      <pre><code>Cairo Builtins（高效原語）：
+
+1. range_check
+   - 驗證值在 [0, 2^128) 範圍
+   - 用於整數運算安全
+
+2. pedersen
+   - Pedersen 雜湊函數
+   - 用於 Merkle 樹
+
+3. poseidon
+   - Poseidon 雜湊函數
+   - ZK 友好，效率更高
+
+4. ecdsa
+   - ECDSA 簽名驗證
+   - 用於帳戶驗證
+
+5. bitwise
+   - 位元運算（AND, OR, XOR）
+   - 用於位元操作
+
+6. ec_op
+   - 橢圓曲線運算
+   - 用於加密操作
+
+7. keccak
+   - Keccak-256 雜湊
+   - 以太坊相容</code></pre>
+
+      <h3>使用範例</h3>
+
+      <pre><code>use core::poseidon::poseidon_hash_span;
+use core::pedersen::pedersen;
+
+// Poseidon 雜湊
+fn hash_values(values: Span<felt252>) -> felt252 {
+    poseidon_hash_span(values)
+}
+
+// Pedersen 雜湊
+fn hash_pair(a: felt252, b: felt252) -> felt252 {
+    pedersen(a, b)
+}
+
+// 範圍檢查（自動透過類型系統）
+fn safe_divide(a: u128, b: u128) -> u128 {
+    // u128 自動使用 range_check
+    a / b
+}
+
+// 橢圓曲線
+use starknet::secp256k1::{Secp256k1Point, secp256k1_mul};
+
+fn ec_multiply(point: Secp256k1Point, scalar: u256) -> Secp256k1Point {
+    secp256k1_mul(point, scalar)
+}</code></pre>
+
+      <h2 id="cairo-vm">Cairo VM</h2>
+
+      <h3>虛擬機架構</h3>
+
+      <pre><code>Cairo VM 組件：
+
+寄存器：
+  - pc (Program Counter)：當前指令地址
+  - ap (Allocation Pointer)：下一個可用記憶體地址
+  - fp (Frame Pointer)：當前函數幀基址
+
+指令格式：
+  [op0] op [op1] = [dst]
+
+  其中：
+  - op0, op1：運算元
+  - op：運算符（+, *, call, jmp, etc.）
+  - dst：目標
+
+執行流程：
+  1. 讀取 pc 處的指令
+  2. 計算運算元值
+  3. 執行運算
+  4. 寫入結果
+  5. 更新 pc, ap
+  6. 重複直到 ret</code></pre>
+
+      <h3>執行軌跡</h3>
+
+      <pre><code>Cairo 執行軌跡結構：
+
+┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+│ pc  │ ap  │ fp  │ op0 │ op1 │ dst │ ... │
+├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+│  0  │ 10  │ 10  │ ... │ ... │ ... │ ... │
+│  1  │ 11  │ 10  │ ... │ ... │ ... │ ... │
+│  2  │ 12  │ 10  │ ... │ ... │ ... │ ... │
+│ ... │ ... │ ... │ ... │ ... │ ... │ ... │
+└─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+
+軌跡 → AIR 約束：
+  1. 指令解碼約束
+  2. 運算元讀取約束
+  3. 運算結果約束
+  4. 狀態更新約束
+  5. 記憶體一致性約束</code></pre>
+
+      <h2 id="starknet">StarkNet 整合</h2>
+
+      <h3>智能合約</h3>
+
+      <pre><code>// StarkNet 合約範例
+
+#[starknet::interface]
+trait ICounter<TContractState> {
+    fn get(self: @TContractState) -> u128;
+    fn increment(ref self: TContractState);
+}
+
+#[starknet::contract]
+mod Counter {
+    use starknet::ContractAddress;
+
+    #[storage]
+    struct Storage {
+        counter: u128,
+        owner: ContractAddress,
+    }
+
+    #[constructor]
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.owner.write(owner);
+        self.counter.write(0);
+    }
+
+    #[abi(embed_v0)]
+    impl CounterImpl of super::ICounter<ContractState> {
+        fn get(self: @ContractState) -> u128 {
+            self.counter.read()
+        }
+
+        fn increment(ref self: ContractState) {
+            let current = self.counter.read();
+            self.counter.write(current + 1);
+        }
+    }
+}</code></pre>
+
+      <h3>合約部署</h3>
+
+      <pre><code>StarkNet 開發流程：
+
+1. 安裝工具
+   $ curl -L https://raw.githubusercontent.com/starkware-libs/starknet-devnet-rs/main/install.sh | sh
+   $ pip install starknet-py
+
+2. 編譯合約
+   $ scarb build
+
+3. 聲明合約（上傳程式碼）
+   $ starkli declare target/dev/counter.contract_class.json
+
+4. 部署合約（實例化）
+   $ starkli deploy <CLASS_HASH> <CONSTRUCTOR_ARGS>
+
+5. 調用合約
+   $ starkli call <CONTRACT_ADDRESS> get
+   $ starkli invoke <CONTRACT_ADDRESS> increment</code></pre>
+
+      <h2 id="zkml-usage">ZKML 應用</h2>
+
+      <h3>Giza：Cairo ML 框架</h3>
+
+      <pre><code>Giza 概述：
+
+Giza 是基於 Cairo 的機器學習框架：
+  - ONNX 模型 → Cairo 電路
+  - 支援常見 ML 操作
+  - StarkNet 部署
+
+支援的操作：
+  - MatMul（矩陣乘法）
+  - Conv（卷積）
+  - ReLU, Sigmoid, Softmax
+  - BatchNorm, LayerNorm
+  - Pooling
+
+使用範例：
+  # 安裝
+  $ pip install giza-cli
+
+  # 轉換模型
+  $ giza transpile model.onnx --output-path cairo_model
+
+  # 部署到 StarkNet
+  $ giza deploy cairo_model</code></pre>
+
+      <h3>定點數運算</h3>
+
+      <pre><code>// Cairo 定點數實現
+
+#[derive(Copy, Drop)]
+struct Fixed {
+    value: i128,
+    scale: u32,  // 小數位數
+}
+
+impl FixedArithmetic of Arithmetic<Fixed> {
+    fn add(self: Fixed, other: Fixed) -> Fixed {
+        assert(self.scale == other.scale, 'Scale mismatch');
+        Fixed {
+            value: self.value + other.value,
+            scale: self.scale,
+        }
+    }
+
+    fn mul(self: Fixed, other: Fixed) -> Fixed {
+        // 乘法後需要縮放
+        let result = self.value * other.value;
+        let scaled = result / pow(10, self.scale);
+        Fixed {
+            value: scaled,
+            scale: self.scale,
+        }
+    }
+}
+
+// ReLU 實現
+fn relu(x: Fixed) -> Fixed {
+    if x.value >= 0 {
+        x
+    } else {
+        Fixed { value: 0, scale: x.scale }
+    }
+}</code></pre>
+
+      <h3>神經網路範例</h3>
+
+      <pre><code>// 簡單 MLP 實現
+
+fn fully_connected(
+    input: Span<Fixed>,
+    weights: Span<Span<Fixed>>,
+    bias: Span<Fixed>
+) -> Array<Fixed> {
+    let mut output = array![];
+    let output_size = weights.len();
+    let input_size = input.len();
+
+    for i in 0..output_size {
+        let mut sum = *bias.at(i);
+        let row = *weights.at(i);
+
+        for j in 0..input_size {
+            let prod = (*row.at(j)).mul(*input.at(j));
+            sum = sum.add(prod);
+        };
+
+        output.append(sum);
+    };
+
+    output
+}
+
+fn mlp_forward(
+    input: Span<Fixed>,
+    w1: Span<Span<Fixed>>,
+    b1: Span<Fixed>,
+    w2: Span<Span<Fixed>>,
+    b2: Span<Fixed>
+) -> Array<Fixed> {
+    // 第一層
+    let hidden = fully_connected(input, w1, b1);
+
+    // ReLU 激活
+    let mut activated = array![];
+    for h in hidden.span() {
+        activated.append(relu(*h));
+    };
+
+    // 第二層
+    fully_connected(activated.span(), w2, b2)
+}</code></pre>
+
+      <h3>ZKML 優勢與限制</h3>
+
+      <pre><code>Cairo 用於 ZKML 的特點：
+
+優勢：
+  ✓ 透明設置，無需可信儀式
+  ✓ 後量子安全
+  ✓ 準線性證明時間
+  ✓ StarkNet 原生部署
+  ✓ Giza 提供高階抽象
+
+限制：
+  ✗ 證明大小較大（~100KB+）
+  ✗ 驗證成本較高
+  ✗ 生態系統小於 Circom
+  ✗ 學習曲線陡峭
+
+適用場景：
+  - 中小型模型（<1M 參數）
+  - 需要後量子安全
+  - StarkNet 生態專案
+  - 長期運行的 AI 服務</code></pre>
+
+      <h2>與其他工具比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Cairo</th>
+            <th>Circom</th>
+            <th>Noir</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>證明系統</strong></td>
+            <td>STARK</td>
+            <td>Groth16/PLONK</td>
+            <td>Barretenberg</td>
+          </tr>
+          <tr>
+            <td><strong>可信設置</strong></td>
+            <td>不需要</td>
+            <td>需要</td>
+            <td>可選</td>
+          </tr>
+          <tr>
+            <td><strong>後量子安全</strong></td>
+            <td>是</td>
+            <td>否</td>
+            <td>否</td>
+          </tr>
+          <tr>
+            <td><strong>證明大小</strong></td>
+            <td>~100-400 KB</td>
+            <td>~200 bytes</td>
+            <td>~2-10 KB</td>
+          </tr>
+          <tr>
+            <td><strong>驗證時間</strong></td>
+            <td>~10-50 ms</td>
+            <td>~10 ms</td>
+            <td>~10-20 ms</td>
+          </tr>
+          <tr>
+            <td><strong>L2 網路</strong></td>
+            <td>StarkNet</td>
+            <td>多個</td>
+            <td>Aztec</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="../../zkp/arithmetization/air.html">AIR</a> - Cairo 使用的算術化格式</li>
+        <li><a href="../../zkp/proof-systems/stark.html">STARK</a> - Cairo 的底層證明系統</li>
+        <li><a href="../../zkp/commitments/fri.html">FRI</a> - STARK 的多項式承諾</li>
+        <li><a href="circom.html">Circom</a> - R1CS 生態的替代方案</li>
+        <li><a href="noir.html">Noir</a> - Aztec 的 ZK 語言</li>
+        <li><a href="risc-zero.html">RISC Zero</a> - 另一個 STARK zkVM</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>StarkWare. "Cairo Documentation." 2024.</cite>
+            <a href="https://docs.cairo-lang.org/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-2">
+            <cite>StarkWare. "The Cairo Book." 2024.</cite>
+            <a href="https://book.cairo-lang.org/" target="_blank" rel="noopener">教程</a>
+          </li>
+          <li id="ref-3">
+            <cite>StarkNet Documentation. "StarkNet Contracts." 2024.</cite>
+            <a href="https://docs.starknet.io/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-4">
+            <cite>Giza. "Giza Documentation - Verifiable ML." 2024.</cite>
+            <a href="https://docs.gizatech.xyz/" target="_blank" rel="noopener">文檔</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

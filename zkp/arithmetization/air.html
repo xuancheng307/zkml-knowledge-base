@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIR 算術化 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="air">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>AIR 算術化（Algebraic Intermediate Representation）</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心概念</div>
+        <p>AIR（Algebraic Intermediate Representation，代數中間表示）是 STARK 證明系統的核心算術化格式<sup><a href="#ref-1">[1]</a></sup>。AIR 將計算表示為執行軌跡（Execution Trace）上的多項式約束，透過轉換約束（Transition Constraints）和邊界約束（Boundary Constraints）驗證計算的正確性。</p>
+      </div>
+
+      <nav class="toc">
+        <h3>目錄</h3>
+        <ol>
+          <li><a href="#formal-definitions">形式化定義</a></li>
+          <li><a href="#execution-trace">執行軌跡</a></li>
+          <li><a href="#transition-constraints">轉換約束</a></li>
+          <li><a href="#boundary-constraints">邊界約束</a></li>
+          <li><a href="#constraint-composition">約束組合</a></li>
+          <li><a href="#air-design-patterns">AIR 設計模式</a></li>
+          <li><a href="#cairo-compilation">Cairo 編譯</a></li>
+          <li><a href="#stark-integration">STARK 整合</a></li>
+          <li><a href="#zkml-applications">ZKML 應用</a></li>
+        </ol>
+      </nav>
+
+      <h2 id="formal-definitions">形式化定義</h2>
+
+      <div class="definition">
+        <div class="definition-title">Definition 1：AIR 實例</div>
+        <p>AIR 實例是一個元組 \(\mathcal{A} = (\mathbb{F}, w, T, \mathcal{C}_T, \mathcal{C}_B)\)：</p>
+        <ul>
+          <li>\(\mathbb{F}\)：有限域</li>
+          <li>\(w\)：軌跡寬度（列數）</li>
+          <li>\(T \in \mathbb{F}^{n \times w}\)：執行軌跡矩陣（\(n\) 行，\(w\) 列）</li>
+          <li>\(\mathcal{C}_T\)：轉換約束集合</li>
+          <li>\(\mathcal{C}_B\)：邊界約束集合</li>
+        </ul>
+        <p>其中 \(n = 2^k\) 必須是 2 的冪次，以支援 FFT 運算。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 2：執行軌跡（Execution Trace）</div>
+        <p>執行軌跡 \(T\) 是一個 \(n \times w\) 矩陣，其中：</p>
+        <ul>
+          <li>每一行 \(T[i] = (t_{i,0}, t_{i,1}, \ldots, t_{i,w-1})\) 代表計算的一個「狀態」</li>
+          <li>每一列 \(T[:,j]\) 代表一個「寄存器」或「變數」隨時間的變化</li>
+          <li>行索引 \(i \in [0, n)\) 代表離散時間步</li>
+        </ul>
+        <p>軌跡可插值為 \(w\) 個多項式 \(t_0(X), \ldots, t_{w-1}(X)\)，滿足 \(t_j(\omega^i) = T[i,j]\)。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 3：轉換約束（Transition Constraint）</div>
+        <p>轉換約束 \(C_T\) 是一個多變量多項式，定義相鄰行之間的關係：</p>
+        <p>\[C_T(t_0(X), \ldots, t_{w-1}(X), t_0(\omega X), \ldots, t_{w-1}(\omega X)) = 0\]</p>
+        <p>對所有 \(X \in H \setminus \{\omega^{n-1}\}\) 成立，其中 \(H = \{\omega^0, \omega^1, \ldots, \omega^{n-1}\}\) 是求值域。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 4：邊界約束（Boundary Constraint）</div>
+        <p>邊界約束指定軌跡在特定位置的值：</p>
+        <p>\[C_B^{(i,j,v)}: t_j(\omega^i) = v\]</p>
+        <p>常見的邊界約束包括：</p>
+        <ul>
+          <li><strong>初始約束</strong>：\(t_j(\omega^0) = v_{\text{init}}\)（起始狀態）</li>
+          <li><strong>終止約束</strong>：\(t_j(\omega^{n-1}) = v_{\text{final}}\)（結束狀態）</li>
+          <li><strong>公開輸入</strong>：指定的輸入值</li>
+          <li><strong>公開輸出</strong>：指定的輸出值</li>
+        </ul>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 5：約束次數（Constraint Degree）</div>
+        <p>轉換約束的次數定義為多項式 \(C_T\) 的總次數。設 \(C_T\) 包含變數 \(t_j(X)\) 和 \(t_j(\omega X)\)：</p>
+        <p>\[\deg(C_T) = \max_{\text{monomial } m \in C_T} \sum_{j,k} (\text{degree of } t_j(\omega^k X) \text{ in } m)\]</p>
+        <p>約束次數影響 STARK 證明的效率：次數越低，證明越高效。</p>
+      </div>
+
+      <div class="definition">
+        <div class="definition-title">Definition 6：AIR 滿足性</div>
+        <p>軌跡 \(T\) 滿足 AIR 實例 \(\mathcal{A}\)，記為 \(T \models \mathcal{A}\)，當且僅當：</p>
+        <ol>
+          <li>所有轉換約束 \(C_T \in \mathcal{C}_T\) 在 \(H \setminus \{\omega^{n-1}\}\) 上成立</li>
+          <li>所有邊界約束 \(C_B \in \mathcal{C}_B\) 成立</li>
+        </ol>
+      </div>
+
+      <h2 id="execution-trace">執行軌跡</h2>
+
+      <h3>軌跡結構</h3>
+
+      <p>執行軌跡是 AIR 的核心數據結構<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>執行軌跡矩陣：
+
+     | col_0  | col_1  | col_2  | ... | col_{w-1}
+-----|--------|--------|--------|-----|----------
+row_0| t_0,0  | t_0,1  | t_0,2  | ... | t_0,w-1
+row_1| t_1,0  | t_1,1  | t_1,2  | ... | t_1,w-1
+row_2| t_2,0  | t_2,1  | t_2,2  | ... | t_2,w-1
+ ... |  ...   |  ...   |  ...   | ... |  ...
+row_{n-1}| t_{n-1,0} | ... | ... | ... | t_{n-1,w-1}
+
+維度：
+  - n：行數（時間步數），必須是 2 的冪次
+  - w：列數（寄存器數量）
+
+插值：
+  - 每列插值為一個次數 < n 的多項式
+  - t_j(ω^i) = T[i,j]
+  - 使用 FFT/NTT 進行高效插值</code></pre>
+
+      <h3>軌跡範例：斐波那契數列</h3>
+
+      <pre><code>計算 Fibonacci(10)：F_0=1, F_1=1, F_n = F_{n-1} + F_{n-2}
+
+執行軌跡（w=2 列）：
+
+  Row |  a   |  b   | 說明
+  ----|------|------|-----
+   0  |  1   |  1   | 初始：F_0, F_1
+   1  |  2   |  1   | a_1 = a_0 + b_0 = 2
+   2  |  3   |  2   | a_2 = a_1 + b_1, b_2 = a_1
+   3  |  5   |  3   | ...
+   4  |  8   |  5   |
+   5  | 13   |  8   |
+   6  | 21   | 13   |
+   7  | 34   | 21   |
+   8  | 55   | 34   | 最終：F_10 = 55
+
+轉換約束：
+  a_{i+1} = a_i + b_i
+  b_{i+1} = a_i
+
+多項式形式：
+  a(ωX) - a(X) - b(X) = 0
+  b(ωX) - a(X) = 0</code></pre>
+
+      <h3>軌跡列類型</h3>
+
+      <pre><code>AIR 軌跡列的分類：
+
+1. 主軌跡列（Main Trace Columns）：
+   - 直接對應計算狀態
+   - 例如：程式計數器、記憶體值、寄存器
+
+2. 輔助軌跡列（Auxiliary Trace Columns）：
+   - 用於複雜約束的中間計算
+   - 例如：排列累積、範圍檢查累積
+
+3. 週期列（Periodic Columns）：
+   - 值按固定週期重複
+   - 例如：輪常數、選擇器模式
+   - 可壓縮表示，減少空間
+
+4. 公開輸入列（Public Input Columns）：
+   - 包含公開已知的值
+   - 由驗證者提供</code></pre>
+
+      <h2 id="transition-constraints">轉換約束</h2>
+
+      <h3>約束形式</h3>
+
+      <p>轉換約束定義軌跡的演化規則<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <pre><code>通用轉換約束形式：
+
+C(current_state, next_state) = 0
+
+其中：
+  current_state = (t_0(X), t_1(X), ..., t_{w-1}(X))
+  next_state = (t_0(ωX), t_1(ωX), ..., t_{w-1}(ωX))
+
+範例約束：
+
+1. 遞增約束（計數器）：
+   t(ωX) - t(X) - 1 = 0
+   → 每步加 1
+
+2. 條件更新：
+   s(X) · (t(ωX) - f(t(X))) + (1-s(X)) · (t(ωX) - t(X)) = 0
+   → 若 s=1，則 t 更新為 f(t)；否則保持不變
+
+3. 記憶體讀寫：
+   is_write(X) · (mem(ωX) - new_val(X))
+   + (1-is_write(X)) · (read_val(X) - mem(X)) = 0</code></pre>
+
+      <h3>多行約束（Multi-Row Constraints）</h3>
+
+      <pre><code>存取多行的約束：
+
+標準 AIR 約束存取當前行和下一行：
+  C(t(X), t(ωX)) = 0
+
+擴展約束可存取更多行：
+  C(t(X), t(ωX), t(ω²X), ..., t(ω^k X)) = 0
+
+範例：3 點遞迴（Fibonacci 變體）
+  t(ω²X) - t(ωX) - t(X) = 0
+
+約束域調整：
+  - 標準約束在 H \ {ω^{n-1}} 上檢驗
+  - k 行約束在 H \ {ω^{n-k}, ..., ω^{n-1}} 上檢驗</code></pre>
+
+      <h3>約束次數優化</h3>
+
+      <pre><code>降低約束次數的技術：
+
+問題：高次約束導致更大的 blow-up factor
+
+技術 1：引入輔助列
+  原始：t(ωX) = t(X)³（次數 3）
+
+  改寫：
+    aux(X) = t(X)²（次數 2）
+    t(ωX) = aux(X) · t(X)（次數 2）
+
+  代價：增加一列，但每個約束次數降為 2
+
+技術 2：分解複雜運算
+  原始：out = a · b · c · d（需要次數 4 約束）
+
+  改寫：
+    tmp1 = a · b
+    tmp2 = c · d
+    out = tmp1 · tmp2
+
+  三個次數 2 的約束替代一個次數 4 的約束
+
+技術 3：使用週期列
+  將常數表達為週期多項式
+  減少約束中的變數數量</code></pre>
+
+      <h2 id="boundary-constraints">邊界約束</h2>
+
+      <h3>邊界約束類型</h3>
+
+      <pre><code>邊界約束的分類：
+
+1. 單點邊界約束：
+   t_j(ω^i) = v
+
+   例如：
+     - 初始化：t_0(ω^0) = 0（寄存器起始值）
+     - 輸出驗證：t_out(ω^{n-1}) = expected_output
+
+2. 多點邊界約束：
+   t_j(ω^{i_1}) = v_1, t_j(ω^{i_2}) = v_2, ...
+
+   可用單一多項式表達：
+   t_j(X) - L(X) ≡ 0 (mod Z_S(X))
+   其中 L(X) 是經過指定點的 Lagrange 插值多項式
+   Z_S(X) = ∏_{i ∈ S}(X - ω^i)
+
+3. 公開輸入約束：
+   軌跡的前 k 行包含公開輸入
+
+   約束：
+   for i in 0..k:
+     t_input(ω^i) = public_input[i]</code></pre>
+
+      <h3>邊界約束的多項式表示</h3>
+
+      <pre><code>邊界約束轉換為多項式約束：
+
+單點約束 t(ω^i) = v：
+
+  約束多項式：
+    B(X) = t(X) - v
+
+  檢驗：
+    B(X) ≡ 0 (mod (X - ω^i))
+
+  等價於：
+    存在 Q(X) 使得 B(X) = Q(X) · (X - ω^i)
+
+多點約束 {(ω^{i_k}, v_k)}：
+
+  1. 構造 Lagrange 插值多項式 L(X)
+     L(ω^{i_k}) = v_k
+
+  2. 約束多項式：
+     B(X) = t(X) - L(X)
+
+  3. 檢驗：
+     B(X) ≡ 0 (mod Z_S(X))
+     其中 Z_S(X) = ∏_k (X - ω^{i_k})</code></pre>
+
+      <h2 id="constraint-composition">約束組合</h2>
+
+      <h3>組合多項式</h3>
+
+      <p>STARK 驗證需要將所有約束合併為單一多項式<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>約束組合步驟：
+
+1. 轉換約束處理：
+   設 C_1(X), ..., C_m(X) 為 m 個轉換約束
+
+   定義 Vanishing 多項式：
+   Z_T(X) = ∏_{i=0}^{n-2} (X - ω^i) = (X^n - 1) / (X - ω^{n-1})
+
+   若約束滿足，則：
+   C_j(X) ≡ 0 (mod Z_T(X))
+
+   即存在 Q_j(X) 使得：
+   C_j(X) = Q_j(X) · Z_T(X)
+
+2. 邊界約束處理：
+   設 B_1(X), ..., B_k(X) 為邊界約束
+
+   各有對應的 Vanishing 多項式 Z_{B,j}(X)
+
+   B_j(X) = R_j(X) · Z_{B,j}(X)
+
+3. 隨機線性組合：
+   驗證者提供隨機係數 α_1, ..., α_{m+k}
+
+   組合多項式：
+   P(X) = Σ_j α_j · Q_j(X) + Σ_j α_{m+j} · R_j(X)
+
+4. 低次驗證：
+   使用 FRI 證明 P(X) 是低次多項式</code></pre>
+
+      <h3>組合多項式次數分析</h3>
+
+      <pre><code>次數分析：
+
+設：
+  - 軌跡多項式次數 < n
+  - 轉換約束次數 = d
+  - 約束作用於 n-1 個點
+
+則：
+  - C_j(X) 次數 < d·n
+  - Z_T(X) 次數 = n-1
+  - Q_j(X) = C_j(X) / Z_T(X) 次數 < d·n - (n-1) = (d-1)·n + 1
+
+組合多項式次數：
+  deg(P) < (d-1)·n + 1
+
+FRI 證明要求：
+  - Blow-up factor ρ⁻¹ 使得評估域 |D| = ρ⁻¹ · deg(P)
+  - 典型選擇：ρ⁻¹ = 4 或 8</code></pre>
+
+      <h2 id="air-design-patterns">AIR 設計模式</h2>
+
+      <h3>狀態機模式</h3>
+
+      <pre><code>虛擬機 AIR 設計：
+
+典型 zkVM 軌跡結構：
+
+  Row | PC  | opcode | reg_a | reg_b | reg_c | mem_addr | mem_val
+  ----|-----|--------|-------|-------|-------|----------|--------
+   0  |  0  |  LOAD  |   0   |   0   |   0   |   100    |   42
+   1  |  1  |  ADD   |  42   |   5   |  47   |    -     |    -
+   2  |  2  |  STORE |  47   |   0   |   0   |   101    |   47
+   3  |  3  |  JUMP  |   0   |   0   |   0   |    -     |    -
+   4  | 10  |  ...   |  ...  |  ...  |  ...  |   ...    |  ...
+
+轉換約束按 opcode 分類：
+
+  // LOAD 約束
+  is_load(X) · (reg_a(ωX) - mem_val(X)) = 0
+  is_load(X) · (PC(ωX) - PC(X) - 1) = 0
+
+  // ADD 約束
+  is_add(X) · (reg_c(ωX) - reg_a(X) - reg_b(X)) = 0
+
+  // JUMP 約束
+  is_jump(X) · (PC(ωX) - jump_target(X)) = 0</code></pre>
+
+      <h3>記憶體一致性模式</h3>
+
+      <pre><code>記憶體讀寫驗證：
+
+挑戰：確保讀取值與之前寫入值一致
+
+方法：排列論證（Permutation Argument）
+
+1. 主軌跡記錄存取：
+   (addr_0, val_0, time_0), (addr_1, val_1, time_1), ...
+
+2. 輔助軌跡排序：
+   按 (addr, time) 排序上述存取
+
+3. 轉換約束：
+   排序後，相同地址的連續存取滿足：
+
+   same_addr(X) · is_read(X) · (val(X) - prev_val(X)) = 0
+
+   即：讀取值等於該地址的前一個值
+
+4. 排列論證：
+   證明主軌跡和輔助軌跡是相同多重集的排列</code></pre>
+
+      <h3>範圍檢查模式</h3>
+
+      <pre><code>範圍檢查：證明值在 [0, 2^k) 範圍內
+
+方法 1：位元分解
+  v = Σ_{i=0}^{k-1} b_i · 2^i
+
+  約束：
+  - Σ b_i · 2^i - v = 0
+  - b_i · (b_i - 1) = 0（確保 b_i ∈ {0,1}）
+
+  代價：k 個輔助列
+
+方法 2：查表（需要 lookup 擴展）
+  預計算表 T = {0, 1, 2, ..., 2^k - 1}
+  證明 v ∈ T
+
+  代價：O(1) 約束，但需要 lookup 支援
+
+方法 3：累積和（Permutation）
+  利用排列論證證明所有值來自合法集合</code></pre>
+
+      <h2 id="cairo-compilation">Cairo 編譯</h2>
+
+      <h3>Cairo 語言概述</h3>
+
+      <p>Cairo 是專為 STARK 證明設計的高階語言<sup><a href="#ref-3">[3]</a></sup>：</p>
+
+      <pre><code>Cairo 程式結構：
+
+// 斐波那契函數
+func fibonacci(n: felt) -> felt {
+    if (n == 0) {
+        return 1;
+    }
+    if (n == 1) {
+        return 1;
+    }
+    let a = fibonacci(n - 1);
+    let b = fibonacci(n - 2);
+    return a + b;
+}
+
+// 主程式
+func main() {
+    let result = fibonacci(10);
+    assert result == 89;
+    return ();
+}
+
+Cairo 特點：
+  - 基於 felt（域元素）的類型系統
+  - 不可變變數（函數式風格）
+  - 內建範圍檢查和斷言
+  - 編譯為 Cairo Assembly → AIR</code></pre>
+
+      <h3>Cairo VM AIR</h3>
+
+      <pre><code>Cairo 虛擬機軌跡結構：
+
+寄存器：
+  - pc：程式計數器
+  - ap：分配指標（Allocation Pointer）
+  - fp：幀指標（Frame Pointer）
+
+記憶體模型：
+  - 唯讀記憶體（一次寫入）
+  - 連續分配
+
+軌跡列：
+  Row | pc | ap | fp | inst | dst | op0 | op1 | res
+  ----|----|----|----| ----|-----|-----|-----|-----
+   0  |  0 | 10 | 10 | ADD |  10 |  11 |  12 |  23
+   1  |  1 | 11 | 10 | MUL |  11 |  13 |  14 | 182
+   ...
+
+Cairo AIR 約束（簡化）：
+  1. 指令解碼約束
+  2. 操作數讀取約束
+  3. 運算結果約束
+  4. 狀態更新約束（pc, ap, fp）
+  5. 記憶體一致性約束</code></pre>
+
+      <h3>編譯流程</h3>
+
+      <pre><code>Cairo 編譯流程：
+
+1. 前端解析：
+   Cairo 原始碼 → AST
+
+2. 語義分析：
+   類型檢查、範圍分析
+
+3. Cairo Assembly 生成：
+   AST → Cairo Assembly 指令
+
+4. 記憶體佈局：
+   分配程式記憶體、輸入記憶體、輸出記憶體
+
+5. 執行軌跡生成：
+   運行 Cairo VM，記錄每步狀態
+
+6. AIR 實例化：
+   軌跡 + 約束 → 完整 AIR 實例
+
+7. STARK 證明：
+   AIR → FRI 承諾 → 證明</code></pre>
+
+      <h2 id="stark-integration">STARK 整合</h2>
+
+      <h3>AIR 到 STARK 的轉換</h3>
+
+      <pre><code>STARK 證明流程：
+
+輸入：AIR 實例 (T, C_T, C_B)
+
+1. 軌跡多項式化：
+   對每列 j，插值得到 t_j(X)
+   使用 FFT：O(n log n)
+
+2. 低次擴展（LDE）：
+   將 t_j(X) 在更大的域 D 上求值
+   |D| = ρ⁻¹ · n（例如 4n 或 8n）
+
+3. 軌跡承諾：
+   構建 Merkle 樹承諾軌跡的 LDE
+   根哈希作為承諾
+
+4. 約束組合：
+   驗證者發送隨機挑戰 α
+   計算組合多項式 P(X)
+
+5. FRI 證明：
+   證明 P(X) 是低次多項式
+   使用 FRI 協議
+
+6. 輸出：
+   - Merkle 根
+   - FRI 證明
+   - 查詢回應</code></pre>
+
+      <h3>安全性分析</h3>
+
+      <div class="theorem">
+        <div class="theorem-title">Theorem 1：AIR Soundness</div>
+        <p>設 AIR 實例 \(\mathcal{A}\) 有 \(m\) 個約束，每個約束次數 \(\leq d\)。若軌跡 \(T\) 不滿足 \(\mathcal{A}\)（即存在被違反的約束），則 STARK 驗證者以機率 \(\geq 1 - \epsilon\) 拒絕，其中：</p>
+        <p>\[\epsilon \leq m \cdot d \cdot n / |\mathbb{F}| + \epsilon_{FRI}\]</p>
+        <p>\(\epsilon_{FRI}\) 是 FRI 協議的 soundness error。</p>
+      </div>
+
+      <h2 id="zkml-applications">ZKML 應用</h2>
+
+      <h3>神經網路的 AIR 表示</h3>
+
+      <pre><code>全連接層 AIR 設計：
+
+計算：y = Wx + b
+
+軌跡結構（m 輸入，n 輸出）：
+
+  Row | input | weight | bias | acc | output | step
+  ----|-------|--------|------|-----|--------|------
+   0  | x_0   | W_0,0  | b_0  |  0  |   -    |  0
+   1  | x_1   | W_0,1  |  -   | acc'|   -    |  1
+   ...
+   m  |  -    |   -    |  -   |  -  |  y_0   |  m
+  m+1 | x_0   | W_1,0  | b_1  |  0  |   -    |  0
+   ...
+
+轉換約束：
+  1. 累加約束：
+     acc(ωX) = acc(X) + input(X) · weight(X)
+
+  2. 輸出約束（step = m 時）：
+     output(ωX) = acc(X) + bias(X)
+
+  3. 重置約束（開始新輸出時）：
+     is_new_output(X) · acc(X) = 0</code></pre>
+
+      <h3>激活函數處理</h3>
+
+      <pre><code>ReLU 的 AIR 實現：
+
+方法 1：符號分解
+  ReLU(x) = x · sign(x)
+
+  軌跡增加列：input, sign, output
+
+  約束：
+  - sign ∈ {0, 1}：sign · (sign - 1) = 0
+  - output = input · sign
+  - 一致性：input ≥ 0 ⟺ sign = 1（需要範圍證明）
+
+方法 2：查表（需要 lookup 擴展）
+  預計算 ReLU 表
+  約束：(input, output) ∈ ReLU_table
+
+方法 3：分解為比較
+  使用位元分解檢查 input 的符號位
+  根據符號位選擇輸出</code></pre>
+
+      <h3>卷積層 AIR</h3>
+
+      <pre><code>卷積運算的 AIR 表示：
+
+Im2col 展開方法：
+  將卷積轉換為矩陣乘法
+  使用全連接層 AIR
+
+直接卷積方法：
+  軌跡包含滑動窗口值
+
+  Row | x_0 | x_1 | x_2 | w_0 | w_1 | w_2 | acc | out
+  ----|-----|-----|-----|-----|-----|-----|-----|-----
+   0  | p_0 | p_1 | p_2 | k_0 | k_1 | k_2 |  0  |  -
+   1  | p_1 | p_2 | p_3 | k_0 | k_1 | k_2 | Σ   |  -
+   ...
+
+  約束：
+  - 窗口滑動：x_i(ωX) = x_{i+1}(X)
+  - 點積累加：acc(ωX) = acc(X) + Σ x_i · w_i
+
+複雜度：
+  - 軌跡大小 ∝ 輸出大小 × 核大小
+  - 約束數量：O(核大小)</code></pre>
+
+      <h3>ZKML 系統實例</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>系統</th>
+            <th>AIR 使用</th>
+            <th>ZKML 特點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>RISC Zero</strong></td>
+            <td>RISC-V AIR</td>
+            <td>通用 zkVM，支援任意 ML 框架</td>
+          </tr>
+          <tr>
+            <td><strong>Cairo/Giza</strong></td>
+            <td>Cairo VM AIR</td>
+            <td>專用 ML 操作符</td>
+          </tr>
+          <tr>
+            <td><strong>Polygon Miden</strong></td>
+            <td>自定義 AIR</td>
+            <td>遞迴證明支援大模型</td>
+          </tr>
+          <tr>
+            <td><strong>Valida</strong></td>
+            <td>LLVM AIR</td>
+            <td>從 LLVM IR 編譯</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>與其他算術化格式的比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>AIR</th>
+            <th>PLONKish</th>
+            <th>R1CS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>結構</strong></td>
+            <td>執行軌跡 + 轉換約束</td>
+            <td>表格 + 自定義門</td>
+            <td>向量 + 二次約束</td>
+          </tr>
+          <tr>
+            <td><strong>跨行存取</strong></td>
+            <td>自然支援</td>
+            <td>Rotation</td>
+            <td>不支援</td>
+          </tr>
+          <tr>
+            <td><strong>約束靈活性</strong></td>
+            <td>任意多項式</td>
+            <td>任意多項式</td>
+            <td>僅二次</td>
+          </tr>
+          <tr>
+            <td><strong>查表支援</strong></td>
+            <td>需擴展</td>
+            <td>Plookup 原生</td>
+            <td>需擴展</td>
+          </tr>
+          <tr>
+            <td><strong>後量子安全</strong></td>
+            <td>是（STARK）</td>
+            <td>取決於 PCS</td>
+            <td>取決於後端</td>
+          </tr>
+          <tr>
+            <td><strong>典型系統</strong></td>
+            <td>STARK, Cairo</td>
+            <td>PLONK, Halo2</td>
+            <td>Groth16, Marlin</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="r1cs.html">R1CS</a> - 最簡單的算術化格式</li>
+        <li><a href="plonkish.html">PLONKish</a> - PLONK 系統的算術化格式</li>
+        <li><a href="../proof-systems/stark.html">STARK</a> - 使用 AIR 的證明系統</li>
+        <li><a href="../commitments/fri.html">FRI</a> - STARK 的多項式承諾方案</li>
+        <li><a href="../../frameworks/tools/cairo.html">Cairo</a> - AIR 的高階語言</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Ben-Sasson, E., Bentov, I., Horesh, Y., & Riabzev, M. "Scalable, transparent, and post-quantum secure computational integrity." IACR ePrint 2018/046.</cite>
+            <a href="https://eprint.iacr.org/2018/046" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-2">
+            <cite>Ben-Sasson, E., et al. "STARK Paper: Scalable, Transparent ARgument of Knowledge." StarkWare, 2018.</cite>
+            <a href="https://starkware.co/stark/" target="_blank" rel="noopener">網站</a>
+          </li>
+          <li id="ref-3">
+            <cite>StarkWare. "Cairo Documentation." 2024.</cite>
+            <a href="https://docs.cairo-lang.org/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-4">
+            <cite>Goldberg, L., & Papini, S. "Anatomy of a STARK." StarkWare, 2021.</cite>
+            <a href="https://aszepieniec.github.io/stark-anatomy/" target="_blank" rel="noopener">教程</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>
