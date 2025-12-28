@@ -4,8 +4,7 @@
     "siteSubtitle": "零知識證明 × 機器學習",
     "baseUrl": "/zkml-knowledge-base",
     "repo": "https://github.com/xuancheng307/zkml-knowledge-base",
-    "author": "高璿程",
-    "plonkSite": "https://xuancheng307.github.io/PLONK/"
+    "author": "高璿程"
   },
 
   "sections": [
@@ -33,7 +32,8 @@
           "title": "算術化",
           "items": [
             { "id": "r1cs", "title": "R1CS", "path": "/zkp/arithmetization/r1cs.html", "status": "done" },
-            { "id": "plonkish", "title": "PLONKish", "path": "/zkp/arithmetization/plonkish.html", "status": "done" }
+            { "id": "plonkish", "title": "PLONKish", "path": "/zkp/arithmetization/plonkish.html", "status": "done" },
+            { "id": "air", "title": "AIR", "path": "/zkp/arithmetization/air.html", "status": "done" }
           ]
         },
         {
@@ -50,7 +50,7 @@
           "title": "證明系統",
           "items": [
             { "id": "groth16", "title": "Groth16", "path": "/zkp/proof-systems/groth16.html", "status": "done" },
-            { "id": "plonk", "title": "PLONK", "path": "/zkp/proof-systems/plonk.html", "status": "done", "external": "https://xuancheng307.github.io/PLONK/" },
+            { "id": "plonk", "title": "PLONK", "path": "/zkp/proof-systems/plonk.html", "status": "done" },
             { "id": "halo2", "title": "Halo2", "path": "/zkp/proof-systems/halo2.html", "status": "done" },
             { "id": "stark", "title": "STARK", "path": "/zkp/proof-systems/stark.html", "status": "done" }
           ]
@@ -154,7 +154,10 @@
           "title": "產業工具",
           "items": [
             { "id": "ezkl", "title": "EZKL", "path": "/frameworks/tools/ezkl.html", "status": "done" },
-            { "id": "risc-zero", "title": "RISC Zero", "path": "/frameworks/tools/risc-zero.html", "status": "done" }
+            { "id": "risc-zero", "title": "RISC Zero", "path": "/frameworks/tools/risc-zero.html", "status": "done" },
+            { "id": "circom", "title": "Circom", "path": "/frameworks/tools/circom.html", "status": "done" },
+            { "id": "cairo", "title": "Cairo", "path": "/frameworks/tools/cairo.html", "status": "done" },
+            { "id": "noir", "title": "Noir", "path": "/frameworks/tools/noir.html", "status": "done" }
           ]
         },
         {
