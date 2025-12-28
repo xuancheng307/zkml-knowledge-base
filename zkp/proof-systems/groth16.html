@@ -31,7 +31,7 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>Groth16 是目前最高效的 zk-SNARK 證明系統之一，由 Jens Groth 於 2016 年提出<sup><a href="#ref-1">[1]</a></sup>。它具有最小的證明大小（3 個群元素，~192 bytes）和最快的驗證時間（3 次配對），是區塊鏈應用的首選方案。其核心創新在於將 QAP（Quadratic Arithmetic Program）直接編碼到配對群結構中，實現了理論上最優的證明簡潔性。</p>
+        <p>Groth16 是目前最高效的 zk-SNARK 證明系統之一，由 Jens Groth 於 2016 年提出<sup><a href="#ref-1">[1]</a></sup>。它具有最小的證明大小（固定 3 個群元素：2G₁ + 1G₂）和最快的驗證時間（3 次配對），是區塊鏈應用的首選方案。實際證明位元組數取決於橢圓曲線與序列化格式：BN254 壓縮約 128 bytes、非壓縮約 256 bytes；BLS12-381 壓縮約 192 bytes（如 Zcash Sapling）。其核心創新在於將 QAP（Quadratic Arithmetic Program）直接編碼到配對群結構中，實現了理論上最優的證明簡潔性。</p>
       </div>
 
       <h2>歷史背景與定位</h2>
@@ -62,8 +62,8 @@
         <tbody>
           <tr>
             <td><strong>證明大小</strong></td>
-            <td>192 bytes</td>
-            <td>3 個群元素（2G₁ + 1G₂）</td>
+            <td>2|G₁| + |G₂|</td>
+            <td>3 個群元素，依曲線與格式：BN254 壓縮 ~128 bytes / 非壓縮 ~256 bytes；BLS12-381 壓縮 ~192 bytes</td>
           </tr>
           <tr>
             <td><strong>驗證時間</strong></td>
@@ -263,7 +263,7 @@
 │    4. 計算證明元素 [A]₁, [B]₂, [C]₁                                           │
 │                                                                              │
 │  輸出：π = ([A]₁, [B]₂, [C]₁) ∈ G₁ × G₂ × G₁                                 │
-│        證明大小：3 群元素 = 192 bytes（BN254）                                │
+│        證明大小：3 群元素 = 2|G₁|+|G₂|（BN254 壓縮 ~128 bytes）              │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       ↓
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -757,8 +757,8 @@ PLONK 如何實現通用設置：
    - 傳輸頻寬受限
    - 需要長期存檔
 
-   大小對比：
-     Groth16：192 bytes
+   大小對比（壓縮格式）：
+     Groth16：128-192 bytes（依曲線）
      PLONK：~400 bytes
      STARK：~50 KB</code></pre>
 

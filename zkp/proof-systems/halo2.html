@@ -31,7 +31,7 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>Halo2 是由 Zcash 基金會開發的先進零知識證明系統，結合了 Halo 論文<sup><a href="#ref-1">[1]</a></sup>的無需可信設置遞迴證明技術與 PLONK<sup><a href="#ref-2">[2]</a></sup>的靈活算術化。Halo2 的核心創新包括：(1) 基於內積論證（IPA）的多項式承諾，消除可信設置需求；(2) 巢狀攤銷（Nested Amortization）策略實現高效遞迴；(3) PLONKish 表格系統支援自定義門和查表。這些特性使 Halo2 成為 ZKML 框架（如 EZKL）的首選後端。</p>
+        <p>Halo2 是由 Electric Coin Co. (ECC) 團隊研發並開源的先進零知識證明系統，結合了 Halo 論文<sup><a href="#ref-1">[1]</a></sup>的遞迴證明技術與 PLONK<sup><a href="#ref-2">[2]</a></sup>的靈活算術化。Halo2 的核心創新包括：(1) 支援多種多項式承諾方案（IPA 無需可信設置，KZG 需要通用 SRS）；(2) 巢狀攤銷（Nested Amortization）策略實現高效遞迴；(3) PLONKish 表格系統支援自定義門和查表。這些特性使 Halo2 成為 ZKML 框架（如 EZKL）的首選後端。</p>
       </div>
 
       <h2>歷史背景與定位</h2>
@@ -804,10 +804,12 @@ Halo2 實現：
 
       <pre><code>EZKL 使用 Halo2 的原因：
 
-1. 無需可信設置
-   - 簡化部署流程
-   - 適合去中心化場景
-   - 用戶無需信任第三方
+1. 可選的可信設置
+   - 使用 IPA 承諾：無需可信設置（透明設置）
+   - 使用 KZG 承諾：需要通用 SRS（universal trusted setup）
+   - EZKL 支援兩種模式，可依需求選擇
+   - IPA 模式適合去中心化場景、用戶無需信任第三方
+   - KZG 模式證明更小、驗證更快，適合鏈上驗證
 
 2. 靈活的查表
    - 高效處理非線性激活函數

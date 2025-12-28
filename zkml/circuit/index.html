@@ -202,6 +202,7 @@
       <div class="callout callout-info">
         <div class="callout-title">零成本抽象</div>
         <p>由於形狀運算只是重新詮釋現有數據的佈局，不涉及實際計算，因此不產生額外約束。這是 ZKML 相較傳統電路表示的重要優化。</p>
+        <p><strong>注意</strong>：此「零成本」特性是 ZKML、EZKL 等專用框架的設計優化。在 Circom 等通用電路描述語言中，reshape/concat 可能需要顯式複製約束，依實作方式而異。</p>
       </div>
 
       <h3>2. 算術運算（Arithmetic Operations）</h3>
@@ -305,9 +306,9 @@
 
       <p>Softmax 需要除以動態計算的分母。使用 limb 分解處理大數除法：</p>
 
-      <p class="math">$$\text{VarDiv}(a, b) = \text{Round}(b/a)$$</p>
+      <p class="math">$$\text{VarDiv}(\text{numer}, \text{denom}) = \text{Round}(\text{numer}/\text{denom})$$</p>
 
-      <p>將大數分解為多個較小的 limbs，分別驗證除法正確性。</p>
+      <p>其中 numer 為分子、denom 為分母。將大數分解為多個較小的 limbs，分別驗證除法正確性。以 Softmax 為例，計算 \(\exp(x_i) / \sum_j \exp(x_j)\) 時，分子為 \(\exp(x_i)\)，分母為動態計算的總和。</p>
 
       <h2>Basic Blocks 架構（ZKTorch）</h2>
 

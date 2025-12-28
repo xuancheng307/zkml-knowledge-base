@@ -43,16 +43,16 @@ ZK 電路：
 
       <h3>量化公式</h3>
       <pre><code>均勻量化（Uniform Quantization）：
-  q = round((x - z) / s)
+  q = round(x / S) + Z
 
   其中：
     x = 浮點數值
     q = 量化後整數
-    s = 縮放因子（scale）
-    z = 零點偏移（zero point）
+    S = 縮放因子（Scale），正實數
+    Z = 零點偏移（Zero-point），整數
 
-反量化：
-  x' = s · q + z</code></pre>
+反量化（Dequantization）：
+  x' = S · (q - Z)</code></pre>
 
       <h2>量化類型</h2>
 
@@ -69,12 +69,12 @@ ZK 電路：
 
       <h3>按粒度分類</h3>
       <pre><code>Per-Tensor 量化：
-  整個張量使用同一個 (s, z)
+  整個張量使用同一組 (S, Z)
   優點：簡單，約束少
   缺點：精度較低
 
 Per-Channel 量化：
-  每個輸出通道獨立 (s_c, z_c)
+  每個輸出通道獨立 (S_c, Z_c)
   優點：精度高
   缺點：需要更多參數
 
