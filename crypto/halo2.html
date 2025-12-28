@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halo2 - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body data-page-id="halo2">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>Halo2 證明系統</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文來源</div>
+        <p>本頁內容主要基於 Sean Bowe, Jack Grigg, Daira Hopwood 於 2019 年發表的 Halo 論文，以及 Zcash 團隊後續開發的 Halo2 實作。</p>
+      </div>
+
+      <h2>概述</h2>
+
+      <p>Halo 是一個創新的零知識證明系統，其核心貢獻是實現了<strong>無需可信設定（trusted setup）的遞迴證明組合</strong><sup><a href="#ref-1">[1]</a></sup>。這項突破解決了傳統 zk-SNARK 系統（如 Groth16）長期面臨的可信設定問題，同時保持了高效的證明和驗證效能。</p>
+
+      <p>Halo2 是 Zcash 基金會基於 Halo 論文開發的證明系統實作，結合了 PLONKish 算術化與內積論證（Inner Product Argument, IPA）多項式承諾方案，被廣泛應用於 ZKML 框架（如 EZKL）中<sup><a href="#ref-2">[2]</a></sup>。</p>
+
+      <h2>核心技術創新</h2>
+
+      <h3>無可信設定的多項式承諾</h3>
+
+      <p>傳統的 KZG 多項式承諾需要可信設定來生成結構化參考字串（SRS），而 Halo 使用基於<strong>內積論證（IPA）</strong>的多項式承諾方案，完全消除了對可信設定的需求<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <p>IPA 多項式承諾的基本流程：</p>
+
+      <ol>
+        <li><strong>承諾（Commit）</strong>：對多項式係數向量進行 Pedersen 向量承諾</li>
+        <li><strong>開啟（Open）</strong>：使用對數大小的內積論證證明評估值的正確性</li>
+        <li><strong>驗證（Verify）</strong>：驗證者透過多次折疊操作驗證證明</li>
+      </ol>
+
+      <p>承諾計算如下：</p>
+      <p class="math">$$C = \langle \mathbf{a}, \mathbf{G} \rangle + [r]H$$</p>
+      <p>其中 \(\mathbf{a}\) 是多項式係數向量，\(\mathbf{G}\) 是生成器向量，\(r\) 是隨機盲化因子，\(H\) 是獨立生成器。</p>
+
+      <h3>巢狀攤銷（Nested Amortization）</h3>
+
+      <p>Halo 的關鍵創新是<strong>巢狀攤銷策略</strong>，用於降低遞迴驗證電路的複雜度<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心洞察</div>
+        <p>內積論證的最終檢查涉及兩個昂貴的多純量乘法（MSM）。巢狀攤銷技術將這些計算推遲到最外層證明，避免在每一層遞迴中重複執行。</p>
+      </div>
+
+      <p>具體而言，IPA 驗證的最終步驟需要計算：</p>
+      <p class="math">$$[a]G + [ab]U \stackrel{?}{=} P$$</p>
+
+      <p>其中 \(G = \langle \mathbf{s}, \mathbf{G} \rangle\) 涉及對 \(n\) 個群元素的多純量乘法。傳統做法需要約 \(n\) 次群運算，在電路中代價極高。</p>
+
+      <p>巢狀攤銷的解決方案：</p>
+      <ol>
+        <li>將 \(G\) 的計算視為新的「累加器」，推遲到外層處理</li>
+        <li>在當前電路中只需驗證隨機線性組合的正確性</li>
+        <li>最外層證明一次性處理所有累積的 MSM 計算</li>
+      </ol>
+
+      <h3>橢圓曲線 2-cycle</h3>
+
+      <p>為支援高效遞迴，Halo 引入了<strong>橢圓曲線 2-cycle</strong> 的概念<sup><a href="#ref-1">[1]</a></sup>：兩條曲線 \(E_1\) 和 \(E_2\)，其中 \(E_1\) 的群階等於 \(E_2\) 的基域大小，反之亦然。</p>
+
+      <p>論文設計的曲線對：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>曲線名稱</th>
+            <th>類型</th>
+            <th>素數 p</th>
+            <th>安全級別</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Tweedledum</td>
+            <td>短 Weierstrass</td>
+            <td>255-bit</td>
+            <td>126-bit (Pollard rho)</td>
+          </tr>
+          <tr>
+            <td>Tweedledee</td>
+            <td>短 Weierstrass</td>
+            <td>255-bit</td>
+            <td>126-bit (Pollard rho)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>這兩條曲線形成完美的循環：Tweedledum 上的證明可以在 Tweedledee 上驗證，而 Tweedledee 上的證明可以在 Tweedledum 上驗證，實現無限深度的遞迴。</p>
+
+      <h2>與 PLONKish 的結合</h2>
+
+      <p>Halo2 採用 PLONKish 算術化方案，結合了 PLONK 的靈活性與 Halo 的無可信設定特性<sup><a href="#ref-2">[2]</a></sup>。</p>
+
+      <h3>PLONKish 電路特性</h3>
+
+      <ul>
+        <li><strong>自定義門（Custom Gates）</strong>：支援任意多項式約束，不限於加法和乘法門</li>
+        <li><strong>查表門（Lookup Gates）</strong>：透過查表實現非算術運算的高效約束</li>
+        <li><strong>複製約束（Copy Constraints）</strong>：使用置換論證連接不同位置的單元格</li>
+      </ul>
+
+      <p>在 ZKML 應用中，PLONKish 的查表功能特別重要，可用於高效實現非線性激活函數（如 ReLU、GELU）的近似<sup><a href="#ref-2">[2]</a></sup>。</p>
+
+      <h2>安全性分析</h2>
+
+      <h3>安全假設</h3>
+
+      <p>Halo 的安全性基於<strong>離散對數困難假設（DLOG）</strong>：</p>
+
+      <p class="math">$$\text{給定 } G \text{ 和 } [x]G \text{，計算 } x \text{ 是計算不可行的}$$</p>
+
+      <p>相較於 KZG 依賴的雙線性配對假設，DLOG 是更保守且被廣泛研究的密碼學假設<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <h3>安全性質</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>性質</th>
+            <th>保證</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>完備性（Completeness）</td>
+            <td>完美</td>
+            <td>誠實證明者總能生成有效證明</td>
+          </tr>
+          <tr>
+            <td>健全性（Soundness）</td>
+            <td>計算性</td>
+            <td>基於 DLOG 假設，惡意證明者無法偽造證明</td>
+          </tr>
+          <tr>
+            <td>零知識（Zero-Knowledge）</td>
+            <td>完美</td>
+            <td>證明不洩漏見證以外的任何資訊</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>效能特性</h2>
+
+      <h3>證明大小</h3>
+
+      <p>Halo 的證明大小約為 <strong>3.5 KiB</strong>，雖然大於 Groth16 的常數大小證明（約 128 bytes），但遠小於 STARK 的證明大小<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <h3>遞迴效率</h3>
+
+      <p>論文分析表明，當電路規模小於 \(2^{17}\) 個乘法門時，遞迴驗證成本可被有效攤銷<sup><a href="#ref-1">[1]</a></sup>。這意味著：</p>
+
+      <ul>
+        <li>可以將大型計算分割成多個較小的證明</li>
+        <li>透過遞迴組合這些證明，最終只需一個簡潔的驗證</li>
+        <li>特別適合需要增量驗證的應用場景</li>
+      </ul>
+
+      <h3>與其他系統的比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>Halo2 (IPA)</th>
+            <th>Groth16</th>
+            <th>STARK</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>可信設定</td>
+            <td>無需</td>
+            <td>需要（per-circuit）</td>
+            <td>無需</td>
+          </tr>
+          <tr>
+            <td>證明大小</td>
+            <td>~3.5 KiB</td>
+            <td>~128 B</td>
+            <td>~50-200 KiB</td>
+          </tr>
+          <tr>
+            <td>驗證時間</td>
+            <td>O(log n)</td>
+            <td>O(1)</td>
+            <td>O(log² n)</td>
+          </tr>
+          <tr>
+            <td>證明時間</td>
+            <td>中等</td>
+            <td>較慢</td>
+            <td>較快</td>
+          </tr>
+          <tr>
+            <td>後量子安全</td>
+            <td>否</td>
+            <td>否</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td>遞迴支援</td>
+            <td>原生高效</td>
+            <td>需要額外技術</td>
+            <td>支援</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>在 ZKML 中的應用</h2>
+
+      <p>Halo2 被多個 ZKML 框架採用作為後端證明系統：</p>
+
+      <h3>EZKL</h3>
+
+      <p>EZKL 是目前最成熟的 ZKML 框架之一，使用 Halo2 作為證明後端<sup><a href="#ref-2">[2]</a></sup>。選擇 Halo2 的原因包括：</p>
+
+      <ul>
+        <li><strong>無可信設定</strong>：簡化部署流程，適合去中心化應用</li>
+        <li><strong>靈活的查表</strong>：高效支援非線性激活函數</li>
+        <li><strong>成熟的生態</strong>：Zcash 團隊持續維護</li>
+      </ul>
+
+      <h3>ZKML 配置考量</h3>
+
+      <p>在 ZKML 系統中使用 Halo2 時，關鍵配置參數包括：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>參數</th>
+            <th>說明</th>
+            <th>對效能的影響</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>logrows (k)</td>
+            <td>電路表的行數為 2^k</td>
+            <td>k 越大，支援越複雜的模型，但記憶體和證明時間增加</td>
+          </tr>
+          <tr>
+            <td>lookup_bits</td>
+            <td>查表的精度位元數</td>
+            <td>影響非線性函數的精度與約束數量</td>
+          </tr>
+          <tr>
+            <td>scale</td>
+            <td>定點數的縮放因子</td>
+            <td>影響數值精度和溢位風險</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>實作注意事項</h2>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">注意</div>
+        <p>Halo2 使用的橢圓曲線（Pasta curves：Pallas 和 Vesta）與以太坊虛擬機（EVM）原生支援的 BN254 曲線不同，因此在以太坊上驗證 Halo2 證明需要額外的成本。</p>
+      </div>
+
+      <p>解決方案包括：</p>
+      <ul>
+        <li><strong>遞迴包裝</strong>：將 Halo2 證明包裝在 Groth16 證明中，利用 EVM 的 BN254 預編譯</li>
+        <li><strong>自定義驗證合約</strong>：在鏈上實現 Pasta 曲線運算（Gas 成本較高）</li>
+        <li><strong>KZG 後端</strong>：EZKL 也支援 KZG 承諾方案，可生成 EVM 友好的證明</li>
+      </ul>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="ipa.html">IPA 內積論證</a> - Halo2 使用的多項式承諾方案</li>
+        <li><a href="plonkish.html">PLONKish 算術化</a> - Halo2 採用的約束系統</li>
+        <li><a href="kzg.html">KZG 多項式承諾</a> - 替代的承諾方案比較</li>
+        <li><a href="../zkml/ezkl.html">EZKL</a> - 使用 Halo2 的 ZKML 框架</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Bowe, S., Grigg, J., and Hopwood, D. "Recursive Proof Composition without a Trusted Setup." IACR Cryptology ePrint Archive, 2019.</cite>
+            <a href="https://eprint.iacr.org/2019/1021" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-2">
+            <cite>Electric Coin Company. "The halo2 Book." Zcash Documentation, 2024.</cite>
+            <a href="https://zcash.github.io/halo2/" target="_blank" rel="noopener">文檔</a>
+          </li>
+          <li id="ref-3">
+            <cite>Gabizon, A., Williamson, Z. J., and Ciobotaru, O. "PLONK: Permutations over Lagrange-bases for Oecumenical Noninteractive arguments of Knowledge." IACR Cryptology ePrint Archive, 2019.</cite>
+            <a href="https://eprint.iacr.org/2019/953" target="_blank" rel="noopener">ePrint</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

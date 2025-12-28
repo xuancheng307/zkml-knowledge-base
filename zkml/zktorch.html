@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKTorch - ZKML 技術知識庫</title>
+
+  <script>
+    (function() {
+      const theme = localStorage.getItem('zkml-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
+  <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+</head>
+<body data-page-id="zktorch">
+  <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+  <div id="sidebar-overlay"></div>
+  <nav id="sidebar"></nav>
+
+  <main>
+    <nav id="breadcrumb" aria-label="麵包屑導覽"></nav>
+
+    <article>
+      <h1>ZKTorch</h1>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文來源</div>
+        <p>本頁內容主要基於 Chen, Tang, and Kang 於 2025 年發表的 "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation" 論文。</p>
+      </div>
+
+      <h2>概述</h2>
+
+      <p>ZKTorch 是一個開源的端到端 ZKML 證明系統，能夠將機器學習模型編譯為零知識證明<sup><a href="#ref-1">[1]</a></sup>。其核心創新在於結合<strong>模組化的基礎區塊設計</strong>與<strong>平行化的證明累積方案</strong>，在保持高度通用性的同時實現優異的證明效率。</p>
+
+      <p>ZKTorch 是首個能夠完整證明 <strong>MLPerf Edge Inference v4.1</strong> 所有模型的 ZKML 系統，涵蓋 CNN、RNN 和 Transformer 架構，共支援 61 種常用 ML 層<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <h2>系統架構</h2>
+
+      <p>ZKTorch 採用模組化設計，將 ML 模型編譯為基礎密碼學區塊（basic blocks）的有向無環圖（DAG）<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <h3>主要組件</h3>
+
+      <ol>
+        <li><strong>編譯器（Compiler）</strong>：優化 ONNX 圖結構，重組和合併模型層以降低證明開銷</li>
+        <li><strong>轉譯器（Transpiler）</strong>：將 ML 層自動轉譯為基礎區塊的組合</li>
+        <li><strong>證明器與累積器（Prover & Accumulator）</strong>：生成並聚合各基礎區塊的證明</li>
+      </ol>
+
+      <h3>工作流程</h3>
+
+      <ol>
+        <li><strong>見證生成</strong>：執行模型推理，將張量縮放至有限域並編碼為多項式</li>
+        <li><strong>逐層證明</strong>：對每個基礎區塊生成正確性證明</li>
+        <li><strong>平行累積</strong>：使用擴展的 Mira 累積方案聚合所有證明</li>
+      </ol>
+
+      <h2>基礎區塊</h2>
+
+      <p>ZKTorch 定義了 20 種基礎區塊，涵蓋 ML 計算的核心運算<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>類別</th>
+            <th>基礎區塊</th>
+            <th>支援累積</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>算術運算</td>
+            <td>Add, Sub, Mul, MulConst, MulScalar, Sum, Div, Mod</td>
+            <td>部分支援</td>
+          </tr>
+          <tr>
+            <td>布林運算</td>
+            <td>BooleanCheck, Eq</td>
+            <td>Eq 支援</td>
+          </tr>
+          <tr>
+            <td>最大值</td>
+            <td>MaxProof</td>
+            <td>否</td>
+          </tr>
+          <tr>
+            <td>形狀運算</td>
+            <td>Concat, CopyConstraint, Permute</td>
+            <td>部分支援</td>
+          </tr>
+          <tr>
+            <td>查表</td>
+            <td>CQ, CQ2</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td>矩陣乘法</td>
+            <td>CQLin, MatMul</td>
+            <td>是</td>
+          </tr>
+          <tr>
+            <td>排序檢查</td>
+            <td>OneToOne, Ordered</td>
+            <td>否</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>其中 13 種基礎區塊支援平行累積，編譯器會優化層實作以優先使用這些可累積的區塊。</p>
+
+      <h2>核心技術創新</h2>
+
+      <h3>平行證明累積</h3>
+
+      <p>ZKTorch 擴展了 Mira 累積方案<sup><a href="#ref-2">[2]</a></sup>，支援平行聚合：</p>
+
+      <ul>
+        <li><strong>原始 Mira</strong>：僅支援序列累積，將 SNARK 證明與累積實例線性組合</li>
+        <li><strong>ZKTorch 擴展</strong>：將證明視為累積實例的特例，實現任意兩個累積實例間的聚合</li>
+      </ul>
+
+      <p>這種平行累積允許使用 Merkle 樹歸約等技術，顯著降低整體證明時間。給定 \(N\) 個證明，序列累積的時間複雜度為 \(O(N)\)，而平行累積可降至 \(O(\log N)\)<sup><a href="#ref-1">[1]</a></sup>。</p>
+
+      <h3>圖形轉換規則</h3>
+
+      <p>ZKTorch 的編譯器實作了 7 種圖形轉換規則，優化 ONNX 模型以降低證明開銷<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>規則</th>
+            <th>適用模型</th>
+            <th>優化效果</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GeLU</td>
+            <td>GPT-j</td>
+            <td>CQ 數量從 6 降至 1</td>
+          </tr>
+          <tr>
+            <td>CustomCNN</td>
+            <td>ResNet, 3D-UNet</td>
+            <td>消除形狀運算，使用純 CQLin</td>
+          </tr>
+          <tr>
+            <td>MultiHeadMatMul</td>
+            <td>GPT-j</td>
+            <td>消除複製約束</td>
+          </tr>
+          <tr>
+            <td>RoPE</td>
+            <td>GPT-j</td>
+            <td>消除複製約束</td>
+          </tr>
+          <tr>
+            <td>ReshapeTrans</td>
+            <td>BERT</td>
+            <td>Permute 數量從 2 降至 1</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>CQLin 矩陣乘法優化</h3>
+
+      <p>當矩陣乘法中有一個矩陣在編譯時已知（如卷積權重），ZKTorch 使用 CQLin 協議<sup><a href="#ref-3">[3]</a></sup>：</p>
+
+      <ul>
+        <li>預處理已知矩陣，實現證明時間僅與輸入矩陣大小成線性關係</li>
+        <li>與 KZG 承諾方案相容</li>
+        <li>證明時間獨立於查表大小</li>
+      </ul>
+
+      <h2>效能數據</h2>
+
+      <h3>端到端證明效能</h3>
+
+      <p>以下是 ZKTorch 在 MLPerf Edge Inference v4.1 模型上的效能數據<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>參數量</th>
+            <th>證明時間</th>
+            <th>驗證時間</th>
+            <th>證明大小</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BERT</td>
+            <td>110M</td>
+            <td>880s</td>
+            <td>27s</td>
+            <td>4.88 MB</td>
+          </tr>
+          <tr>
+            <td>GPT-j</td>
+            <td>6B</td>
+            <td>1398s</td>
+            <td>63s</td>
+            <td>6.54 MB</td>
+          </tr>
+          <tr>
+            <td>LLaMA-2-7B</td>
+            <td>7B</td>
+            <td>2646s</td>
+            <td>100s</td>
+            <td>22.85 MB</td>
+          </tr>
+          <tr>
+            <td>ResNet-50</td>
+            <td>25.6M</td>
+            <td>6271s</td>
+            <td>63s</td>
+            <td>85.41 KB</td>
+          </tr>
+          <tr>
+            <td>RetinaNet</td>
+            <td>34M</td>
+            <td>53052s</td>
+            <td>1171s</td>
+            <td>98.7 KB</td>
+          </tr>
+          <tr>
+            <td>3D-UNet</td>
+            <td>19M</td>
+            <td>568543s</td>
+            <td>14406s</td>
+            <td>1.4 MB</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>與其他框架的比較</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>指標</th>
+            <th>ZKTorch</th>
+            <th>ZKML (EuroSys)</th>
+            <th>zkCNN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GPT-2 證明時間</td>
+            <td>599s</td>
+            <td>3601s</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>加速比</td>
+            <td>6×</td>
+            <td>基準</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>ResNet-50 證明大小</td>
+            <td>85 KB</td>
+            <td>N/A</td>
+            <td>> 304 KB</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-info">
+        <div class="callout-title">核心優勢</div>
+        <p>ZKTorch 相較專用協議（如 zkCNN、Mystique）實現至少 3× 的證明大小縮減，相較通用框架（如 ZKML）實現最高 6× 的證明時間加速。</p>
+      </div>
+
+      <h2>消融研究</h2>
+
+      <h3>平行累積的效果</h3>
+
+      <p>比較有無平行累積的效能差異<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>序列累積</th>
+            <th>平行累積</th>
+            <th>加速比</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GPT-j</td>
+            <td>8663s</td>
+            <td>1398s</td>
+            <td>6.2×</td>
+          </tr>
+          <tr>
+            <td>ResNet-50</td>
+            <td>12313s</td>
+            <td>6271s</td>
+            <td>2.0×</td>
+          </tr>
+          <tr>
+            <td>LLaMA-2</td>
+            <td>5976s</td>
+            <td>2646s</td>
+            <td>2.3×</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>編譯器優化的效果</h3>
+
+      <p>比較有無編譯器優化的效能差異<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>無優化</th>
+            <th>有優化</th>
+            <th>改進</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GPT-j 證明時間</td>
+            <td>5181s</td>
+            <td>1398s</td>
+            <td>3.7×</td>
+          </tr>
+          <tr>
+            <td>BERT 證明時間</td>
+            <td>52977s</td>
+            <td>880s</td>
+            <td>60×</td>
+          </tr>
+          <tr>
+            <td>BERT 證明大小</td>
+            <td>155 MB</td>
+            <td>4.88 MB</td>
+            <td>32×</td>
+          </tr>
+          <tr>
+            <td>ResNet-50 證明大小</td>
+            <td>200 MB</td>
+            <td>85 KB</td>
+            <td>2398×</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>精度保持</h2>
+
+      <p>ZKTorch 的量化和縮放因子選擇能夠保持與標準 MLPerf 基準相當的推理精度<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>模型</th>
+            <th>指標</th>
+            <th>ZKTorch</th>
+            <th>參考值</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BERT</td>
+            <td>F1 Score</td>
+            <td>90.104%</td>
+            <td>90.874%</td>
+          </tr>
+          <tr>
+            <td>ResNet-50</td>
+            <td>Accuracy</td>
+            <td>76.038%</td>
+            <td>76.456%</td>
+          </tr>
+          <tr>
+            <td>RNNT</td>
+            <td>WER</td>
+            <td>7.49%</td>
+            <td>7.45%</td>
+          </tr>
+          <tr>
+            <td>RetinaNet</td>
+            <td>mAP</td>
+            <td>0.3753</td>
+            <td>0.3757</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>技術細節</h2>
+
+      <h3>密碼學基礎</h3>
+
+      <ul>
+        <li><strong>多項式承諾</strong>：使用 KZG 承諾方案</li>
+        <li><strong>累積方案</strong>：擴展 Mira 累積方案支援平行聚合</li>
+        <li><strong>橢圓曲線</strong>：使用 BN254 配對友好曲線（254-bit 素數域）</li>
+        <li><strong>量化</strong>：預設使用 10-bit 量化（GPT-j 使用 12-bit）</li>
+      </ul>
+
+      <h3>安全性質</h3>
+
+      <p>ZKTorch 繼承了底層 ZK-SNARK 的安全性質：</p>
+
+      <ul>
+        <li><strong>完備性</strong>：誠實證明者的證明總是被接受</li>
+        <li><strong>知識健全性</strong>：在 AGM 模型下可證明</li>
+        <li><strong>零知識</strong>：通過模擬器構造證明</li>
+      </ul>
+
+      <h2>與 ZKML (EuroSys 2024) 的比較</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>特性</th>
+            <th>ZKTorch</th>
+            <th>ZKML (EuroSys)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>後端系統</td>
+            <td>Mira + KZG</td>
+            <td>Halo2</td>
+          </tr>
+          <tr>
+            <td>累積方案</td>
+            <td>平行化 Mira</td>
+            <td>無</td>
+          </tr>
+          <tr>
+            <td>基礎區塊數</td>
+            <td>20</td>
+            <td>N/A</td>
+          </tr>
+          <tr>
+            <td>支援層數</td>
+            <td>61</td>
+            <td>可擴展</td>
+          </tr>
+          <tr>
+            <td>自動配置</td>
+            <td>編譯器優化</td>
+            <td>TPE 搜索</td>
+          </tr>
+          <tr>
+            <td>證明大小</td>
+            <td>更小（累積後）</td>
+            <td>較大</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>限制與未來工作</h2>
+
+      <h3>當前限制</h3>
+
+      <ul>
+        <li>部分基礎區塊（7 種）不支援累積，影響某些特殊層的效能</li>
+        <li>大型模型（如 3D-UNet）的證明時間仍然很長</li>
+        <li>CPU 密集型設計，未充分利用 GPU 加速</li>
+      </ul>
+
+      <h3>潛在改進方向</h3>
+
+      <ul>
+        <li>擴展累積支援至更多基礎區塊</li>
+        <li>GPU 加速的證明生成</li>
+        <li>更多圖形轉換規則以支援新模型架構</li>
+      </ul>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="zkml-2024.html">ZKML (EuroSys 2024)</a> - 另一主要 ZKML 框架</li>
+        <li><a href="ezkl.html">EZKL</a> - 基於 Halo2 的 ZKML 工具包</li>
+        <li><a href="model-to-circuit.html">模型到電路</a> - ML 模型轉換流程</li>
+        <li><a href="../crypto/kzg.html">KZG 多項式承諾</a> - ZKTorch 使用的承諾方案</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Chen, B.-J., Tang, L., and Kang, D. "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation." arXiv preprint arXiv:2507.07031, 2025.</cite>
+            <a href="https://arxiv.org/abs/2507.07031" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Beal, J. and Fisch, B. "Mira: Efficient Folding for Pairing-based Arguments." IACR Cryptology ePrint Archive, 2024.</cite>
+            <a href="https://eprint.iacr.org/2024/2025" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-3">
+            <cite>Eagen, L. and Gabizon, A. "cqlin: Efficient linear operations on KZG commitments with cached quotients." Cryptology ePrint Archive, 2023.</cite>
+            <a href="https://eprint.iacr.org/2023/393" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., and Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://dl.acm.org/doi/10.1145/3627703.3629560" target="_blank" rel="noopener">ACM</a>
+          </li>
+        </ol>
+      </section>
+
+    </article>
+
+    <nav id="prev-next" aria-label="前後頁導覽"></nav>
+  </main>
+
+  <button id="theme-toggle" aria-label="切換深色模式">🌙</button>
+  <script type="module" src="/zkml-knowledge-base/assets/js/site.js"></script>
+</body>
+</html>

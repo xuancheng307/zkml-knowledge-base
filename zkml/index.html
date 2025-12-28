@@ -28,11 +28,301 @@
     <article>
       <h1>ZKML 總覽</h1>
 
-      <div class="placeholder-content">
-        <div class="icon">⚡</div>
-        <p>本頁內容正在撰寫中...</p>
-        <p>預計涵蓋：ZKML 定義、發展時間線、應用場景、技術全景圖。</p>
+      <div class="callout callout-info">
+        <div class="callout-title">論文章節</div>
+        <p>本頁主要整合 Peng et al. 的綜述論文「A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning」(arXiv 2025)<sup><a href="#ref-1">[1]</a></sup>，以及 ZKML (EuroSys 2024)<sup><a href="#ref-2">[2]</a></sup> 的相關內容。</p>
       </div>
+
+      <h2>什麼是 ZKML？</h2>
+
+      <p>
+        <strong>零知識機器學習 (Zero-Knowledge Machine Learning, ZKML)</strong> 是將零知識證明 (ZKP) 技術應用於機器學習的新興領域。ZKML 使得一方能夠向另一方證明機器學習計算的正確性，同時不洩露敏感資訊（如模型參數或訓練資料）<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
+
+      <p>
+        在 ZKML 框架中，機器學習服務提供者作為 ZKP 系統中的<strong>證明者 (Prover)</strong>，而客戶端作為<strong>驗證者 (Verifier)</strong>。由於驗證者的計算資源有限或缺乏必要的資料，因此將訓練和推理等機器學習任務委託給證明者執行<sup><a href="#ref-1">[1]</a></sup>。
+      </p>
+
+      <h3>核心問題</h3>
+
+      <p>ZKML 主要解決以下信任與隱私問題：</p>
+
+      <ul>
+        <li><strong>客戶端的顧慮</strong>：資料隱私可能在雲端被洩露；服務提供者可能使用表現不佳的模型卻偽造結果</li>
+        <li><strong>服務提供者的顧慮</strong>：模型可能被竊取或被惡意攻擊者植入後門</li>
+        <li><strong>結果可信度</strong>：如何在不揭露計算細節的情況下，證明推理結果確實來自正確的模型執行</li>
+      </ul>
+
+      <h2>ZKML 的工作流程</h2>
+
+      <p>典型的 ZKML 工作流程如下<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ol>
+        <li><strong>任務協商</strong>：證明者 P 與驗證者 V 約定機器學習任務 T（指定使用的模型、效能指標等）與輸入資料 D</li>
+        <li><strong>承諾生成</strong>：驗證者 V 生成承諾 c 發送給證明者 P，以確認輸入資料 D 的完整性</li>
+        <li><strong>金鑰生成</strong>：證明者 P 驗證承諾後，生成證明金鑰 (proving key) 與驗證金鑰 (verification key)</li>
+        <li><strong>計算與證明</strong>：證明者 P 執行機器學習任務得到結果 r，同時使用證明機制生成證明 &pi;</li>
+        <li><strong>驗證</strong>：驗證者 V 評估結果 r 與證明 &pi;，判斷證明者是否正確執行了任務 T</li>
+      </ol>
+
+      <h2>三大應用類別</h2>
+
+      <p>ZKML 研究根據機器學習流程的不同階段與驗證目標，可分為以下三大類別<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>類別</th>
+            <th>驗證目標</th>
+            <th>典型場景</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>可驗證訓練 (Verifiable Training)</strong></td>
+            <td>確保訓練資料品質、訓練演算法一致性、模型參數完整性</td>
+            <td>外包模型訓練任務給雲端服務</td>
+          </tr>
+          <tr>
+            <td><strong>可驗證測試 (Verifiable Testing)</strong></td>
+            <td>證明模型的真實效能，確保其聲稱的準確率反映泛化能力</td>
+            <td>第三方驗證模型在公開資料集上的準確率</td>
+          </tr>
+          <tr>
+            <td><strong>可驗證推理 (Verifiable Inference)</strong></td>
+            <td>確保推理結果確實由指定模型使用提供的輸入資料產生</td>
+            <td>MLaaS 平台上的隱私推理服務</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>可驗證推理的典型設定</h3>
+
+      <p>以可驗證推理為例，設定如下<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>公開輸入 (Public Input)</strong>：輸入資料 x、推理結果 r</li>
+        <li><strong>私密見證 (Private Witness)</strong>：模型參數 w</li>
+        <li><strong>驗證關係</strong>：F(x, r, w) = W(x, w) - r = 0，其中 W(*) 表示模型推理計算</li>
+      </ul>
+
+      <p>
+        透過這種設定，客戶端可以信任推理結果 r = W(x, w) 確實是服務提供者使用其模型對客戶端資料執行推理所得，即使客戶端不知道具體的模型參數 w 和推理計算過程。
+      </p>
+
+      <h2>研究發展時間線</h2>
+
+      <p>ZKML 研究從 2017 年開始快速發展，以下是代表性研究的時間線<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>時間</th>
+            <th>研究</th>
+            <th>類別</th>
+            <th>貢獻</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>2017.6</td>
+            <td>SafetyNets</td>
+            <td>可驗證推理</td>
+            <td>首個基於 ZKP 的可驗證 DNN 推理方案</td>
+          </tr>
+          <tr>
+            <td>2020.10</td>
+            <td>zkDT</td>
+            <td>可驗證測試</td>
+            <td>決策樹的零知識證明</td>
+          </tr>
+          <tr>
+            <td>2020.12</td>
+            <td>vCNN</td>
+            <td>可驗證推理</td>
+            <td>基於 QPP 的卷積加速</td>
+          </tr>
+          <tr>
+            <td>2021.5</td>
+            <td>ZEN</td>
+            <td>可驗證測試</td>
+            <td>首個優化編譯器，R1CS 友好的量化</td>
+          </tr>
+          <tr>
+            <td>2021.11</td>
+            <td>zkCNN</td>
+            <td>可驗證測試</td>
+            <td>基於 sumcheck 的卷積證明</td>
+          </tr>
+          <tr>
+            <td>2022.12</td>
+            <td>ezDPS</td>
+            <td>可驗證推理</td>
+            <td>完整 ML 推理管線</td>
+          </tr>
+          <tr>
+            <td>2023.7</td>
+            <td>zkDL</td>
+            <td>可驗證訓練</td>
+            <td>深度學習訓練的高效證明</td>
+          </tr>
+          <tr>
+            <td>2024.4</td>
+            <td>ZKML</td>
+            <td>可驗證推理</td>
+            <td>系統性量化與配置空間優化</td>
+          </tr>
+          <tr>
+            <td>2024.4</td>
+            <td>zkLLM</td>
+            <td>可驗證推理</td>
+            <td>大型語言模型的零知識證明</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>實作挑戰</h2>
+
+      <p>ZKML 的實作面臨兩大核心挑戰<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <h3>1. 通用性限制</h3>
+
+      <p>
+        機器學習任務依賴浮點運算和非線性操作，但 ZKP 作為密碼學技術，運算在有限域上進行線性算術。浮點和非線性操作無法直接轉換為 ZKP 所需的有限域算術電路表示。
+      </p>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">ReLU 的特殊處理</div>
+        <p>以 ReLU 激活函數 f(x) = max(x, 0) 為例，雖然在傳統 ML 實作中計算簡單，但在 ZKML 中需要特殊處理。ReLU 本質上需要不等式比較 (x > 0) 和條件分支，這無法在有限域算術中原生執行。解決方案包括：引入輔助二元變數表示為 x·I(x≥0)，或使用多項式近似<sup><a href="#ref-3">[3]</a></sup>。</p>
+      </div>
+
+      <h3>2. 效率瓶頸</h3>
+
+      <p>
+        現代機器學習模型（如深度神經網路）通常包含大量參數，導致算術電路表示巨大。以 Groth16 協議為例，其證明生成複雜度為 O(|C|E)，其中 |C| 為電路大小，E 為群指數運算成本。
+      </p>
+
+      <p>以 VGG16 模型（1.38 億參數）為例的估算<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li>每個卷積層約需 5,000 個乘法閘</li>
+        <li>總電路大小達 |C| ≈ 7.2 × 10<sup>11</sup> 個閘</li>
+        <li>評估金鑰大小約 138.24 TB</li>
+        <li>在 256 核心 AWS 實例上，證明生成時間超過 30 年</li>
+      </ul>
+
+      <h2>改進方向</h2>
+
+      <p>現有研究針對上述挑戰提出的改進方向包括<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <h3>通用性改進</h3>
+
+      <ul>
+        <li><strong>量化技術</strong>：將浮點數轉換為定點數或整數表示</li>
+        <li><strong>激活函數處理</strong>：多項式近似、位元分解、查表方法</li>
+        <li><strong>類型轉換協議</strong>：算術值與布林值、定點數與浮點數之間的高效轉換</li>
+      </ul>
+
+      <h3>效率改進</h3>
+
+      <ul>
+        <li><strong>電路優化</strong>：矩陣表示、FFT 加速卷積證明</li>
+        <li><strong>協議優化</strong>：sumcheck、GKR 協議用於分層結構</li>
+        <li><strong>查表論證</strong>：非線性函數的高效查表證明</li>
+        <li><strong>稀疏性利用</strong>：針對剪枝模型的優化協議</li>
+      </ul>
+
+      <h2>與其他安全技術的比較</h2>
+
+      <p>相較於其他安全技術，ZKP 在可驗證機器學習中具有獨特優勢<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>技術</th>
+            <th>在 VML 中的優勢</th>
+            <th>相較 ZKP 的限制</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>差分隱私 (DP)</td>
+            <td>透過統計雜訊保護訓練資料</td>
+            <td>雜訊降低資料效用，影響模型準確率</td>
+          </tr>
+          <tr>
+            <td>同態加密 (HE)</td>
+            <td>允許在加密資料上計算</td>
+            <td>高計算和儲存開銷，限制可擴展性</td>
+          </tr>
+          <tr>
+            <td>聯邦學習 (FL)</td>
+            <td>無需資料共享的協作訓練</td>
+            <td>易受惡意參與者提供虛假資料攻擊</td>
+          </tr>
+          <tr>
+            <td>可信執行環境 (TEE)</td>
+            <td>隔離敏感計算，提供完整性保證</td>
+            <td>不適合需要大量計算資源的任務</td>
+          </tr>
+          <tr>
+            <td>安全多方計算 (SMC)</td>
+            <td>高準確度，支援通用計算</td>
+            <td>計算延遲隨參與者數量增加難以線性擴展</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>商業應用</h2>
+
+      <p>ZKML 技術已開始在商業領域應用<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ul>
+        <li><strong>EZKL</strong>：用於深度學習推理的 zk-SNARK 函式庫和命令列工具</li>
+        <li><strong>Modulus Labs</strong>：展示 RockyBot（鏈上交易機器人）和 Leela vs. World（西洋棋遊戲）等用例</li>
+        <li><strong>Giza</strong>：允許 AI 模型以完全無信任方式部署到區塊鏈上的協議</li>
+        <li><strong>DeFiChain</strong>：使用 ZKML 驗證詐欺檢測和信用風險評估模型的準確性</li>
+      </ul>
+
+      <h2>未來研究方向</h2>
+
+      <p>ZKML 領域的未來發展方向包括<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <ol>
+        <li><strong>提升計算效率與可擴展性</strong>：優化證明協議以支援大規模模型</li>
+        <li><strong>優化通用性與實用性</strong>：開發更實用的 ZKML 工具和平台</li>
+        <li><strong>支援多樣化模型</strong>：擴展至多模態、生成式、自監督學習模型</li>
+        <li><strong>增強隱私保護與安全性</strong>：涵蓋訓練階段的隱私保護，防禦對抗性攻擊</li>
+      </ol>
+
+      <h2>相關頁面</h2>
+
+      <ul>
+        <li><a href="zkml-2024.html">ZKML (EuroSys 2024)</a> - 系統架構與量化優化</li>
+        <li><a href="quant-for-zk.html">ZK 專用量化</a> - 量化技術詳解</li>
+        <li><a href="configuration-space.html">配置空間與調參</a> - 參數調優方法</li>
+        <li><a href="model-to-circuit.html">模型到電路轉換</a> - 算術電路生成</li>
+        <li><a href="ezkl.html">EZKL</a> - 開源 ZKML 框架</li>
+        <li><a href="zktorch.html">ZKTorch</a> - 編譯器架構</li>
+      </ul>
+
+      <section class="references">
+        <h2>參考文獻</h2>
+        <ol>
+          <li id="ref-1">
+            <cite>Peng, Z., Wang, T., Zhao, C., Liao, G., Lin, Z., Liu, Y., Cao, B., Shi, L., Yang, Q., & Zhang, S. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint, 2025.</cite>
+            <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+          </li>
+          <li id="ref-2">
+            <cite>Chen, B.-J., Waiwitlikhit, S., Stoica, I., & Kang, D. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys, 2024.</cite>
+            <a href="https://doi.org/10.1145/3627703.3650083" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-3">
+            <cite>Sun, H., Bai, T., Li, J., & Zhang, H. "zkDL: Efficient Zero-Knowledge Proofs of Deep Learning Training." Cryptology ePrint Archive, 2023.</cite>
+            <a href="https://eprint.iacr.org/2023/898" target="_blank" rel="noopener">ePrint</a>
+          </li>
+        </ol>
+      </section>
 
     </article>
 
