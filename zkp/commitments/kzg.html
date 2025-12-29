@@ -142,9 +142,11 @@ Pr[A(g, g^τ, ..., g^{τ^q}) = (c, g^{1/(τ+c)})] ≤ negl(λ)
   - 也無法計算任何 1/(τ+c) 的離散對數
   - 這使得無法偽造多項式評估證明
 
-與 d-PKE 關係：
-  q-SDH 蘊含 d-PKE（d-Power Knowledge of Exponent）
-  用於證明知識可靠性</code></pre>
+安全性證明所需假設：
+  - 綁定性（binding）：通常在 (q-)SDH 假設下證明
+  - 知識可靠性（knowledge soundness）：
+    文獻常額外採用 q-PKE / KEA 類知識型假設
+  - 兩者為不同層級的假設，無一般性蕴含關係</code></pre>
 
       <h3>定義 5：多項式除法引理</h3>
 
@@ -232,8 +234,8 @@ KZG 知識可靠性：
 2. 常數時間驗證
    問題：IPA 驗證需 O(n) 時間
    KZG 解決方案：
-     - 僅 2 次配對運算
-     - ~3 ms 驗證時間
+     - 僅 2 次配對運算（O(1) 驗證）
+     - 驗證成本與多項式度數無關
      - 適合區塊鏈環境
 
 3. 高效批次驗證
@@ -524,7 +526,7 @@ Pippenger MSM 算法：
 
 複雜度：
   - 時間：2 次配對運算 = O(1)
-  - 實際時間：~3 ms（BLS12-381）</code></pre>
+  - 與多項式度數無關，適合大規模電路</code></pre>
 
       <h2>Powers of Tau 儀式</h2>
 
@@ -821,7 +823,7 @@ Open 修改：
             <th>操作</th>
             <th>時間複雜度</th>
             <th>空間複雜度</th>
-            <th>具體時間（d=2²⁰）</th>
+            <th>主要運算</th>
           </tr>
         </thead>
         <tbody>
@@ -829,31 +831,31 @@ Open 修改：
             <td>Setup</td>
             <td>O(d)</td>
             <td>O(d)</td>
-            <td>~10 秒</td>
+            <td>d 次群運算（一次性）</td>
           </tr>
           <tr>
             <td>Commit</td>
             <td>O(d)</td>
             <td>O(1)</td>
-            <td>~1 秒</td>
+            <td>1 次 MSM（d 個點）</td>
           </tr>
           <tr>
             <td>Open</td>
             <td>O(d)</td>
             <td>O(1)</td>
-            <td>~1 秒</td>
+            <td>1 次 MSM（d 個點）</td>
           </tr>
           <tr>
             <td>Verify</td>
             <td>O(1)</td>
             <td>O(1)</td>
-            <td>~3 ms</td>
+            <td>2 次配對運算</td>
           </tr>
           <tr>
             <td>Batch Verify（k 個）</td>
             <td>O(k)</td>
             <td>O(1)</td>
-            <td>~3 ms + k·0.1 ms</td>
+            <td>2 次配對 + k 次群運算</td>
           </tr>
         </tbody>
       </table>

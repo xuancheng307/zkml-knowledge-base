@@ -759,7 +759,7 @@ PLONK 如何實現通用設置：
 
    大小對比（壓縮格式）：
      Groth16：128-192 bytes（依曲線）
-     PLONK：~400 bytes
+     PLONK：~624 bytes（BLS12-381；9×G1 + 6×F）
      STARK：~50 KB</code></pre>
 
       <h3>ZKML 框架整合</h3>
@@ -917,16 +917,16 @@ $ snarkjs zkey export solidityverifier circuit_final.zkey verifier.sol</code></p
           <tr>
             <td><strong>證明大小</strong></td>
             <td>192 B</td>
-            <td>~400 B</td>
+            <td>~624 B</td>
             <td>~3 KB</td>
             <td>~50 KB</td>
           </tr>
           <tr>
             <td><strong>驗證時間</strong></td>
-            <td>~3 ms</td>
-            <td>~5 ms</td>
-            <td>~10 ms</td>
-            <td>~20 ms</td>
+            <td>3 pairings</td>
+            <td>2 pairings + O(1) MSM</td>
+            <td>O(n) 群運算</td>
+            <td>O(log n) hash</td>
           </tr>
           <tr>
             <td><strong>證明時間</strong></td>
