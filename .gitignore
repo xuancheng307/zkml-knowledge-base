@@ -24,3 +24,10 @@ node_modules/
 # Build output
 dist/
 build/
+
+# Claude Code
+.claude/
+SESSION_SUMMARY.md
+
+# Windows artifacts
+nul
