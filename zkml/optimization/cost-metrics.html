@@ -189,7 +189,7 @@
           </tr>
         </tbody>
       </table>
-      <p><small><sup>§</sup> 根據 ZKML 論文<sup><a href="#ref-1">[1]</a></sup>，IPA 驗證需要 O(n) 群運算（含 MSM），對大型模型會顯著增加驗證時間。O(log n) 僅指證明大小（通訊複雜度），而非驗證計算量。</small></p>
+      <p><small><sup>§</sup> 根據 ZKML 論文<sup><a href="#ref-1">[1]</a></sup>，IPA 驗證需要 O(n) 群運算（含 MSM），對大型模型會顯著增加驗證時間。此處 n 為多項式評估域大小（≈ 2<sup>logrows</sup>，與 SRS 長度同階）。O(log n) 僅指證明大小（通訊複雜度），而非驗證計算量。</small></p>
 
       <h2>證明大小 (Proof Size)</h2>
       <p>

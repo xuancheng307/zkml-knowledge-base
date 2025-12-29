@@ -64,6 +64,9 @@ ZK 電路的限制：
       <pre><code>定點數表示：
   x_fp = round(x_real × 2^scale)
 
+  註：round() 的 tie-break 規則與量化頁一致，
+      採用 round-half-away-from-zero（詳見 ZK 專用量化）。
+
 範例（scale = 16）：
   x_real = 3.14159
   x_fp = round(3.14159 × 65536) = 205887
