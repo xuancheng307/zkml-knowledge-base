@@ -36,7 +36,7 @@
       <h2>ZK Rollup 架構簡介</h2>
 
       <p>
-        <strong>ZK Rollup</strong> 是一種 Layer 2 擴展方案，將交易執行移至鏈下，同時使用零知識證明向主鏈證明執行正確性。相較於 Optimistic Rollup，ZK Rollup 提供即時終局性（finality），無需挑戰期<sup><a href="#ref-2">[2]</a></sup>。
+        <strong>ZK Rollup</strong> 是一種 Layer 2 擴展方案，將交易執行移至鏈下，同時使用零知識證明向主鏈證明執行正確性。相較於 Optimistic Rollup 需要約 7 天的挑戰期（challenge period），ZK Rollup <strong>無需 fraud-proof 挑戰期</strong>；但終局性仍取決於證明生成時間與 L1 確認（包含 L1 本身的 reorg 風險），因此更精確的說法是「無挑戰期延遲，finality 主要由 proof pipeline 與 L1 出塊確認決定」<sup><a href="#ref-2">[2]</a></sup>。
       </p>
 
       <h3>核心組件</h3>
