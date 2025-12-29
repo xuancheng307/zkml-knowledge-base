@@ -300,12 +300,18 @@ Halo2 實作：
 
       <p>zkLLM 引入的張量查表技術，專為 LLM 中的大規模矩陣查表設計<sup><a href="#ref-4">[4]</a></sup>：</p>
 
+      <div class="callout callout-info">
+        <div class="callout-title">比較基線說明</div>
+        <p>下方比較的「標準方法」指的是<strong>向量化成員證明（vectorized membership proof）</strong>，即對 Q 個查詢分別生成成員證明後批次驗證。這與 PLONKish 聚合式 lookup（如 Plookup / Halo2 lookup）不同——後者將所有查詢聚合為單一多項式關係，Prover 成本為 O((Q + |T|) log(Q + |T|))，Verifier 成本則取決於承諾方案（KZG 為 O(1) 配對，IPA 為 O(n) MSM）。</p>
+      </div>
+
       <pre><code>問題：矩陣運算產生大量查詢
 
-標準 lookup argument（如 Plookup）：
+向量化成員證明（vectorized membership proof）：
   n×m 矩陣 → Q = n·m 次查表
-  Prover 成本：O(Q · log Q) 用於排序
-  Verifier 成本：O(Q) 配對/群運算
+  Prover 成本：O(Q · log Q) 用於排序/證明生成
+  Verifier 成本：O(Q) 群運算（逐查詢驗證）
+  （註：此為 zkLLM 論文中比較的基線設定）
 
 tlookup 優化（zkLLM §5.2）：
   將 n×m 張量 V 分解為外積 V = u ⊗ v

@@ -191,6 +191,16 @@
       </table>
       <p><small><sup>§</sup> 根據 ZKML 論文<sup><a href="#ref-1">[1]</a></sup>，IPA 驗證需要 O(n) 群運算（含 MSM），對大型模型會顯著增加驗證時間。此處 n 為多項式評估域大小（≈ 2<sup>logrows</sup>，與 SRS 長度同階）。O(log n) 僅指證明大小（通訊複雜度），而非驗證計算量。</small></p>
 
+      <div class="callout callout-info">
+        <div class="callout-title">halo2 承諾方案選擇</div>
+        <p>halo2 同時支援 KZG 與 IPA 兩種多項式承諾方案<sup><a href="#ref-1">[1]</a></sup>：</p>
+        <ul>
+          <li><strong>KZG</strong>：需要一次性通用可信設置（one-time universal trusted setup），證明較小、驗證 O(1)</li>
+          <li><strong>IPA</strong>：完全透明（transparent），無需可信設置，但驗證需 O(n) 群運算</li>
+        </ul>
+        <p>EZKL 等 ZKML 框架可根據應用需求選擇：區塊鏈驗證偏好 KZG（驗證快、證明小），去中心化場景偏好 IPA（無信任假設）。</p>
+      </div>
+
       <h2>證明大小 (Proof Size)</h2>
       <p>
         證明大小影響儲存成本與傳輸頻寬，對於區塊鏈應用尤其重要（鏈上儲存成本高昂）。一般而言<sup><a href="#ref-1">[1]</a></sup>：
