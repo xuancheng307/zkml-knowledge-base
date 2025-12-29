@@ -43,6 +43,11 @@
         在 ZKML 框架中，機器學習服務提供者作為 ZKP 系統中的<strong>證明者 (Prover)</strong>，而客戶端作為<strong>驗證者 (Verifier)</strong>。由於驗證者的計算資源有限或缺乏必要的資料，因此將訓練和推理等機器學習任務委託給證明者執行<sup><a href="#ref-1">[1]</a></sup>。
       </p>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkml-system-overview.jpg" alt="ZKML 系統概覽：ML Client 與 ML Service Provider 之間的互動流程" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKML 系統架構。ML Client 發送輸入 x，ML Service Provider 執行推理 W(x,w) 並生成證明 π，Client 驗證證明的正確性。<br><small>來源：Peng et al., "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning" (2025), Figure 1<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <h3>核心問題</h3>
 
       <p>ZKML 主要解決以下信任與隱私問題：</p>
@@ -113,6 +118,11 @@
       <h2>研究發展時間線</h2>
 
       <p>ZKML 研究從 2017 年開始快速發展，以下是代表性研究的時間線<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkml-timeline.jpg" alt="ZKML 發展時間線 (2017-2024)" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKML 研究發展時間線 (2017-2024)，展示從 SafetyNets 到 ZKML/zkLLM 等重要里程碑。<br><small>來源：Peng et al., "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning" (2025), Figure 4<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
 
       <table>
         <thead>
