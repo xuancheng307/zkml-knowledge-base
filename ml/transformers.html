@@ -184,7 +184,7 @@ Step 4: 加權求和
 ZKML 約束數量（假設 d_k = 64）：
   - Step 1（投影）：3 × n × d × d_k 乘法
   - Step 2（QK^T）：n × n × d_k 乘法
-  - Step 3（Softmax）：n 次 Softmax（每次 ~5000 約束）
+  - Step 3（Softmax）：n 次 Softmax（每次 ~5000 約束，無 tlookup 時）
   - Step 4（AV）：n × n × d_v 乘法
   - 總計：O(n² × d_k) + O(n × softmax_cost)</code></pre>
 
@@ -209,7 +209,8 @@ ZKML 約束數量（假設 d_k = 64）：
 
 2. 求最大值 (max)
    - 需要 n-1 次比較
-   - 每次比較 ~254 約束（位元分解）
+   - 每次比較 O(b) 約束（b 為量化位寬，如 16-bit）
+   - 完整域 bit-decomp 為 254 約束，但 ZKML 實務多對量化值操作
    - 或使用排序網路
 
 3. 求和 (sum)
@@ -742,8 +743,8 @@ ZKML 影響：
 
 2. Softmax 複雜度
    問題：exp, sum, div 都是非線性
-   每行 Softmax ~5000 約束
-   n = 2048 時，單層 = 10M 約束
+   每行 Softmax ~5000 約束（無 tlookup，b≈16）
+   n = 2048 時，單層 ≈ 10M 約束
 
    解決方案：
    - zkLLM 的 tlookup<sup><a href="#ref-2">[2]</a></sup>
@@ -858,7 +859,7 @@ ZKML 影響：
             <td>Softmax</td>
             <td>\(O(n^2)\)</td>
             <td>\(O(n^2 \cdot C_{softmax})\)</td>
-            <td>C ≈ 5000 (無優化)</td>
+            <td>C ≈ 5000 (無 tlookup，b≈16)</td>
           </tr>
           <tr>
             <td>注意力輸出</td>
@@ -901,7 +902,7 @@ ZKML 影響：
   注意力：
     QKV投影: 3 × 1024 × 768² = 1.8 × 10⁹
     QK^T: 1024² × 768 = 8.0 × 10⁸
-    Softmax: 1024² × 5000 = 5.2 × 10⁹ (無優化)
+    Softmax: 1024² × 5000 = 5.2 × 10⁹（無 tlookup，b≈16）
     AV: 1024² × 768 = 8.0 × 10⁸
     小計: ~8 × 10⁹
 

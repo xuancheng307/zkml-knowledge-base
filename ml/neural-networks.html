@@ -691,12 +691,12 @@ ZKML 建議：
   shortcut = Conv 1×1(stride=2) + BatchNorm
 
 ZKML 考量：
-  - 加法是免費的（線性約束合併）
-  - 不增加額外約束
+  - 加法在大多數系統中成本極低（線性約束可合併）
+  - Plonkish 系統中，加法可被吸收進 custom gate，不增加行數
+  - 但仍需 copy constraint 確保跳躍連接的 x 與殘差分支一致
   - 深度網路：殘差連接提供了更直接的梯度流
 
-  殘差塊約束 ≈ 兩個卷積層約束 + ReLU
-  (跳躍連接的加法不增加約束)</code></pre>
+  殘差塊約束 ≈ 兩個卷積層約束 + ReLU + O(1) copy constraint</code></pre>
 
       <h3>Bottleneck 殘差塊</h3>
 
@@ -898,7 +898,7 @@ Plonkish 系統的優勢：
           <tr>
             <td><strong>殘差連接</strong></td>
             <td>非常高</td>
-            <td>0（加法免費）</td>
+            <td>O(1)（加法 + copy constraint）</td>
             <td>自由使用</td>
           </tr>
         </tbody>
