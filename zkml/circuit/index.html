@@ -47,6 +47,11 @@
         <li><strong>效能與精度權衡</strong>：不同轉換策略影響證明時間和模型準確率</li>
       </ul>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkml-audit-diagram.png" alt="ZKML 證明與驗證流程圖" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKML 系統的證明與驗證流程。(a) 上半部展示標準 ZKML 工作流：模型編譯產生電路，證明者輸入 ML 資料後產生證明與輸出，驗證者檢驗證明正確性。(b) 下半部展示端到端審計流程：審計者編譯審計演算法（如計算準確率），並驗證測試結果的正確性。<br><small>來源：Chen et al., "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs" (EuroSys 2024), Figure 2.<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <h2>轉換流程概覽</h2>
 
       <p>典型的模型到電路轉換流程如下<sup><a href="#ref-1">[1]</a></sup><sup><a href="#ref-2">[2]</a></sup>：</p>
@@ -144,6 +149,11 @@
 │   • 驗證（Verify）   → 驗證 π 正確性                                         │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘</code></pre>
+
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkml-architecture.png" alt="ZKML 系統架構圖：分層設計從 User Tools 到 ZK Backend" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKML 系統架構。系統分為五層：User Tools（使用者介面，包括 Prover/Verifier、測試、Benchmark 工具）、Core（核心模組，包括 Aggregator 與 Layout Optimizer）、Logical Layers（ML 層對應，如 Conv2D、DepthwiseConv2D）、Low-level Gadgets（低階運算單元，如算術運算、非線性函數）、ZK Backend（證明系統，支援 KZG 與 IPA 承諾方案）。<br><small>來源：Chen et al., "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs" (EuroSys 2024), Figure 3.<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
 
       <h2>電路結構：PLONKish 模型</h2>
 

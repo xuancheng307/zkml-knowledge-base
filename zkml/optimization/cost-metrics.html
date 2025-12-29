@@ -463,6 +463,11 @@
         ZKML 的優化器透過模擬不同配置，使用成本模型選擇最佳佈局。與固定配置相比，優化可提升效能達 <strong>131%</strong><sup><a href="#ref-1">[1]</a></sup>。
       </p>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkml-optimizer.png" alt="ZKML 優化器架構：從 ML 模型規格到成本估算的流程" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKML 優化器架構。優化器將 ML 模型規格編譯為邏輯計劃（Logical plans，定義各層運算），再展開為多個物理計劃（Physical plans），每個物理計劃對應不同的電路佈局配置。透過成本估算模型評估各配置的證明時間，選擇最優方案（如 Plan 2 的 437.6s 優於 Plan 1 的 128.3s）。<br><small>來源：Chen et al., "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs" (EuroSys 2024), Figure 4.<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <table>
         <thead>
           <tr>

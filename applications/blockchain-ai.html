@@ -53,6 +53,11 @@
 
       <p>這使得端到端的可信審計成為可能：用戶可以驗證 AI 服務使用的是聲稱的模型，而無需接觸實際的模型權重。</p>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkml-twitter-example.png" alt="ZKML 應用於 Twitter 推薦系統的信任問題示意圖" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKML 解決的信任問題範例。用戶使用 ML 驅動的網路服務（如 Twitter 推薦系統）時，無法確認服務商使用的是聲稱的模型 M 還是其他模型 M'。ZKML 可讓服務商證明輸出確實由承諾的模型產生。<br><small>來源：Chen et al., "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs" (EuroSys 2024), Figure 1.<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <h3>2. 隱私生物認證</h3>
 
       <p>結合 ZK-SNARK 與認證感測器，可實現無信任的生物識別驗證<sup><a href="#ref-1">[1]</a></sup>：</p>
