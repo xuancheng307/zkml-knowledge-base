@@ -252,14 +252,18 @@
 
       <p>量化是將浮點數模型轉換為低位元整數表示的技術，對 ZKML 至關重要<sup><a href="#ref-2">[2]</a></sup>：</p>
 
-      <pre><code>量化映射：
-  r = S(q - Z)
+      <pre><code>量化（Quantization）：浮點數 → 整數碼
+  q = clamp(round(r / S) + Z, q_min, q_max)
+
+反量化（Dequantization）：整數碼 → 近似浮點數
+  r' = S · (q - Z)
 
 其中：
-  r = 原始浮點值
-  q = 量化整數值
-  S = 縮放因子 (scale)
-  Z = 零點 (zero-point)
+  r  = 原始浮點值
+  q  = 量化整數碼
+  S  = 縮放因子 (scale)
+  Z  = 零點 (zero-point)
+  r' = 反量化後的近似值（r' ≈ r，存在量化誤差）
 
 常見位寬：
   INT8:  最常用，準確率損失小
