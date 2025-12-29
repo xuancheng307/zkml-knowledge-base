@@ -233,17 +233,27 @@
 
       <pre><code>ReLU(x) = max(x, 0) 的位元分解實現：
 
-1. 將輸入 x 分解為 b 個位元
-2. 檢查最高位（符號位）判斷正負
-3. 根據符號位選擇輸出 x 或 0
+【編碼前提】
+ZKML 使用 offset encoding 處理有號整數：
+  實際值範圍 [-2^(b-1), 2^(b-1)-1] 映射到 [0, 2^b)
+  x_offset = x_signed + 2^(b-1)（加偏移量）
 
-約束：
-  x = Σᵢ bᵢ · 2ⁱ          (位元分解)
-  bᵢ · (bᵢ - 1) = 0       (每個 bᵢ 是 0 或 1)
-  y = x · (1 - sign_bit)   (條件選擇)
+範例（b=8）：x=-1 → x_offset=127；x=0 → x_offset=128
+
+1. 將偏移後的值 x_offset 分解為 b 個位元
+2. 最高位 b_{b-1} = 1 表示原值 ≥ 0；= 0 表示原值 < 0
+3. 根據最高位選擇輸出原值或 0
+
+約束（offset encoding）：
+  x_offset = x + 2^(b-1)           (加偏移)
+  x_offset = Σᵢ bᵢ · 2ⁱ           (位元分解，0 ≤ x_offset < 2^b)
+  bᵢ · (bᵢ - 1) = 0               (每個 bᵢ ∈ {0,1})
+  y = x · b_{b-1}                  (若最高位=1 則原值≥0，輸出 x)
 
 儲存格數：b + 2
-適用場景：ReLU 操作數量較少時</code></pre>
+適用場景：ReLU 操作數量較少時
+
+（註：具體 gadget 實作細節請參見 ZKML 論文 §4.1）</code></pre>
 
       <h4>方式二：查表（Lookup Table）</h4>
 
@@ -379,7 +389,7 @@ Phase 3: 成本估算與選擇
           <tr>
             <td>Lookup Table</td>
             <td>查表建立與驗證</td>
-            <td>O(2<sup>k</sup>)</td>
+            <td>O(n)，其中 n = 2<sup>k</sup> = rows</td>
           </tr>
           <tr>
             <td>Field Ops</td>
