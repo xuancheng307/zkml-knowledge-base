@@ -36,14 +36,14 @@
       <h2>概述</h2>
 
       <p>
-        <strong>ZKTorch</strong> 是目前最先進的 ZKML 編譯器系統，直接從 PyTorch 模型編譯生成 ZK 電路。相較於前一代 ZKML 系統，ZKTorch 透過平行累積（parallel accumulation）技術實現了顯著的效能提升，成功支援大規模 ML 模型的可驗證推理<sup><a href="#ref-1">[1]</a></sup>。
+        <strong>ZKTorch</strong> 是目前最先進的 ZKML 編譯器系統，以 PyTorch 生態為主要使用情境，系統以 <strong>ONNX 計算圖</strong>作為編譯輸入（PyTorch 模型通常先 export 成 ONNX），再經 Compiler/Transpiler 轉成 basic-block DAG 並做證明累積。相較於前一代 ZKML 系統，ZKTorch 透過平行累積（parallel accumulation）技術實現了顯著的效能提升，成功支援大規模 ML 模型的可驗證推理<sup><a href="#ref-1">[1]</a></sup>。
       </p>
 
       <h2>系統架構</h2>
 
       <figure>
         <img src="/zkml-knowledge-base/assets/images/papers/zktorch-architecture.png" alt="ZKTorch 系統架構：ONNX 模型經過 Compiler、Transpiler、Basicblock Prover & Accumulator 到 Verifier" style="max-width: 100%; height: auto;">
-        <figcaption>圖：ZKTorch 端到端架構。ONNX 模型經 Compiler 轉換為 proving-friendly DAG，Transpiler 生成 basicblock DAG，最後由 Prover 生成證明並累積，Verifier 驗證。<br><small>來源：Chen et al., "ZKTorch" (2025), Figure 1<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+        <figcaption>圖：ZKTorch 端到端架構。ONNX 模型經 Compiler 轉換為 proving-friendly DAG，Transpiler 生成 basicblock DAG，最後由 Prover 生成證明並累積，Verifier 驗證。<br><small>來源：Chen et al., "ZKTorch" (2025), Figure 1: "ZKTorch overview."<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
       </figure>
 
       <h3>編譯流程</h3>
