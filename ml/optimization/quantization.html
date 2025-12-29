@@ -43,13 +43,15 @@ ZK 電路：
 
       <h3>量化公式</h3>
       <pre><code>均勻量化（Uniform Quantization）：
-  q = round(x / S) + Z
+  q = clamp(round(x / S) + Z; q_min, q_max)
 
   其中：
     x = 浮點數值
     q = 量化後整數
     S = 縮放因子（Scale），正實數
     Z = 零點偏移（Zero-point），整數
+    clamp(v; a, b) = max(a, min(b, v))，將 v 限制在 [a, b] 範圍內
+    q_min, q_max = 量化範圍（如 INT8 為 [-128, 127]）
 
 反量化（Dequantization）：
   x' = S · (q - Z)</code></pre>

@@ -68,21 +68,21 @@
             <td>2023+</td>
           </tr>
           <tr>
-            <td><strong>zkLLM</strong></td>
+            <td><a href="academic/zkllm.html"><strong>zkLLM</strong></a></td>
             <td>專用協議</td>
             <td>U. of Waterloo</td>
             <td>部分</td>
             <td>2024 (CCS)</td>
           </tr>
           <tr>
-            <td><strong>RISC Zero</strong></td>
+            <td><a href="tools/risc-zero.html"><strong>RISC Zero</strong></a></td>
             <td>STARK</td>
             <td>RISC Zero Inc.</td>
             <td>是</td>
             <td>2023+</td>
           </tr>
           <tr>
-            <td><strong>OPML</strong></td>
+            <td><a href="others/opml.html"><strong>OPML</strong></a></td>
             <td>Optimistic + ZK</td>
             <td>ORA Protocol</td>
             <td>是</td>
@@ -360,7 +360,7 @@
 
       <div class="callout callout-warning">
         <div class="callout-title">ZKTorch 驗證時間說明</div>
-        <p>ZKTorch 的驗證時間（秒級）遠高於 ZKML（毫秒級），這是因為 ZKTorch 採用遞迴證明累積架構，驗證器需驗證整個累積鏈。對於大型模型，這是目前已知最小證明大小的代價<sup><a href="#ref-2">[2]</a></sup>。</p>
+        <p>ZKTorch 的驗證時間（秒級）遠高於 ZKML（毫秒級）。根據論文 Table 4 數據，ResNet-50 驗證時間為 62.8s，BERT 為 26.7s<sup><a href="#ref-2">[2]</a></sup>。這可能與其平行累積架構的驗證策略有關，但具體原因需參閱原論文。</p>
       </div>
 
       <h2>優缺點分析</h2>

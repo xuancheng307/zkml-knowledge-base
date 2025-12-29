@@ -487,30 +487,31 @@ ZKML 約束（以 GPT-2 small 為例）：
 
       <h3>Pre-Norm vs Post-Norm</h3>
 
-      <pre><code>LayerNorm 位置的兩種設計：
+      <pre><code>LayerNorm 位置的兩種設計<sup><a href="#ref-1">[1]</a></sup>：
 
 Post-Norm（原始 Transformer）：
-  x = x + Attention(LayerNorm_placeholder(x))  # 注意：原始論文用 Post-Norm
-  x = x + FFN(x)
-  x = LayerNorm(x)
+  對每個子層輸出做歸一化：
+  x = LayerNorm(x + Attention(x))
+  x = LayerNorm(x + FFN(x))
 
-  問題：深層網路訓練不穩定
+  問題：深層網路訓練不穩定（梯度消失/爆炸）
 
-Pre-Norm（GPT-2, LLaMA）：
+Pre-Norm（GPT-2, LLaMA 等）：
+  對每個子層輸入做歸一化：
   x = x + Attention(LayerNorm(x))
   x = x + FFN(LayerNorm(x))
 
   優點：
   - 訓練更穩定
   - 可以訓練更深的網路
-  - 殘差連接直接連通
+  - 殘差連接直接連通（梯度流動更順暢）
 
 RMSNorm（LLaMA, Gemma）：
   簡化版本，只用均方根歸一化
   RMSNorm(x) = x / RMS(x) · γ
   RMS(x) = √(1/d · Σx_i²)
 
-  優點：省去計算均值，約 15% 加速
+  優點：省去計算均值，計算效率更高
 
 ZKML 考量：
   - LayerNorm 需要：求和、除法、開根號
