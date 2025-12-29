@@ -54,11 +54,11 @@
         <div class="definition-title">Definition 1：PLONKish 算術化</div>
         <p>PLONKish 算術化是一個元組 \(\mathcal{C} = (n, k, \mathbf{f}, \mathbf{q}, \mathcal{G}, \sigma)\)：</p>
         <ul>
-          <li>\(n\)：表格行數（\(n = 2^m\) 為 2 的冪次，其中 \(m\) 為 logrows 參數）</li>
+          <li>\(n\)：表格行數（\(n = 2^\ell\) 為 2 的冪次，其中 \(\ell\) 為 logrows 參數）</li>
           <li>\(k\)：列數，分為 advice columns \(k_a\)、instance columns \(k_i\)、fixed columns \(k_f\)</li>
           <li>\(\mathbf{f} = (f_1, \ldots, f_{k_f})\)：固定列的值</li>
           <li>\(\mathbf{q} = (q_1, \ldots, q_s)\)：選擇器多項式</li>
-          <li>\(\mathcal{G} = \{G_1, \ldots, G_m\}\)：門約束多項式集合</li>
+          <li>\(\mathcal{G} = \{G_1, \ldots, G_g\}\)：門約束多項式集合（共 \(g\) 個門類型）</li>
           <li>\(\sigma\)：複製約束排列</li>
         </ul>
       </div>
@@ -274,8 +274,8 @@ meta.create_gate("accumulate", |meta| {
 
       <div class="theorem">
         <div class="theorem-title">Theorem 1：排列論證正確性</div>
-        <p>設 \(\sigma\) 是位置集合 \(S = \{s_1, \ldots, s_n\}\) 上的排列。向量 \(\mathbf{w} = (w_1, \ldots, w_n)\) 滿足 \(\sigma\) 當且僅當對隨機 \(\beta, \gamma \in \mathbb{F}\)：</p>
-        <p>\[\prod_{i=1}^{n} (w_i + \beta \cdot s_i + \gamma) = \prod_{i=1}^{n} (w_i + \beta \cdot \sigma(s_i) + \gamma)\]</p>
+        <p>設 \(\sigma: [N] \to [N]\) 是位置集合 \([N] = \{0, 1, \ldots, N-1\}\) 上的排列，其中 \(N = n \cdot k_a\)。向量 \(\mathbf{w} = (w_0, w_1, \ldots, w_{N-1})\) 滿足 \(\sigma\) 當且僅當對隨機 \(\beta, \gamma \in \mathbb{F}\)：</p>
+        <p>\[\prod_{i=0}^{N-1} (w_i + \beta \cdot i + \gamma) = \prod_{i=0}^{N-1} (w_i + \beta \cdot \sigma(i) + \gamma)\]</p>
         <p>以壓倒性機率成立。</p>
       </div>
 

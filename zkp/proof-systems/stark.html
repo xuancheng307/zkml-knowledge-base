@@ -819,10 +819,14 @@ Shor 算法（指數加速）：
   - 離散對數：O(n³) 量子
   - 影響：RSA、ECC、配對 完全破解
 
-Grover 算法（平方加速）：
+Grover 算法（preimage / 反像搜尋，平方加速）：
   - 搜索問題：O(√N) 量子 vs O(N) 經典
+  - 雜湊 preimage：O(2^{n/2}) 量子 vs O(2^n) 經典
+  - 影響：preimage 安全參數需加倍
+
+BHT 算法（Brassard-Høyer-Tapp，collision / 碰撞搜尋）：
   - 雜湊碰撞：O(2^{n/3}) 量子 vs O(2^{n/2}) 經典
-  - 影響：安全參數需增加
+  - 影響：collision 安全參數需乘 1.5 倍
 
 STARK 量子安全性：
 
@@ -831,10 +835,12 @@ STARK 量子安全性：
   ✓ 有限域算術 - 量子無優勢
   ✗ 無橢圓曲線 - Shor 無關
 
-安全調整：
-  經典 128-bit → 量子等效 128-bit
-  需要：256-bit 雜湊（SHA-256）
-        或 384-bit（保守）</code></pre>
+安全調整（依攻擊目標）：
+  - 128-bit 量子 preimage 安全：需 256-bit 雜湊（SHA-256）
+  - 128-bit 量子 collision 安全：需 384-bit 雜湊（SHA-384）
+
+  STARK 主要依賴 collision resistance（Merkle 樹），
+  因此完整量子安全建議使用 SHA-384 或更長輸出。</code></pre>
 
       <h3>後量子參數選擇</h3>
 
