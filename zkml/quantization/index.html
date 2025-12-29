@@ -52,7 +52,7 @@
       <p class="math">$$q_{\text{int}} = \text{clamp}\left(\text{round}\left(\frac{r}{S}\right) + Z;\; q_{\min},\; q_{\max}\right)$$</p>
       <p>其中：</p>
       <ul>
-        <li>\(\text{round}(\cdot)\)：四捨五入，tie-break 採用 <strong>round-half-away-from-zero</strong>（0.5 → 1, -0.5 → -1）</li>
+        <li>\(\text{round}(\cdot)\)：四捨五入，tie-break 採用 <strong>round-half-away-from-zero</strong>（0.5 → 1, -0.5 → -1）<br><small>註：tie-break 規則是<em>實作選擇</em>，用於確保電路 deterministic；Jacob 原論文<sup><a href="#ref-2">[2]</a></sup>未強制指定此規則。</small></li>
         <li>\(\text{clamp}(x; a, b) = \max(a, \min(b, x))\)：將 \(x\) 夾至 \([a, b]\) 區間</li>
         <li>\(q_{\min} = 0\)，\(q_{\max} = 2^b - 1\)（無符號 \(b\)-bit 量化）</li>
       </ul>

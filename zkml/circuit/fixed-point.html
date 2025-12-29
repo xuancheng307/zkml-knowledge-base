@@ -307,14 +307,17 @@ ZKML 偏好：
    q_error = |x - dequant(quant(x))|
 
    定點表示：步長 Δ = 2^{-s}
-   最大誤差：Δ / 2 = 2^{-(s+1)}
+   最大誤差：Δ / 2 = 2^{-(s+1)}  ← 以 round-to-nearest 為前提
 
    Jacob 量化：步長 S = (max - min) / (2^b - 1)
-   最大誤差：S / 2
+   最大誤差：S / 2  ← 以 round-to-nearest 為前提
+
+   註：若採用其他捨入策略（truncation / floor / ceiling），
+       誤差上界將不同，最壞情況可達 Δ（或 S）。
 
 2. 乘法捨入誤差
    每次定點乘法需 right-shift s bits（或除以 2^s）
-   捨入誤差最大：Δ / 2 = 2^{-(s+1)}
+   捨入誤差最大：Δ / 2 = 2^{-(s+1)}  ← 同上，以 round-to-nearest 為前提
 
 3. 累積誤差
    多層傳播

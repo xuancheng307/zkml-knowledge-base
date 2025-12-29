@@ -167,7 +167,8 @@
           <tr>
             <th>承諾方案</th>
             <th>驗證機制</th>
-            <th>驗證複雜度</th>
+            <th>驗證計算複雜度</th>
+            <th>證明大小</th>
             <th>特點</th>
           </tr>
         </thead>
@@ -176,16 +177,19 @@
             <td>KZG</td>
             <td>雙線性配對檢查</td>
             <td>O(1)</td>
+            <td>O(1)</td>
             <td>驗證極快，需 trusted setup</td>
           </tr>
           <tr>
             <td>IPA</td>
-            <td>群運算（對數輪遞歸折半）</td>
+            <td>群運算（含 MSM）</td>
+            <td>O(n)<sup>§</sup></td>
             <td>O(log n)</td>
             <td>驗證慢於 KZG，但無需 trusted setup</td>
           </tr>
         </tbody>
       </table>
+      <p><small><sup>§</sup> 根據 ZKML 論文<sup><a href="#ref-1">[1]</a></sup>，IPA 驗證需要 O(n) 群運算（含 MSM），對大型模型會顯著增加驗證時間。O(log n) 僅指證明大小（通訊複雜度），而非驗證計算量。</small></p>
 
       <h2>證明大小 (Proof Size)</h2>
       <p>

@@ -293,6 +293,11 @@ Halo2 實作：
 
       <h3>tlookup（張量查表）</h3>
 
+      <div class="callout callout-warning">
+        <div class="callout-title">定位說明</div>
+        <p>tlookup <strong>不是</strong>通用 lookup argument（如 Plookup / Caulk），而是 zkLLM 針對特定張量結構提出的<em>應用層優化</em>。它利用張量可分解為外積的特性減少查表次數，僅適用於滿足此結構假設的場景。</p>
+      </div>
+
       <p>zkLLM 引入的張量查表技術，專為 LLM 中的大規模矩陣查表設計<sup><a href="#ref-4">[4]</a></sup>：</p>
 
       <pre><code>問題：矩陣運算產生大量查詢

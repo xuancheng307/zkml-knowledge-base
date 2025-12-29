@@ -81,7 +81,7 @@
           <tr>
             <td><code>percentile</code></td>
             <td>連續</td>
-            <td>Percentile 校準的百分位值（單位：%）</td>
+            <td>Percentile 校準的百分位值（單位：%）。校準時使用 calibration data 計算各層 activation 分布的第 p 與第 (100-p) 百分位數作為量化範圍 [a, b]，排除極端離群值的影響。</td>
             <td>[99.0%, 99.999%]</td>
           </tr>
         </tbody>
