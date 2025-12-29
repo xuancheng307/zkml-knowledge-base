@@ -614,6 +614,11 @@
         </tbody>
       </table>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zktorch-dag-optimization.png" alt="ZKTorch DAG 優化：透過圖形轉換規則減少 basic blocks 數量" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKTorch 的 DAG 優化範例。透過圖形轉換規則（如 GeLU、CustomCNN、MultiHeadMatMul 等）將高階運算轉換為更少的 basic blocks，減少證明開銷。<br><small>來源：Chen et al., "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation" (2025), Figure 2: "Optimization passes for basicblock DAG generation."<sup><a href="#ref-2">[2]</a></sup></small></figcaption>
+      </figure>
+
       <h3>3. 成本估算模型</h3>
 
       <p>ZKML 使用成本估算模型快速評估配置，避免實際證明<sup><a href="#ref-1">[1]</a></sup>：</p>

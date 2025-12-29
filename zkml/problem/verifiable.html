@@ -169,6 +169,31 @@
   ...
   n. layer_n(a_{n-1}) = y（輸出匹配）</code></pre>
 
+      <h3>三類可驗證 ML 電路</h3>
+
+      <p>可驗證機器學習涵蓋訓練、測試和推理三個階段，每個階段的電路結構不同<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <h4>可驗證訓練 (Verifiable Training)</h4>
+
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/circuit-training.jpg" alt="可驗證訓練電路：輸入訓練資料集與模型 Commit，輸出更新後的模型 Commit" style="max-width: 100%; height: auto;">
+        <figcaption>圖：可驗證訓練電路結構。證明者輸入訓練資料集與初始模型承諾，電路約束訓練過程的正確性，輸出更新後的模型承諾。<br><small>來源：Peng et al., "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning" (2025), Figure 3: "The circuit of verifiable training."<sup><a href="#ref-2">[2]</a></sup></small></figcaption>
+      </figure>
+
+      <h4>可驗證測試 (Verifiable Testing)</h4>
+
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/circuit-testing.jpg" alt="可驗證測試電路：輸入測試資料集與模型 Commit，輸出準確率" style="max-width: 100%; height: auto;">
+        <figcaption>圖：可驗證測試電路結構。證明者輸入測試資料集與模型承諾，電路驗證測試過程的正確性，輸出模型在該測試集上的準確率。<br><small>來源：Peng et al., "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning" (2025), Figure 4: "The circuit of verifiable testing."<sup><a href="#ref-2">[2]</a></sup></small></figcaption>
+      </figure>
+
+      <h4>可驗證推理 (Verifiable Inference)</h4>
+
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/circuit-inference.jpg" alt="可驗證推理電路：輸入樣本與模型 Commit，輸出推理結果" style="max-width: 100%; height: auto;">
+        <figcaption>圖：可驗證推理電路結構。證明者輸入單一樣本與模型承諾，電路驗證推理計算的正確性，輸出該樣本的預測結果。<br><small>來源：Peng et al., "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning" (2025), Figure 5: "The circuit of verifiable inference."<sup><a href="#ref-2">[2]</a></sup></small></figcaption>
+      </figure>
+
       <h2>應用場景</h2>
 
       <h3>雲端 ML 驗證</h3>
@@ -335,6 +360,10 @@ ezkl verify --proof proof.json --vk vk.json</code></pre>
           <li id="ref-1">
             <cite>Liu, T., et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
             <a href="https://doi.org/10.1145/3627703.3650088" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-2">
+            <cite>Peng, Q., Zhang, L., Feng, Y., Zheng, H., & Liu, D. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv preprint arXiv:2501.00854, 2025.</cite>
+            <a href="https://arxiv.org/abs/2501.00854" target="_blank" rel="noopener">arXiv</a>
           </li>
         </ol>
       </section>
