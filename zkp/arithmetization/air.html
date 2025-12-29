@@ -61,7 +61,7 @@
           <li>\(\mathcal{C}_T\)：轉換約束集合</li>
           <li>\(\mathcal{C}_B\)：邊界約束集合</li>
         </ul>
-        <p>其中 \(n = 2^k\) 必須是 2 的冪次，以支援 FFT 運算。</p>
+        <p>其中 \(n\) 通常取 \(2^k\)（2 的冪次）以配合 FFT 與 FRI folding（每輪折半）。更一般而言，只需選擇可做 FFT 的 evaluation domain 並能支援所需的 folding 結構。</p>
       </div>
 
       <div class="definition">
@@ -128,7 +128,7 @@ row_2| t_2,0  | t_2,1  | t_2,2  | ... | t_2,w-1
 row_{n-1}| t_{n-1,0} | ... | ... | ... | t_{n-1,w-1}
 
 維度：
-  - n：行數（時間步數），必須是 2 的冪次
+  - n：行數（時間步數），通常為 2 的冪次（配合 FRI folding）
   - w：列數（寄存器數量）
 
 插值：
