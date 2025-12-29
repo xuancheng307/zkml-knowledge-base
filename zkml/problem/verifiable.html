@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body data-page-id="verifiable">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
@@ -70,6 +71,60 @@
 安全性質：
   完備性：正確計算總能通過驗證
   可靠性：錯誤結果無法通過驗證</code></pre>
+
+      <h3>ZK Relation 形式化</h3>
+
+      <p>可驗證推理的 ZK Relation 定義如下：</p>
+
+      <div class="callout callout-info">
+        <div class="callout-title">Relation 定義</div>
+        <p class="math">$$R_{verify}((x, y, C_M); (W, \text{aux})) = 1$$</p>
+        <p>當且僅當：</p>
+        <ol>
+          <li>\(\text{Commit}(W) = C_M\)（模型承諾一致性）</li>
+          <li>\(f_{quant}(\text{Quant}(x); W) = y_q\)（量化推理正確）</li>
+          <li>\(y = \text{Dequant}(y_q)\)（輸出反量化）</li>
+        </ol>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>符號</th>
+            <th>類型</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>\(x\)</td>
+            <td>公開輸入</td>
+            <td>模型輸入（影像、文字等）</td>
+          </tr>
+          <tr>
+            <td>\(y\)</td>
+            <td>公開輸入</td>
+            <td>推理輸出</td>
+          </tr>
+          <tr>
+            <td>\(C_M\)</td>
+            <td>公開輸入</td>
+            <td>模型權重的密碼學承諾</td>
+          </tr>
+          <tr>
+            <td>\(W\)</td>
+            <td>私密見證</td>
+            <td>模型權重（量化後的整數表示）</td>
+          </tr>
+          <tr>
+            <td>aux</td>
+            <td>私密見證</td>
+            <td>中間激活值、量化參數等輔助資料</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>安全性意涵</strong>：驗證者只需知道 \((x, y, C_M)\) 即可驗證，無需取得模型權重 \(W\)。這使得模型可保持私密，同時推理結果可被公開驗證。</p>
 
       <h2>技術實現</h2>
 

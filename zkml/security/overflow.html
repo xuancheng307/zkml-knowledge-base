@@ -70,6 +70,41 @@
   可表示範圍：[-128.0, 127.996...]
   精度：1/256 ≈ 0.0039</code></pre>
 
+      <h2>兩種溢位類型的區分</h2>
+
+      <p>ZKML 中存在兩種本質不同的溢位問題，需要不同的防護策略<sup><a href="#ref-1">[1]</a></sup>：</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>溢位類型</th>
+            <th>發生條件</th>
+            <th>後果</th>
+            <th>防護策略</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Field Wraparound</strong></td>
+            <td>計算結果 &gt; p（有限域模數）</td>
+            <td>結果 mod p，數值完全錯誤</td>
+            <td>使用足夠大的域（p ≈ 2<sup>254</sup>），極少發生</td>
+          </tr>
+          <tr>
+            <td><strong>Integer Semantic Overflow</strong></td>
+            <td>量化整數超出預期位寬範圍</td>
+            <td>語義解釋錯誤（如正數變負數）</td>
+            <td>Range check、位寬分析、動態縮放</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">關鍵區分</div>
+        <p><strong>Field Wraparound</strong> 發生在域運算層面（當 a + b ≥ p 時結果會 mod p），由於 p 通常極大（~2<sup>254</sup>），在正常 ZKML 運算中幾乎不會發生。</p>
+        <p><strong>Integer Semantic Overflow</strong> 發生在「語義解釋」層面：即使域運算正確，但如果我們用 16-bit signed integer 解釋一個超出 [-32768, 32767] 的域元素，語義就會錯誤。這是 ZKML 中更常見且需要防護的問題。</p>
+      </div>
+
       <h2>溢位風險來源</h2>
 
       <h3>1. 矩陣乘法累積</h3>

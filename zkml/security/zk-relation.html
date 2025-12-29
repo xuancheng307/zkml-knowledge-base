@@ -95,6 +95,33 @@
   w = 模型參數（通常為私密見證）
   f = 神經網路推理函數</code></pre>
 
+      <h3>ZKML 的量化 Relation</h3>
+
+      <p>由於 ZK 電路無法直接執行浮點運算，ZKML 實際證明的是<strong>量化模型</strong>的 relation<sup><a href="#ref-2">[2]</a></sup>：</p>
+
+      <pre><code>ZKML 實際證明的 Relation：
+
+R_quant((x, y, C_M); (w_q, aux)) = 1  ⟺
+  (1) Commit(w_q) = C_M                    // 模型承諾正確
+  (2) f_quant(Quant(x); w_q) = y_q         // 量化推理正確
+  (3) y = Dequant(y_q)                     // 輸出反量化
+
+其中：
+  C_M = 模型權重的密碼學承諾
+  w_q = 量化後的模型權重（私密見證）
+  Quant/Dequant = 量化/反量化函數
+  aux = 中間激活值等輔助見證
+
+重要說明：
+  • ZKML 證明的是 f_quant，不是 f_float
+  • 若需保證 |f_float(x) - y| ≤ ε，需額外分析量化誤差界
+  • 量化參數（scale, zero-point）通常為公開配置的一部分</code></pre>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">Relation 與 Soundness 的關係</div>
+        <p>ZKP 系統的 soundness 保證的是：惡意證明者無法為不滿足 R_quant 的 (x, y) 生成有效證明。但這<strong>不保證</strong> y 與浮點模型輸出 f_float(x) 一致。詳見 <a href="soundness.html">Soundness 分析</a>。</p>
+      </div>
+
       <h3>公開輸入與私密見證的劃分</h3>
 
       <p>根據應用場景，ZKML 系統可採用不同的隱私設定<sup><a href="#ref-1">[1]</a></sup>：</p>

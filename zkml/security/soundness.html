@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/variables.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/layout.css">
   <link rel="stylesheet" href="/zkml-knowledge-base/assets/css/content.css">
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body data-page-id="soundness">
   <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
@@ -77,6 +78,75 @@ Soundness Error ε：
   Pr[Verify(vk, x, π) = 1 ∧ x ∉ L_R] ≤ ε
 
 其中 L_R = { x : ∃w, R(x, w) = 1 } 為關係 R 定義的語言</code></pre>
+
+      <h2>ZKML 中的 Relation 定義</h2>
+
+      <p>
+        理解 ZKML 的健全性，首先需明確「證明的是什麼 relation」<sup><a href="#ref-1">[1]</a></sup>：
+      </p>
+
+      <h3>精確 Relation vs 近似 Relation</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Relation 類型</th>
+            <th>形式化定義</th>
+            <th>ZKML 實際證明的內容</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>精確浮點 Relation</strong></td>
+            <td>\(R_{float}(x, y; w) = 1 \Leftrightarrow f_{float}(x; w) = y\)</td>
+            <td>❌ 無法證明（電路不支援浮點）</td>
+          </tr>
+          <tr>
+            <td><strong>量化電路 Relation</strong></td>
+            <td>\(R_{quant}(x, y; w) = 1 \Leftrightarrow f_{quant}(x_q; w_q) = y_q\)</td>
+            <td>✓ 這是 ZKML 實際證明的 relation</td>
+          </tr>
+          <tr>
+            <td><strong>ε-近似 Relation</strong></td>
+            <td>\(R_{\epsilon}(x, y; w) = 1 \Leftrightarrow |f_{float}(x; w) - y| \leq \epsilon\)</td>
+            <td>⚠ 需額外分析量化誤差界</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">關鍵區分</div>
+        <p>ZKML 系統的 soundness 保證的是 \(R_{quant}\)，不是 \(R_{float}\)。如果使用者預期的是浮點模型行為，則需要額外分析量化誤差是否在可接受範圍內。這不是「soundness 被破壞」，而是「證明的 relation 與使用者預期不同」。</p>
+      </div>
+
+      <h3>量化誤差的安全性分類</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>誤差類型</th>
+            <th>影響的安全屬性</th>
+            <th>說明</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>量化捨入誤差</strong></td>
+            <td>Completeness（對 \(R_{float}\)）</td>
+            <td>無法為浮點精確結果生成證明，因為電路只能證明量化結果</td>
+          </tr>
+          <tr>
+            <td><strong>溢位導致的語義錯誤</strong></td>
+            <td>Soundness（對 \(R_{quant}\)）</td>
+            <td>若電路允許溢位環繞，攻擊者可能為語義錯誤的結果生成有效證明</td>
+          </tr>
+          <tr>
+            <td><strong>非線性近似誤差</strong></td>
+            <td>取決於實作</td>
+            <td>若查表/多項式近似有誤差，這是 \(R_{quant}\) 定義的一部分</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h2>ZKML 中的 Soundness 挑戰</h2>
 
