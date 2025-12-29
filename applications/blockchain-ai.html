@@ -211,36 +211,50 @@
 
       <h3>Gas 成本</h3>
 
-      <p>鏈上驗證 ZK 證明需要消耗 gas。以下為常見量級估算<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <p>鏈上驗證 ZK 證明需要消耗 gas。以下為 Ethereum L1 上使用 BN254 曲線的典型估算：</p>
 
       <table>
         <thead>
           <tr>
             <th>證明系統</th>
-            <th>驗證 Gas（估計）</th>
+            <th>驗證 Gas（典型值）</th>
+            <th>前提條件</th>
             <th>適用場景</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>Groth16</td>
-            <td>~200K gas</td>
+            <td>~200K–250K gas</td>
+            <td>BN254, 無 batch pairing</td>
             <td>低頻高價值交易</td>
           </tr>
           <tr>
             <td>PLONK</td>
-            <td>~300K gas</td>
+            <td>~300K–500K gas</td>
+            <td>BN254, KZG 承諾</td>
             <td>通用場景</td>
           </tr>
           <tr>
             <td>STARK</td>
-            <td>~1M gas</td>
+            <td>~500K–2M gas</td>
+            <td>FRI 驗證, 視 proof 大小而定</td>
             <td>後量子安全需求</td>
           </tr>
         </tbody>
       </table>
 
-      <p><em>註：實際 gas 消耗取決於鏈（Ethereum L1/L2）、曲線（BN254/BLS12-381）、驗證合約實作（是否使用 pairing batching）、以及 proof 是否經過遞迴聚合。數字僅為典型量級，請以具體實作 benchmark 為準。</em></p>
+      <div class="callout callout-info">
+        <div class="callout-title">Gas 估算說明</div>
+        <p>上述數值基於 Ethereum L1 的 precompile（ecAdd, ecMul, ecPairing）成本。實際消耗受以下因素影響：</p>
+        <ul>
+          <li><strong>曲線選擇</strong>：BN254 有 EVM precompile 支援；BLS12-381 需自行實作，gas 高數倍</li>
+          <li><strong>L2 環境</strong>：zkSync, Scroll 等 L2 的 gas 計價模型不同</li>
+          <li><strong>Batch pairing</strong>：Groth16 可將多個證明合併驗證，攤銷 pairing 成本</li>
+          <li><strong>遞迴聚合</strong>：將多個 proof 聚合為一個 wrapper proof 可大幅降低鏈上成本</li>
+        </ul>
+        <p>具體數據請參考 <a href="https://eips.ethereum.org/EIPS/eip-197" target="_blank" rel="noopener">EIP-197</a>（pairing gas）與各驗證合約的 benchmark。</p>
+      </div>
 
       <div class="callout callout-warning">
         <div class="callout-title">成本考量</div>

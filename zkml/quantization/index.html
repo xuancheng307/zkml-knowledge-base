@@ -49,18 +49,24 @@
       <p>標準的仿射量化方案定義實數值 r 與整數量化碼 q<sub>int</sub> 之間的對應關係<sup><a href="#ref-2">[2]</a></sup>：</p>
 
       <p><strong>量化（Quantization）</strong>：實數 → 整數碼</p>
-      <p class="math">$$q_{\text{int}} = \text{clamp}\left(\text{round}\left(\frac{r}{S}\right) + Z, 0, 2^b - 1\right)$$</p>
+      <p class="math">$$q_{\text{int}} = \text{clamp}\left(\text{round}\left(\frac{r}{S}\right) + Z;\; q_{\min},\; q_{\max}\right)$$</p>
+      <p>其中：</p>
+      <ul>
+        <li>\(\text{round}(\cdot)\)：四捨五入，tie-break 採用 <strong>round-half-away-from-zero</strong>（0.5 → 1, -0.5 → -1）</li>
+        <li>\(\text{clamp}(x; a, b) = \max(a, \min(b, x))\)：將 \(x\) 夾至 \([a, b]\) 區間</li>
+        <li>\(q_{\min} = 0\)，\(q_{\max} = 2^b - 1\)（無符號 \(b\)-bit 量化）</li>
+      </ul>
 
       <p><strong>反量化（Dequantization）</strong>：整數碼 → 近似實數</p>
       <p class="math">$$r' = S(q_{\text{int}} - Z)$$</p>
 
       <p>其中：</p>
       <ul>
-        <li><strong>S（Scale）</strong>：縮放因子，正實數</li>
+        <li><strong>S（Scale）</strong>：縮放因子，正實數，決定量化步長</li>
         <li><strong>Z（Zero-point）</strong>：零點，整數（使 r=0 對應到整數範圍內的某值）</li>
-        <li><strong>q<sub>int</sub></strong>：量化後的整數碼，通常為 8 位元無符號整數 [0, 255]</li>
+        <li><strong>q<sub>int</sub></strong>：量化後的整數碼，範圍 \([q_{\min}, q_{\max}]\)</li>
         <li><strong>r'</strong>：反量化後的近似實數（≈ r，存在量化誤差）</li>
-        <li><strong>b</strong>：位元寬度（8-bit 時 b=8）</li>
+        <li><strong>b</strong>：位元寬度（8-bit 時 b=8，對應 \(q_{\max} = 255\)）</li>
       </ul>
 
       <h3>量化格點函數</h3>

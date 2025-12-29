@@ -69,8 +69,8 @@
   Verify(C_M, x, y, π) → {accept, reject}
 
 安全性質：
-  完備性：正確計算總能通過驗證
-  可靠性：錯誤結果無法通過驗證</code></pre>
+  完備性（Completeness）：正確計算總能通過驗證
+  健全性（Soundness）：錯誤結果無法通過驗證</code></pre>
 
       <h3>ZK Relation 形式化</h3>
 
@@ -78,13 +78,14 @@
 
       <div class="callout callout-info">
         <div class="callout-title">Relation 定義</div>
-        <p class="math">$$R_{verify}((x, y, C_M); (W, \text{aux})) = 1$$</p>
+        <p class="math">$$R_{verify}((x, y, C_M); (W, y_q, \text{aux})) = 1$$</p>
         <p>當且僅當：</p>
         <ol>
           <li>\(\text{Commit}(W) = C_M\)（模型承諾一致性）</li>
-          <li>\(f_{quant}(\text{Quant}(x); W) = y_q\)（量化推理正確）</li>
-          <li>\(y = \text{Dequant}(y_q)\)（輸出反量化）</li>
+          <li>\(f_{quant}(\text{Quant}(x); W) = y_q\)（量化推理正確，\(y_q\) 為量化輸出）</li>
+          <li>\(y = \text{Dequant}(y_q)\)（公開輸出 \(y\) 為反量化結果）</li>
         </ol>
+        <p><small>註：\(y_q\) 為電路內部的量化輸出（定點整數），\(y\) 為公開的反量化輸出（近似實數）。</small></p>
       </div>
 
       <table>

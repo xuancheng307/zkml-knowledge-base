@@ -293,24 +293,30 @@ Halo2 實作：
 
       <h3>tlookup（張量查表）</h3>
 
-      <p>zkLLM 引入的張量查表技術<sup><a href="#ref-4">[4]</a></sup>：</p>
+      <p>zkLLM 引入的張量查表技術，專為 LLM 中的大規模矩陣查表設計<sup><a href="#ref-4">[4]</a></sup>：</p>
 
       <pre><code>問題：矩陣運算產生大量查詢
 
-標準 lookup argument：
+標準 lookup argument（如 Plookup）：
   n×m 矩陣 → Q = n·m 次查表
-  總成本：O(Q + |T|)（排序/累積多項式等）
-  攤銷後每筆查詢：O(1 + |T|/Q)
+  Prover 成本：O(Q · log Q) 用於排序
+  Verifier 成本：O(Q) 配對/群運算
 
-tlookup 優化：
-  利用張量結構
-  分解為行/列查表
-  總成本：O(n + m + |T|)（遠小於 O(n·m + |T|)）
+tlookup 優化（zkLLM §5.2）：
+  將 n×m 張量 V 分解為外積 V = u ⊗ v
+  其中 u ∈ F^n, v ∈ F^m
+  只需證明 u_i ∈ T 且 v_j ∈ T
+  → Prover 成本降為 O((n + m) · log(n + m))
+  → Verifier 成本降為 O(n + m)
+
+限制條件：
+  - 僅適用於可表示為外積的張量
+  - 實務上用於 softmax 輸出等特定結構
 
 適用場景：
-  - 矩陣乘法結果驗證
-  - 批次激活函數
-  - Attention 分數</code></pre>
+  - Attention softmax 輸出驗證
+  - 批次激活函數（若可分解）
+  - 具有 Kronecker 結構的權重矩陣</code></pre>
 
       <h3>Caulk / Caulk+</h3>
 

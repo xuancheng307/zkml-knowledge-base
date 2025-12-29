@@ -296,13 +296,25 @@ ZKML 偏好：
 
       <h3>誤差來源</h3>
 
-      <pre><code>1. 量化誤差
-   q_error = |x - dequant(quant(x))|
-   最大：scale / 2
+      <div class="callout callout-info">
+        <div class="callout-title">符號說明</div>
+        <p>本頁使用兩套量化符號：<br>
+        • <strong>定點數</strong>：指數 \(s\)，步長 \(\Delta = 2^{-s}\)<br>
+        • <strong>Jacob 量化</strong><sup><a href="#ref-3">[3]</a></sup>：步長 \(S = \frac{\max - \min}{2^b - 1}\)，零點 \(Z\)</p>
+      </div>
 
-2. 捨入誤差
-   每次乘法的捨入
-   最大：1 / (2 × 2^scale)
+      <pre><code>1. 量化誤差（rounding error）
+   q_error = |x - dequant(quant(x))|
+
+   定點表示：步長 Δ = 2^{-s}
+   最大誤差：Δ / 2 = 2^{-(s+1)}
+
+   Jacob 量化：步長 S = (max - min) / (2^b - 1)
+   最大誤差：S / 2
+
+2. 乘法捨入誤差
+   每次定點乘法需 right-shift s bits（或除以 2^s）
+   捨入誤差最大：Δ / 2 = 2^{-(s+1)}
 
 3. 累積誤差
    多層傳播
