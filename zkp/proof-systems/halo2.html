@@ -798,6 +798,16 @@ Halo2 實現：
   k=20：~32 GB
   k=24：~256 GB</code></pre>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/halo-performance.png" alt="Halo 效能圖：Prover Time、Verifier Time、Proof Size 與 Recursion Threshold" style="max-width: 100%; height: auto;">
+        <figcaption>圖：Halo 原始論文的效能測試結果。(a) 證明者與驗證者時間隨約束數量的變化（左上、右上）；證明大小隨約束數量變化（左下）；(b) 遞迴閾值交叉點分析（右下）——當 Prover 電路大小超過約 2<sup>17</sup> 約束時，遞迴證明開始比直接證明更有效率。<br><small>來源：Bowe et al., "Recursive Proof Composition without a Trusted Setup" (ePrint 2019/1021), Figure 2: "Performance of Halo."<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
+      <div class="callout callout-info">
+        <div class="callout-title">圖與 Halo2 的關係</div>
+        <p>此圖為 Halo 原始論文（2019）的效能數據，展示 IPA 承諾方案的特性。Halo2 是 Halo 的工程化實現，採用 PLONKish 算術化並整合 Plookup 查表，實際效能會因實現優化而有所不同，但核心的遞迴閾值概念仍然適用。</p>
+      </div>
+
       <h2>ZKML 應用</h2>
 
       <h3>EZKL 整合</h3>
