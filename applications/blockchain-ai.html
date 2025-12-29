@@ -211,13 +211,13 @@
 
       <h3>Gas 成本</h3>
 
-      <p>鏈上驗證 ZK 證明需要消耗 gas<sup><a href="#ref-1">[1]</a></sup>：</p>
+      <p>鏈上驗證 ZK 證明需要消耗 gas。以下為常見量級估算<sup><a href="#ref-1">[1]</a></sup>：</p>
 
       <table>
         <thead>
           <tr>
             <th>證明系統</th>
-            <th>驗證 Gas</th>
+            <th>驗證 Gas（估計）</th>
             <th>適用場景</th>
           </tr>
         </thead>
@@ -240,6 +240,8 @@
         </tbody>
       </table>
 
+      <p><em>註：實際 gas 消耗取決於鏈（Ethereum L1/L2）、曲線（BN254/BLS12-381）、驗證合約實作（是否使用 pairing batching）、以及 proof 是否經過遞迴聚合。數字僅為典型量級，請以具體實作 benchmark 為準。</em></p>
+
       <div class="callout callout-warning">
         <div class="callout-title">成本考量</div>
         <p>對於頻繁的小額交易，gas 成本可能超過交易價值本身。需要評估 ZKML 驗證的經濟可行性，或使用 Layer 2 解決方案降低成本。</p>
@@ -254,6 +256,8 @@
         <li>ResNet-50：約 1 分鐘</li>
         <li>小型 MLP：數秒</li>
       </ul>
+
+      <p><em>註：上述時間為典型量級估算，實際取決於硬體配置（CPU/GPU）、證明系統選擇（Halo2/Groth16）、電路優化程度、以及是否使用並行/遞迴技術。具體數據請參考各框架的 benchmark 報告。</em></p>
 
       <p>這限制了 ZKML 在即時性要求高的場景的應用。</p>
 

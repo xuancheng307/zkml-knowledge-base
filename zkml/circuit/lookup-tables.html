@@ -31,7 +31,8 @@
 
       <div class="callout callout-info">
         <div class="callout-title">核心概念</div>
-        <p>查表（Lookup Table）是 ZKML 中處理非線性函數最有效的技術。透過預計算函數值並使用密碼學查表論證，可將 ReLU 等激活函數的約束數量從 O(log |F|) 降至 O(1)<sup><a href="#ref-1">[1]</a></sup>。</p>
+        <p>查表（Lookup Table）是 ZKML 中處理非線性函數最有效的技術。透過預計算函數值並使用密碼學查表論證，可將 ReLU 等激活函數的約束數量從 \(O(b)\)（其中 \(b\) 為值的位元寬度）降至 \(O(1)\)<sup><a href="#ref-1">[1]</a></sup>。</p>
+        <p><em>註：若不做量化且對完整域元素做位元分解，最壞情況下 \(b \approx \log|F|\)（如 254-bit）；但 ZKML 透過量化將值壓縮至 8~16 bit，使 \(b \ll \log|F|\)。</em></p>
       </div>
 
       <h2>為什麼需要查表</h2>
@@ -44,11 +45,11 @@
   - 加法：z = x + y（無乘法門，可合併至線性組合）
   - 乘法：z = x · y（1 乘法門約束）
 
-非線性操作（傳統方法的高成本）：
-  - 比較：x > y → O(log |F|) 約束
-  - ReLU：max(0, x) → O(log |F|) 約束
+非線性操作（傳統位元分解方法的成本）：
+  - 比較：x > y → O(b) 約束（b = 值的 bit-width）
+  - ReLU：max(0, x) → O(b) 約束
   - Sigmoid：1/(1+e^{-x}) → 數百約束
-  - 除法：z = x/y → O(log |F|) 約束
+  - 除法：z = x/y → O(b) 約束
 
 典型場景（若對完整域元素做位元分解）：
   BN254 曲線，254-bit 域 → 單個 ReLU = ~254 個布林約束
@@ -296,14 +297,15 @@ Halo2 實作：
 
       <pre><code>問題：矩陣運算產生大量查詢
 
-標準 Plookup：
-  n×m 矩陣 → n·m 次查表
-  每次查表成本：O(n·m + |T|)
+標準 lookup argument：
+  n×m 矩陣 → Q = n·m 次查表
+  總成本：O(Q + |T|)（排序/累積多項式等）
+  攤銷後每筆查詢：O(1 + |T|/Q)
 
 tlookup 優化：
   利用張量結構
   分解為行/列查表
-  複雜度：O(n + m + |T|)
+  總成本：O(n + m + |T|)（遠小於 O(n·m + |T|)）
 
 適用場景：
   - 矩陣乘法結果驗證
@@ -312,19 +314,27 @@ tlookup 優化：
 
       <h3>Caulk / Caulk+</h3>
 
-      <pre><code>Caulk 特點：
-  - 預處理大表格
-  - O(log |T|) 驗證時間
-  - 適合超大靜態表格
+      <p>Caulk 系列協議專為超大表格優化<sup><a href="#ref-5">[5]</a></sup><sup><a href="#ref-6">[6]</a></sup>：</p>
 
-Caulk+ 改進：
-  - O(1) 驗證時間
+      <pre><code>Caulk (CCS 2022) 特點：
+  - 預處理模型：O(|T| log |T|) 預處理，之後查詢獨立於表大小
+  - 驗證時間：O(log |T|)
+  - 假設：需 structured reference string (SRS)
+  - 證明大小：O(1) 群元素
+
+Caulk+ (ePrint 2022) 改進：
+  - 驗證時間：O(1)（配對運算數固定）
   - 更小證明大小
+  - 相同預處理模型
 
 適用場景：
-  - 百萬行以上的表格
-  - 稀疏查詢模式
-  - 多次使用同一表格</code></pre>
+  - 百萬行以上的靜態表格
+  - 稀疏查詢模式（查詢數 ≪ 表大小）
+  - 多次使用同一表格
+
+注意事項：
+  - 需要 KZG 承諾與可信設置
+  - 預處理成本較高，適合表格長期不變的場景</code></pre>
 
       <h2>實作考量</h2>
 
@@ -425,6 +435,15 @@ Caulk+ 改進：
           <li id="ref-4">
             <cite>Sun, H., et al. "zkLLM: Zero Knowledge Proofs for Large Language Models." ACM CCS 2024.</cite>
             <a href="https://doi.org/10.1145/3658644.3670351" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-5">
+            <cite>Zapico, A., Buterin, V., Khovratovich, D., Maller, M., Nitulescu, A., & Simkin, M. "Caulk: Lookup Arguments in Sublinear Time." ACM CCS 2022.</cite>
+            <a href="https://doi.org/10.1145/3548606.3560646" target="_blank" rel="noopener">DOI</a> |
+            <a href="https://eprint.iacr.org/2022/621" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-6">
+            <cite>Posen, J., & Kattis, A. "Caulk+: Table-independent lookup arguments." IACR ePrint 2022/957.</cite>
+            <a href="https://eprint.iacr.org/2022/957" target="_blank" rel="noopener">ePrint</a>
           </li>
         </ol>
       </section>

@@ -304,11 +304,45 @@
 
       <h4>Variable Division（變數除法）</h4>
 
-      <p>Softmax 需要除以動態計算的分母。使用 limb 分解處理大數除法：</p>
+      <p>Softmax 需要除以動態計算的分母。VarDiv gadget 必須在 ZK 電路中正確模擬整數除法語義：</p>
 
-      <p class="math">$$\text{VarDiv}(\text{numer}, \text{denom}) = \text{Round}(\text{numer}/\text{denom})$$</p>
+      <h5>Floor 除法（最常用）</h5>
 
-      <p>其中 numer 為分子、denom 為分母。將大數分解為多個較小的 limbs，分別驗證除法正確性。以 Softmax 為例，計算 \(\exp(x_i) / \sum_j \exp(x_j)\) 時，分子為 \(\exp(x_i)\)，分母為動態計算的總和。</p>
+      <p>計算 \(q = \lfloor \text{numer}/\text{denom} \rfloor\)：</p>
+
+      <pre><code>約束模板：
+  見證：q（商）, r（餘數）
+
+  約束 1：numer = q × denom + r（除法定義）
+  約束 2：0 ≤ r < denom（餘數範圍，透過 range check）
+  約束 3：denom ≠ 0（除數非零）
+  約束 4：q ≥ 0, denom > 0（Softmax 分母恆正）
+
+  boundedness 要求：
+    - numer, denom 必須在合法整數範圍內（如 < 2^64）
+    - 避免域取模造成語義漂移
+    - 需配合 range check 確保所有值在預期範圍</code></pre>
+
+      <h5>Round-to-nearest 除法</h5>
+
+      <p>若需四捨五入語義 \(q = \text{round}(\text{numer}/\text{denom})\)：</p>
+
+      <pre><code>約束模板：
+  見證：q（商）, r（調整後餘數）
+
+  約束：numer = q × denom + r 且 -denom/2 ≤ r < denom/2
+
+  實作技巧：
+    q = floor((numer + denom/2) / denom)
+    注意 denom/2 的整數化（奇數 denom 需特殊處理）
+    tie-break 規則需明確定義（如 ties-to-even）</code></pre>
+
+      <p>以 Softmax 為例，計算 \(\exp(x_i) / \sum_j \exp(x_j)\) 時，分子為 \(\exp(x_i)\)，分母為動態計算的總和（恆正），因此 \(\text{denom} > 0\) 前提成立。對於大數情況，可使用 limb 分解處理：將大數分解為多個較小的 limbs，分別驗證除法正確性。</p>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">與 fixed-point 的關聯</div>
+        <p>VarDiv 的截斷語義對應 <a href="fixed-point.html">定點數頁面</a> 的 Option B（見證 q, r 並證明 \(z = q \times 2^s + r\) 且 \(0 \leq r < 2^s\)）。兩者共用相同的可證明語義，確保整數截斷而非域除法。</p>
+      </div>
 
       <h2>Basic Blocks 架構（ZKTorch）</h2>
 

@@ -67,8 +67,8 @@
           </tr>
           <tr>
             <td><strong>Data Availability</strong></td>
-            <td>確保交易資料可取得</td>
-            <td>儲存模型承諾</td>
+            <td>確保交易/狀態差分資料可取得</td>
+            <td>模型承諾可放在 rollup state 或 L1 合約事件/存儲；其可用性需求與 DA 設計互相關聯</td>
           </tr>
         </tbody>
       </table>
@@ -202,11 +202,26 @@
         </tbody>
       </table>
 
+      <h3>遞迴證明組合要求</h3>
+
+      <p>遞迴組合允許 L1 驗證單一證明但涵蓋多個 batch/子電路。實現遞迴需滿足以下條件：</p>
+
+      <ul>
+        <li><strong>Recursion-friendly curve</strong>：使用支援高效 in-circuit 驗證的曲線（如 Pasta curves、BN254 over BLS12-381）</li>
+        <li><strong>In-circuit verifier</strong>：在電路內部實現驗證邏輯（成本約數萬約束），驗證子證明</li>
+        <li><strong>Aggregation 口徑</strong>：定義如何合併多個子證明的輸入/輸出承諾</li>
+        <li><strong>驗證成本</strong>：L1 只需驗證最終聚合證明，驗證成本固定（不隨 batch 數增加）</li>
+      </ul>
+
+      <p>遞迴聚合直接影響 Gas 成本與 finality：若 N 個 batch 聚合為一個證明，L1 驗證成本為 O(1) 而非 O(N)。</p>
+
       <h2>Gas 成本分析</h2>
 
       <p>在 L2 環境中，ZKML 的成本結構與純鏈上執行不同<sup><a href="#ref-2">[2]</a></sup>：</p>
 
       <h3>成本組成</h3>
+
+      <p>以下為典型成本量級估算：</p>
 
       <table>
         <thead>
@@ -240,10 +255,14 @@
           <tr>
             <td><strong>Calldata</strong></td>
             <td>L1</td>
-            <td>~16 gas/byte</td>
+            <td>依內容而異（見下方說明）</td>
           </tr>
         </tbody>
       </table>
+
+      <p><em>成本估算依據：硬體型號、吞吐量、雲端價格、是否使用 GPU、是否採用並行/遞迴技術均影響實際成本。美元估算基於 2024 年雲端運算價格與 Ethereum gas 價格，僅供量級參考。</em></p>
+
+      <p><em>Calldata 計費說明：Ethereum calldata 計費與內容分佈相關（0-byte vs non-zero byte 成本不同），典型估計為 4 gas/zero-byte、16 gas/non-zero-byte。實際成本取決於具體 batch encoding 格式與壓縮效果。</em></p>
 
       <h3>成本優化策略</h3>
 
