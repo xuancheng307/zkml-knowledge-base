@@ -132,20 +132,20 @@ Z_T(X) = X^n - 1 = ∏ᵢ (X - ω^i)
       <pre><code>定義：低度擴展（Low-Degree Extension）
 
 給定多項式 f(X) 在域 D_trace 上的求值，|D_trace| = n。
-選擇擴展域 D_lde，|D_lde| = ρ · n，其中 ρ > 1 為 blowup factor。
+選擇擴展域 D_lde，|D_lde| = B · n，其中 B > 1 為 blowup factor。
 
 低度擴展：
 f_lde : D_lde → F
 f_lde(x) = f(x) 對所有 x ∈ D_lde
 
 參數選擇：
-  - 典型 ρ = 4, 8, 16, 32
-  - D_lde = {g, g², ..., g^{ρn}}，g 為 (ρn) 次單位根
+  - 典型 B = 4, 8, 16, 32（對應碼率 ρ = 1/B）
+  - D_lde = {g, g², ..., g^{Bn}}，g 為 (Bn) 次單位根
   - D_trace ⊂ D_lde
 
 性質：
   - 若 deg(f) < n，則 f 在 D_lde 上的求值唯一確定
-  - LDE 將 n 點擴展為 ρn 點
+  - LDE 將 n 點擴展為 B·n 點
   - 任何與 f_lde 不同的低度多項式在 D_lde 上有顯著差異</code></pre>
 
       <h3>定義 6：Reed-Solomon 碼接近性</h3>
@@ -355,15 +355,15 @@ STARK 路線：
 步驟：
 1. 選擇域 F
    (a) 素數 p，|F| = p
-   (b) 需 p > max(軌跡值) 且 2^k | (p-1) 其中 2^k ≥ ρ·n
+   (b) 需 p > max(軌跡值) 且 2^k | (p-1) 其中 2^k ≥ B·n
    (c) 常用：Goldilocks p = 2^64 - 2^32 + 1
 
 2. 計算單位根
    (a) ω = g^{(p-1)/n}，n 次單位根（軌跡域）
-   (b) ω_lde = g^{(p-1)/(ρn)}，ρn 次單位根（LDE 域）
+   (b) ω_lde = g^{(p-1)/(Bn)}，Bn 次單位根（LDE 域）
 
 3. 設定 FRI 參數
-   (a) 選擇 blowup factor ρ（典型 4-32）
+   (a) 選擇 blowup factor B（典型 4-32）
    (b) 計算折疊次數 r = log₂(n)
    (c) 設定查詢次數 q（依安全等級）
 
@@ -372,7 +372,7 @@ STARK 路線：
    (b) 用於 Merkle 樹和 Fiat-Shamir
 
 5. 輸出公共參數
-   pp = (F, n, w, ω, ρ, H, C)
+   pp = (F, n, w, ω, B, H, C)
 
 複雜度：
   - 時間：O(log n)（計算單位根）
@@ -534,42 +534,43 @@ STARK 路線：
       <pre><code>Blow-up Factor（膨脹因子）分析：
 
 定義：
-ρ = |D_lde| / |D_trace| = 擴展域大小 / 軌跡域大小
+B = |D_lde| / |D_trace| = 擴展域大小 / 軌跡域大小
+ρ = 1/B = 碼率（code rate）
 
-典型值：ρ = 4, 8, 16, 32
+典型值：B = 4, 8, 16, 32（對應 ρ = 1/4, 1/8, 1/16, 1/32）
 
 對系統指標的影響：
 
 1. 證明大小
-   證明大小 ∝ log(ρ·n) · q
+   證明大小 ∝ log(B·n) · q
 
-   ρ↑ → 證明略增（對數關係）
+   B↑ → 證明略增（對數關係）
 
 2. 證明時間
-   證明時間 = O(ρ·n · log(ρ·n))
+   證明時間 = O(B·n · log(B·n))
 
    主要成本：FFT 在擴展域
-   ρ↑ → 證明時間線性增加
+   B↑ → 證明時間線性增加
 
 3. 安全性（Soundness）
-   soundness error ≈ max(ρ_code^{q/2}, 2^{-λ})
+   soundness error ≈ max(ρ^{q/2}, 2^{-λ})
 
-   其中碼率 ρ_code = 1/ρ
-   ρ↑ → 碼率↓ → 安全性↑
+   其中碼率 ρ = 1/B
+   B↑ → ρ↓ → 安全性↑
 
 4. 查詢次數
    固定安全等級 λ，需要 q 次查詢
-   q ≈ λ / log(1/ρ_code) = λ / log(ρ)
+   q ≈ λ / log(1/ρ) = λ / log(B)
 
-   ρ↑ → 需要的查詢次數↓</code></pre>
+   B↑ → 需要的查詢次數↓</code></pre>
 
       <h3>安全性與效能權衡</h3>
 
       <table>
         <thead>
           <tr>
-            <th>Blow-up Factor ρ</th>
-            <th>碼率</th>
+            <th>Blow-up Factor B</th>
+            <th>碼率 ρ = 1/B</th>
             <th>查詢次數（128-bit）</th>
             <th>證明大小</th>
             <th>證明時間倍率</th>
@@ -612,30 +613,30 @@ STARK 路線：
       <pre><code>Blow-up Factor 選擇策略：
 
 場景 1：鏈上驗證（Gas 敏感）
-  推薦：ρ = 16 或 32
+  推薦：B = 16 或 32
   理由：
     - 減少查詢次數 → 減少 Merkle 路徑
     - 證明更小 → calldata 成本降低
     - 驗證時間更短
 
 場景 2：快速證明（延遲敏感）
-  推薦：ρ = 4
+  推薦：B = 4
   理由：
     - FFT 成本最低
     - 適合即時應用
     - 接受較大證明
 
 場景 3：平衡選擇
-  推薦：ρ = 8
+  推薦：B = 8
   理由：
     - 證明時間適中
     - 證明大小合理
     - StarkWare 默認值
 
 ZKML 考量：
-  - 大型模型（>100M 參數）：ρ = 4（減少證明時間）
-  - 鏈上推論驗證：ρ = 16（減少驗證成本）
-  - 遞迴證明：ρ = 8（平衡內外層）</code></pre>
+  - 大型模型（>100M 參數）：B = 4（減少證明時間）
+  - 鏈上推論驗證：B = 16（減少驗證成本）
+  - 遞迴證明：B = 8（平衡內外層）</code></pre>
 
       <h2>FRI 協議詳解</h2>
 
@@ -685,7 +686,7 @@ FRI 提供：
 ε ≤ (ρ + δ)^q + r·2^{-λ}
 
 參數說明：
-  ρ = 碼率（1/blowup_factor）
+  ρ = 碼率（= 1/B，其中 B 為 blowup factor）
   δ = 接近性參數
   q = 查詢次數
   r = 折疊輪數
@@ -841,8 +842,8 @@ STARK 量子安全性：
         <thead>
           <tr>
             <th>安全等級</th>
-            <th>經典安全</th>
-            <th>量子安全</th>
+            <th>經典 collision</th>
+            <th>量子 collision (BHT)</th>
             <th>推薦雜湊</th>
             <th>查詢次數</th>
           </tr>
@@ -851,26 +852,28 @@ STARK 量子安全性：
           <tr>
             <td>Level 1</td>
             <td>128-bit</td>
-            <td>64-bit</td>
+            <td>~85-bit</td>
             <td>SHA-256</td>
             <td>64</td>
           </tr>
           <tr>
             <td>Level 3</td>
             <td>192-bit</td>
-            <td>96-bit</td>
+            <td>~128-bit</td>
             <td>SHA-384</td>
             <td>96</td>
           </tr>
           <tr>
             <td>Level 5</td>
             <td>256-bit</td>
-            <td>128-bit</td>
+            <td>~170-bit</td>
             <td>SHA-512</td>
             <td>128</td>
           </tr>
         </tbody>
       </table>
+
+      <p>註：量子 collision 安全性基於 BHT（Brassard-Høyer-Tapp）算法<sup><a href="#ref-bht">[BHT]</a></sup>，其複雜度為 \(O(2^{n/3})\)，其中 \(n\) 為雜湊輸出位元數。因此 SHA-256（256 位）提供約 85-bit 量子 collision 安全（256/3 ≈ 85）。</p>
 
       <pre><code>NIST 後量子標準對照：
 
@@ -917,20 +920,20 @@ STARK 對應 NIST Level 1-5：
           </tr>
           <tr>
             <td>Prove - FFT</td>
-            <td>O(ρn log n)</td>
-            <td>O(ρn)</td>
+            <td>O(Bn log n)</td>
+            <td>O(Bn)</td>
             <td>LDE 計算</td>
           </tr>
           <tr>
             <td>Prove - Merkle</td>
-            <td>O(ρn)</td>
-            <td>O(ρn)</td>
+            <td>O(Bn)</td>
+            <td>O(Bn)</td>
             <td>雜湊計算</td>
           </tr>
           <tr>
             <td>Prove - FRI</td>
-            <td>O(ρn log n)</td>
-            <td>O(ρn)</td>
+            <td>O(Bn log n)</td>
+            <td>O(Bn)</td>
             <td>折疊 + 承諾</td>
           </tr>
           <tr>
@@ -1383,6 +1386,10 @@ ZKML 域選擇：
           <li id="ref-6">
             <cite>Polygon. "Plonky2: Fast Recursive Arguments with PLONK and FRI." 2022.</cite>
             <a href="https://github.com/0xPolygonZero/plonky2" target="_blank" rel="noopener">GitHub</a>
+          </li>
+          <li id="ref-bht">
+            <cite>Brassard, G., Høyer, P., & Tapp, A. "Quantum Cryptanalysis of Hash and Claw-Free Functions." LATIN 1998.</cite>
+            <a href="https://doi.org/10.1007/BFb0054319" target="_blank" rel="noopener">DOI</a>
           </li>
         </ol>
       </section>

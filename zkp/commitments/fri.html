@@ -743,15 +743,19 @@ DEEP-FRI.Verify(commitments, y, z, proof):
    - 查詢數：保持或略增
    - 證明大小增加：~1.5-2x
 
-4. 與基於群的方案比較（以 collision 攻擊為主）：
+4. 與基於群的方案比較（以 collision 攻擊為主）<sup><a href="#ref-4">[4]</a></sup>：
    ┌──────────────┬────────────────┬───────────────┐
    │ 方案         │ 經典安全       │ 後量子安全    │
    ├──────────────┼────────────────┼───────────────┤
    │ FRI (SHA-256)│ 128-bit        │ ~85-bit (BHT) │
-   │ FRI (SHA-384)│ 192-bit        │ 128-bit       │
+   │ FRI (SHA-384)│ 192-bit        │ ~128-bit      │
    │ KZG          │ 128-bit        │ 已破解 (Shor) │
    │ IPA          │ 128-bit        │ 已破解 (Shor) │
-   └──────────────┴────────────────┴───────────────┘</code></pre>
+   └──────────────┴────────────────┴───────────────┘
+
+註：BHT 算法<sup><a href="#ref-4">[4]</a></sup>複雜度為 O(2^{n/3})，其中 n 為雜湊輸出位元數。
+Fiat-Shamir 在 QROM 下的安全性已由 Unruh<sup><a href="#ref-5">[5]</a></sup>證明，
+但需保守增加查詢次數以補償量子隨機預言機的差異。</code></pre>
 
       <h2 id="zkml-applications">ZKML 應用</h2>
 
@@ -914,6 +918,14 @@ DEEP-FRI.Verify(commitments, y, z, proof):
           <li id="ref-3">
             <cite>Ben-Sasson, E., Bentov, I., Horesh, Y., & Riabzev, M. "Scalable, transparent, and post-quantum secure computational integrity." IACR ePrint 2018/046.</cite>
             <a href="https://eprint.iacr.org/2018/046" target="_blank" rel="noopener">ePrint</a>
+          </li>
+          <li id="ref-4">
+            <cite>Brassard, G., Høyer, P., & Tapp, A. "Quantum Cryptanalysis of Hash and Claw-Free Functions." LATIN 1998.</cite>
+            <a href="https://doi.org/10.1007/BFb0054319" target="_blank" rel="noopener">DOI</a>
+          </li>
+          <li id="ref-5">
+            <cite>Unruh, D. "Non-Interactive Zero-Knowledge Proofs in the Quantum Random Oracle Model." EUROCRYPT 2015.</cite>
+            <a href="https://doi.org/10.1007/978-3-662-46803-6_25" target="_blank" rel="noopener">DOI</a>
           </li>
         </ol>
       </section>

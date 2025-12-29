@@ -585,7 +585,12 @@ Gate(X) + α·Perm(X) + α²·L_0(X)·(z(X) - 1) ≡ 0   (mod Z_H(X))
 商多項式：
    t(X) = [Gate(X) + α·Perm(X) + α²·L_0(X)·(z(X) - 1)] / Z_H(X)
 
-度數分析（前提：deg(a), deg(b), deg(c), deg(z) < n）：
+度數分析：
+   註：表格中的 deg < n+3 考慮了盲化項 (b₁X² + b₂X + b₃)·Z_H(X)。
+   以下分析使用未盲化的核心度數 deg < n；盲化項僅在 H 外影響值，
+   不改變商多項式的核心結構。
+
+   前提（未盲化核心）：deg(a), deg(b), deg(c) < n, deg(z) < n
    Gate(X)：deg < 2n（來自 q_M·a·b）
    Perm(X) = z(X)·f'(X) - z(ωX)·g'(X)
      - f'(X) 為三個 (< n) 項的乘積：deg(f') < 3n
@@ -705,7 +710,7 @@ r(X) = ā·b̄·q_M(X) + ā·q_L(X) + b̄·q_R(X) + c̄·q_O(X) + q_C(X)
           </tr>
           <tr>
             <td><strong>證明大小</strong></td>
-            <td colspan="2">9 G_1 + 6 F 元素（BLS12-381 壓縮 G_1 48B → ~576 bytes）</td>
+            <td colspan="2">9 G_1 + 6 F 元素（BLS12-381：9×48B + 6×32B = 624 bytes；BN254：9×32B + 6×32B = 480 bytes）</td>
           </tr>
         </tbody>
       </table>
@@ -794,7 +799,7 @@ r(X) = ā·b̄·q_M(X) + ā·q_L(X) + b̄·q_R(X) + c̄·q_O(X) + q_C(X)
 PLONK：
   - 證明時間：~20-30 秒
   - 驗證時間：~10 ms
-  - 證明大小：~576 bytes（BLS12-381 壓縮；BN254 約 384 bytes）
+  - 證明大小：~624 bytes（BLS12-381：9×48 + 6×32；BN254：~480 bytes）
 
 Groth16：
   - 證明時間：~10-15 秒

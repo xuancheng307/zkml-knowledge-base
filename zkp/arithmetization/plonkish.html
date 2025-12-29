@@ -54,7 +54,7 @@
         <div class="definition-title">Definition 1：PLONKish 算術化</div>
         <p>PLONKish 算術化是一個元組 \(\mathcal{C} = (n, k, \mathbf{f}, \mathbf{q}, \mathcal{G}, \sigma)\)：</p>
         <ul>
-          <li>\(n\)：表格行數（\(n = 2^k\) 為 2 的冪次）</li>
+          <li>\(n\)：表格行數（\(n = 2^m\) 為 2 的冪次，其中 \(m\) 為 logrows 參數）</li>
           <li>\(k\)：列數，分為 advice columns \(k_a\)、instance columns \(k_i\)、fixed columns \(k_f\)</li>
           <li>\(\mathbf{f} = (f_1, \ldots, f_{k_f})\)：固定列的值</li>
           <li>\(\mathbf{q} = (q_1, \ldots, q_s)\)：選擇器多項式</li>
@@ -83,7 +83,7 @@
 
       <div class="definition">
         <div class="definition-title">Definition 4：複製約束（Copy Constraint）</div>
-        <p>複製約束是一組等式 \(\{(i_1, j_1) = (i_2, j_2)\}\)，表示 row \(i_1\) 的 column \(j_1\) 必須等於 row \(i_2\) 的 column \(j_2\)。這些約束透過排列 \(\sigma: [n \cdot k_a] \to [n \cdot k_a]\) 編碼。</p>
+        <p>複製約束是一組等式 \(\{(i_1, j_1) = (i_2, j_2)\}\)，表示 row \(i_1\) 的 column \(j_1\) 必須等於 row \(i_2\) 的 column \(j_2\)。這些約束透過排列 \(\sigma: [N] \to [N]\) 編碼，其中 \(N := n \cdot k_a\) 為總位置數，\([N] := \{0, 1, \ldots, N-1\}\)。</p>
       </div>
 
       <div class="definition">
@@ -257,8 +257,8 @@ meta.create_gate("accumulate", |meta| {
       <pre><code>問題：確保不同位置的值相等
   例如：row 0 的輸出 = row 1 的輸入
 
-排列定義：
-  σ: [0..n·k] → [0..n·k]
+排列定義（N := n · k_a，[N] := {0, 1, ..., N-1}）：
+  σ: [N] → [N]
   σ(i) = j 表示位置 i 和 j 必須有相同值
 
 排列論證：
