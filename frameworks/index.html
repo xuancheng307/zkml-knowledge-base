@@ -48,7 +48,7 @@
         <tbody>
           <tr>
             <td><a href="academic/zkml-2024.html"><strong>ZKML</strong></a></td>
-            <td>Halo2 (IPA)</td>
+            <td>Halo2（PLONKish，支援 KZG/IPA）</td>
             <td>UC Berkeley</td>
             <td>部分</td>
             <td>2024 (EuroSys)</td>
@@ -226,35 +226,56 @@
         <p>效能數據受硬體環境、配置參數、模型規模影響較大。以下數據來自各論文報告，僅供參考。</p>
       </div>
 
-      <h3>證明時間 (ResNet-18, ImageNet)</h3>
+      <h3>證明時間（按模型/資料集）</h3>
+
+      <div class="callout callout-info">
+        <div class="callout-title">數據來源說明</div>
+        <p>ZKML 數據取自 Table 6/7（AWS r6i.* 系列）<sup><a href="#ref-1">[1]</a></sup>；ZKTorch 數據取自 Table 4（MLPerf Edge suite）<sup><a href="#ref-2">[2]</a></sup>。不同框架使用不同硬體與模型，直接數值比較需謹慎。</p>
+      </div>
 
       <table>
         <thead>
           <tr>
             <th>框架</th>
+            <th>模型</th>
+            <th>資料集</th>
             <th>證明時間</th>
             <th>硬體環境</th>
-            <th>備註</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>ZKML</strong></td>
-            <td>~79 秒</td>
-            <td>AWS c5.metal (96 vCPU)</td>
-            <td>最優化配置<sup><a href="#ref-1">[1]</a></sup></td>
+            <td rowspan="2"><strong>ZKML</strong></td>
+            <td>ResNet-18</td>
+            <td>CIFAR-10</td>
+            <td>52.9s（KZG）/ 46.5s（IPA）</td>
+            <td>AWS r6i.*</td>
           </tr>
           <tr>
-            <td><strong>ZKTorch</strong></td>
-            <td>~15 秒</td>
-            <td>類似硬體</td>
-            <td>並行累積加速<sup><a href="#ref-2">[2]</a></sup></td>
+            <td>VGG-16</td>
+            <td>CIFAR-10</td>
+            <td>584.1s（KZG）/ 420.1s（IPA）</td>
+            <td>AWS r6i.*</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>ZKTorch</strong></td>
+            <td>ResNet-50</td>
+            <td>ImageNet</td>
+            <td>6270.5s</td>
+            <td>AWS（論文 Table 4）</td>
+          </tr>
+          <tr>
+            <td>BERT</td>
+            <td>SQuAD</td>
+            <td>880.4s</td>
+            <td>AWS（論文 Table 4）</td>
           </tr>
           <tr>
             <td><strong>EZKL</strong></td>
+            <td>ResNet-18（估計）</td>
+            <td>CIFAR-10</td>
             <td>~120 秒</td>
-            <td>M1 MacBook Pro</td>
-            <td>預設配置</td>
+            <td>M1 MacBook Pro（預設配置）</td>
           </tr>
         </tbody>
       </table>
@@ -288,34 +309,59 @@
         </tbody>
       </table>
 
-      <h3>證明大小</h3>
+      <h3>證明大小與驗證時間</h3>
 
       <table>
         <thead>
           <tr>
             <th>框架</th>
+            <th>模型</th>
             <th>證明大小</th>
             <th>驗證時間</th>
+            <th>來源</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong>ZKML (Halo2)</strong></td>
-            <td>~10-50 KB</td>
-            <td>~10-100 ms</td>
+            <td rowspan="2"><strong>ZKML</strong></td>
+            <td>ResNet-18（KZG）</td>
+            <td>15.7 KB</td>
+            <td>11.8 ms</td>
+            <td>Table 6</td>
           </tr>
           <tr>
-            <td><strong>ZKTorch (KZG)</strong></td>
-            <td>~5-20 KB</td>
-            <td>~5-50 ms</td>
+            <td>ResNet-18（IPA）</td>
+            <td>17.1 KB</td>
+            <td>200 ms</td>
+            <td>Table 7</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>ZKTorch</strong></td>
+            <td>ResNet-50</td>
+            <td>85.4 KB</td>
+            <td>62.8 s</td>
+            <td>Table 4</td>
+          </tr>
+          <tr>
+            <td>BERT</td>
+            <td>4.88 MB</td>
+            <td>26.7 s</td>
+            <td>Table 4</td>
           </tr>
           <tr>
             <td><strong>RISC Zero (STARK)</strong></td>
+            <td>一般模型</td>
             <td>~200-500 KB</td>
             <td>~50-200 ms</td>
+            <td>文檔估計</td>
           </tr>
         </tbody>
       </table>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">ZKTorch 驗證時間說明</div>
+        <p>ZKTorch 的驗證時間（秒級）遠高於 ZKML（毫秒級），這是因為 ZKTorch 採用遞迴證明累積架構，驗證器需驗證整個累積鏈。對於大型模型，這是目前已知最小證明大小的代價<sup><a href="#ref-2">[2]</a></sup>。</p>
+      </div>
 
       <h2>優缺點分析</h2>
 

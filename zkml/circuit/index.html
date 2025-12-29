@@ -234,13 +234,13 @@
           <tr>
             <td>Div(x, y)</td>
             <td>\(\lfloor x/y \rfloor\)</td>
-            <td>\(x = q \cdot y + r\)，需配合 range check 確保 \(0 \leq r < y\) 且 \(q \geq 0\)</td>
+            <td>\(x = q \cdot y + r\)，需：(1) range check \(r \in [0, y)\)；(2) \(y \neq 0\)；(3) \(x, y\) 在合法整數範圍內</td>
             <td>4+</td>
           </tr>
           <tr>
             <td>DivRound(x, y)</td>
             <td>\(\text{round}(x/y)\)</td>
-            <td>含捨入邏輯的約束</td>
+            <td>等價式：\(\text{round}(x/y) = \lfloor (2x + y) / (2y) \rfloor\)，轉為一次 Div + 額外 range 約束</td>
             <td>5</td>
           </tr>
           <tr>
@@ -279,11 +279,16 @@
       <p>預先計算非線性函數的輸入-輸出對，建立查表：</p>
 
       <ul>
-        <li>表大小：\(2^n\) 行，其中 \(n\) 是輸入位元數</li>
+        <li>表大小：\(2^b\) 行，其中 \(b\) 是輸入的總位元數（fixed-point 表示）</li>
         <li>約束：驗證 (input, output) 對存在於表中</li>
         <li>優點：每次操作僅需 2 個儲存格</li>
-        <li>缺點：表大小受限於電路總行數</li>
+        <li>缺點：表大小受限於電路總行數（rows = \(2^k\)）</li>
       </ul>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">可行性條件</div>
+        <p>若電路行數為 \(2^k\)，ReLU lookup table 需要 \(2^b\) 行。要能容納此表，必須滿足 \(2^b \leq 2^k\)，即 <strong>\(b \leq k\)</strong>。例如 \(k = 17\)（logrows）時，最多支援 \(b = 17\) 位元的 ReLU 查表。</p>
+      </div>
 
       <div class="callout callout-warning">
         <div class="callout-title">關鍵洞察</div>
@@ -296,7 +301,14 @@
 
       <h4>Maximum（最大值）</h4>
 
-      <p>計算 \(\max(a, b)\)，使用多項式約束 \((c - a)(c - b) = 0\)（確保 \(c\) 等於 \(a\) 或 \(b\)）加上查表約束（確保 \(c \geq a\) 且 \(c \geq b\)）。</p>
+      <p>計算 \(\max(a, b)\)，使用以下約束組合：</p>
+
+      <ol>
+        <li><strong>選擇約束</strong>：\((c - a)(c - b) = 0\)（確保 \(c\) 等於 \(a\) 或 \(b\)）</li>
+        <li><strong>Range 約束</strong>：透過 lookup / range table 證明 \((c - a) \in [0, \ldots, N)\) 且 \((c - b) \in [0, \ldots, N)\)（確保 \(c \geq a\) 且 \(c \geq b\)）</li>
+      </ol>
+
+      <p>其中 \(N\) 為值域上界（如 \(2^{16}\)），由電路的 range table 決定。</p>
 
       <h4>Scaled Exponentiation（縮放指數）</h4>
 
@@ -305,6 +317,11 @@
       <h4>Variable Division（變數除法）</h4>
 
       <p>Softmax 需要除以動態計算的分母。VarDiv gadget 必須在 ZK 電路中正確模擬整數除法語義：</p>
+
+      <div class="callout callout-info">
+        <div class="callout-title">論文記號對應</div>
+        <p>ZKML 原論文定義 <code>VarDiv(a, b) = Round(b/a)</code>，其中 \(a, b \in [0, \ldots, N)\)。本頁採用更直覺的命名：令 <strong>a ≡ denom</strong>、<strong>b ≡ numer</strong>，因此 <code>VarDiv(denom, numer) = Round(numer/denom)</code>。兩者語義等價。</p>
+      </div>
 
       <h5>Floor 除法（最常用）</h5>
 
