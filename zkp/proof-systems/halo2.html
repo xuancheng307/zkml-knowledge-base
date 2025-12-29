@@ -201,7 +201,7 @@ Decide(acc) → {0, 1}
   ∀i ∈ [n]: fᵢ ∈ T
 
 Plookup 方法：
-  1. 排序 f ∪ T 得到 s
+  1. 排序 f ⊎ T 得到 s（⊎ 為多重集合聯集，保留重複元素）
   2. 證明 s 是有效排序
   3. 證明相鄰差異合法</code></pre>
       </div>
@@ -271,7 +271,7 @@ for i = 1 to k:
   transcript.append(xᵢ)
 
 // 計算折疊後的生成元（關鍵步驟）
-s = compute_s_vector(x)  // O(n) 計算
+s = compute_s_vector(x)  // O(n log n)；可用 Gray code 優化至 O(n)
 G_final = ⟨s, G⟩
 H_final = ⟨s⁻¹, H⟩
 
@@ -593,7 +593,7 @@ Halo2 實現：
 協議步驟：
 
 1. 合併與排序
-   s = sort(f ∪ T)
+   s = sort(f ⊎ T)  // ⊎ 為多重集合聯集，保留重複元素
 
    排序後相鄰元素要麼相等，要麼來自表格的相鄰位置
 

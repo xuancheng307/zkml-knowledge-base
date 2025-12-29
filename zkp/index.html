@@ -87,7 +87,7 @@
 
       <div class="callout callout-warning">
         <div class="callout-title">ZKML 的選擇</div>
-        <p>大多數 ZKML 系統選擇 zk-SNARK（特別是 Halo2），因為較小的證明大小對於鏈上驗證至關重要。Halo2 無需可信設置，且支援遞迴證明組合<sup><a href="#ref-2">[2]</a></sup>。</p>
+        <p>大多數 ZKML 系統選擇 zk-SNARK（特別是 Halo2），因為較小的證明大小對於鏈上驗證至關重要。Halo2(IPA) 無需可信設置（但驗證較慢），Halo2(KZG) 需通用設置（驗證 O(1)）。兩者皆支援遞迴證明組合<sup><a href="#ref-2">[2]</a></sup>。</p>
       </div>
 
       <h2>密碼學知識地圖</h2>
@@ -173,19 +173,19 @@
             <td><a href="proof-systems/groth16.html">Groth16</a></td>
             <td>R1CS</td>
             <td>配對</td>
-            <td>最小證明 (192 bytes)、電路特定設置</td>
+            <td>最小證明（依曲線：BN254 ~128B，BLS12-381 ~192B）、電路特定設置</td>
           </tr>
           <tr>
             <td><a href="proof-systems/plonk.html">PLONK</a></td>
             <td>PLONKish</td>
             <td>KZG</td>
-            <td>通用設置、自定義閘</td>
+            <td>通用設置、自定義閘、證明 ~576B (BLS12-381)</td>
           </tr>
           <tr>
             <td><a href="proof-systems/halo2.html">Halo2</a></td>
             <td>PLONKish</td>
             <td>IPA/KZG</td>
-            <td>無需設置、遞迴友好、ZKML 主流</td>
+            <td>IPA 無需設置（驗證 O(n)）；KZG 需通用設置（驗證 O(1)）；ZKML 主流</td>
           </tr>
           <tr>
             <td><a href="proof-systems/stark.html">STARK</a></td>

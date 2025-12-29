@@ -232,7 +232,7 @@
           <tr>
             <td><strong>每證明</strong></td>
             <td>商多項式 t(X)</td>
-            <td>&lt; 3n + 5</td>
+            <td>&lt; 3n</td>
             <td>證明者回合 3</td>
           </tr>
         </tbody>
@@ -585,10 +585,15 @@ Gate(X) + α·Perm(X) + α²·L_0(X)·(z(X) - 1) ≡ 0   (mod Z_H(X))
 商多項式：
    t(X) = [Gate(X) + α·Perm(X) + α²·L_0(X)·(z(X) - 1)] / Z_H(X)
 
-度數分析：
-   分子度數 ≤ 3n + 5（來自置換部分的三次項）
-   Z_H(X) 度數 = n
-   t(X) 度數 < 3n + 5 - n = 2n + 5
+度數分析（前提：deg(a), deg(b), deg(c), deg(z) < n）：
+   Gate(X)：deg < 2n（來自 q_M·a·b）
+   Perm(X) = z(X)·f'(X) - z(ωX)·g'(X)
+     - f'(X) 為三個 (< n) 項的乘積：deg(f') < 3n
+     - z(X)·f'(X) 的度數 < n + 3n = 4n
+   L_0(X)·(z(X) - 1)：deg < 2n
+
+   分子最高次數由 Perm(X) 主導：< 4n
+   除以 Z_H(X)（deg = n）後：deg(t) < 3n
 
 分割為三部分（每部分度數 < n）：
    t(X) = t_lo(X) + X^n · t_mid(X) + X^{2n} · t_hi(X)
@@ -700,7 +705,7 @@ r(X) = ā·b̄·q_M(X) + ā·q_L(X) + b̄·q_R(X) + c̄·q_O(X) + q_C(X)
           </tr>
           <tr>
             <td><strong>證明大小</strong></td>
-            <td colspan="2">7 G_1 + 6 F 元素 ≈ 800-900 bytes</td>
+            <td colspan="2">9 G_1 + 6 F 元素（BLS12-381 壓縮 G_1 48B → ~576 bytes）</td>
           </tr>
         </tbody>
       </table>
@@ -789,7 +794,7 @@ r(X) = ā·b̄·q_M(X) + ā·q_L(X) + b̄·q_R(X) + c̄·q_O(X) + q_C(X)
 PLONK：
   - 證明時間：~20-30 秒
   - 驗證時間：~10 ms
-  - 證明大小：~900 bytes
+  - 證明大小：~576 bytes（BLS12-381 壓縮；BN254 約 384 bytes）
 
 Groth16：
   - 證明時間：~10-15 秒
@@ -879,8 +884,8 @@ STARK：
 證明目標：∀i, f_i ∈ T
 
 方法：
-1. 構造排序向量 s = sort(f ∪ T)
-2. 證明 s 是 f ∪ T 的排列
+1. 構造排序向量 s = sort(f ⊎ T)  // ⊎ 為多重集合聯集（multiset union），保留重複元素
+2. 證明 s 是 f ⊎ T 的排列
 3. 證明 s 中相鄰差 (s_{i+1} - s_i) 都在 T 的相鄰差集合中
 
 ZKML 應用：

@@ -417,8 +417,9 @@ meta.create_gate("combined", |meta| {
   - 查詢 f = (f_1, ..., f_n)
 
 1. 合併與排序：
-   s := sort(f ∪ T)
-   其中 s 的長度為 n + d
+   s := sort(f ⊎ T)  // ⊎ 為多重集合聯集（multiset union），保留重複元素
+   其中 m = n + d（查詢數 + 表格大小）
+   實作時需選擇 N = 2^k ≥ m 並對 f, T, s 進行 padding
 
 2. 關鍵觀察：
    若 f ⊆ T，則 s 中每對相鄰元素 (sᵢ, sᵢ₊₁) 要麼：

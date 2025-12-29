@@ -82,9 +82,9 @@
 
       <div class="definition">
         <div class="definition-title">Definition 5：Blow-up Factor（膨脹因子）</div>
-        <p>FRI 協議中的膨脹因子定義為：</p>
-        <p>\[\rho^{-1} = \frac{|D|}{d} = \frac{n}{d}\]</p>
-        <p>常見選擇為 \(\rho^{-1} \in \{2, 4, 8, 16\}\)。膨脹因子越大，soundness 越好但證明者工作量增加。</p>
+        <p>FRI 協議中的膨脹因子（blowup factor）定義為：</p>
+        <p>\[B := \frac{|D|}{d} = \frac{n}{d} = \frac{1}{\rho}\]</p>
+        <p>其中 \(\rho = d/n\) 是碼率（code rate）。常見選擇為 \(B \in \{2, 4, 8, 16\}\)。膨脹因子越大，soundness 越好但證明者工作量增加。</p>
       </div>
 
       <div class="definition">
@@ -475,12 +475,12 @@
 給定目標安全等級 κ bits：
   λ ≥ κ / log₂(1 / max{ρ^{1/2}, 1-δ+ε})
 
-範例配置（ρ = 1/4，即 4x blowup）：
+範例配置（B = 4，即 ρ = 1/4）：
   - 每次查詢貢獻 ≈ 2 bits 安全性
   - 80-bit 安全：λ ≈ 40 次查詢
   - 128-bit 安全：λ ≈ 64 次查詢
 
-範例配置（ρ = 1/8，即 8x blowup）：
+範例配置（B = 8，即 ρ = 1/8）：
   - 每次查詢貢獻 ≈ 2.5 bits 安全性
   - 80-bit 安全：λ ≈ 32 次查詢
   - 128-bit 安全：λ ≈ 52 次查詢</code></pre>
@@ -520,7 +520,7 @@
       <table>
         <thead>
           <tr>
-            <th>\(\rho^{-1}\)（Blowup）</th>
+            <th>\(B\)（Blowup）</th>
             <th>每查詢安全 bits</th>
             <th>128-bit 需查詢數</th>
             <th>證明者開銷</th>
@@ -726,10 +726,13 @@ DEEP-FRI.Verify(commitments, y, z, proof):
 
       <pre><code>FRI 的後量子安全性：
 
-1. 雜湊函數安全性：
-   - 經典：SHA-256 提供 256-bit 碰撞抗性
-   - 量子：Grover 算法將碰撞抗性降至 128-bit
-   - 解決：使用 SHA-512 或更長雜湊
+1. 雜湊函數安全性（區分 preimage 與 collision）：
+   - 經典 preimage：SHA-256 → 256-bit
+   - 經典 collision（生日攻擊）：SHA-256 → 128-bit
+   - 量子 preimage（Grover）：SHA-256 → 128-bit（2^{d/2}）
+   - 量子 collision（BHT 類算法）：SHA-256 → ~85-bit（2^{d/3}）
+   - 結論：若需 128-bit 量子 collision 安全，需 d ≥ 384
+   - 解決：使用 SHA-384 或 SHA-512
 
 2. Fiat-Shamir 安全性：
    - 在量子隨機預言機模型（QROM）中仍然安全
@@ -740,15 +743,15 @@ DEEP-FRI.Verify(commitments, y, z, proof):
    - 查詢數：保持或略增
    - 證明大小增加：~1.5-2x
 
-4. 與基於群的方案比較：
+4. 與基於群的方案比較（以 collision 攻擊為主）：
    ┌──────────────┬────────────────┬───────────────┐
    │ 方案         │ 經典安全       │ 後量子安全    │
    ├──────────────┼────────────────┼───────────────┤
-   │ FRI          │ 128-bit        │ 128-bit*      │
-   │ KZG          │ 128-bit        │ 已破解        │
-   │ IPA          │ 128-bit        │ 已破解        │
-   └──────────────┴────────────────┴───────────────┘
-   * 需調整參數</code></pre>
+   │ FRI (SHA-256)│ 128-bit        │ ~85-bit (BHT) │
+   │ FRI (SHA-384)│ 192-bit        │ 128-bit       │
+   │ KZG          │ 128-bit        │ 已破解 (Shor) │
+   │ IPA          │ 128-bit        │ 已破解 (Shor) │
+   └──────────────┴────────────────┴───────────────┘</code></pre>
 
       <h2 id="zkml-applications">ZKML 應用</h2>
 
