@@ -135,6 +135,11 @@ Verify：
 
       <h3>zkAttn：零知識注意力</h3>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkllm-zkattn-overview.png" alt="zkAttn 總覽：V、Q、K 矩陣乘法經過 tlookup 分段查表與間接驗證" style="max-width: 100%; height: auto;">
+        <figcaption>圖：zkAttn 協議總覽。輸入 V、Q、K 經過矩陣乘法後，透過 tlookup 對每個分段進行查表驗證（圖中 exp 值表），並使用間接驗證（verify ẑ indirectly）確保 Softmax 正確性。Z 經過逐列正規化後分段為 Z' = [Z⁽⁰⁾, Z⁽¹⁾, ...]，最終輸出 Y。<br><small>來源：Sun et al., "zkLLM: Zero Knowledge Proofs for Large Language Models" (CCS 2024), Figure 1: "Overview of zkAttn."<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <p>zkAttn 針對 Transformer 的 Attention 機制設計<sup><a href="#ref-1">[1]</a></sup>：</p>
 
       <pre><code>標準 Attention：

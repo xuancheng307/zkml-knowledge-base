@@ -55,6 +55,11 @@
 
       <h3>整體結構</h3>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/transformer-architecture.png" alt="Transformer 模型架構：左側為 Encoder（N 層 Multi-Head Attention + Feed Forward），右側為 Decoder（N 層 Masked Attention + Cross-Attention + Feed Forward）" style="max-width: 600px; height: auto;">
+        <figcaption>圖：Transformer 模型架構。左側為 Encoder：輸入經過 Input Embedding 與 Positional Encoding 後，通過 N 層堆疊的 Multi-Head Self-Attention 與 Feed Forward 網路（每層後加 Add & Norm）。右側為 Decoder：輸出經過類似處理，但多了 Masked Multi-Head Attention 與連接 Encoder 輸出的 Cross-Attention。最終透過 Linear + Softmax 輸出機率分佈。<br><small>來源：Vaswani et al., "Attention Is All You Need" (NeurIPS 2017), Figure 1: "The Transformer - model architecture."<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <pre><code>Transformer 架構圖：
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -156,6 +161,11 @@
         <p class="math">$$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V$$</p>
         <p>其中 \(\sqrt{d_k}\) 是縮放因子，用於防止點積值過大導致 softmax 飽和。</p>
       </div>
+
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/transformer-attention.png" alt="左：Scaled Dot-Product Attention 流程（MatMul → Scale → Mask → SoftMax → MatMul）；右：Multi-Head Attention 結構（多個並行 Attention 後 Concat + Linear）" style="max-width: 100%; height: auto;">
+        <figcaption>圖：注意力機制結構。(左) Scaled Dot-Product Attention：輸入 Q、K、V，經過 MatMul（QKᵀ）、Scale（除以 √dₖ）、可選 Mask、Softmax，最後與 V 做 MatMul 得到輸出。(右) Multi-Head Attention：將 V、K、Q 分別經過 h 個 Linear 投影後並行計算 Scaled Dot-Product Attention，再 Concat 並通過最終 Linear 層。<br><small>來源：Vaswani et al., "Attention Is All You Need" (NeurIPS 2017), Figure 2: "(left) Scaled Dot-Product Attention. (right) Multi-Head Attention."<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
 
       <h3>計算步驟分解</h3>
 
