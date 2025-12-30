@@ -36,6 +36,11 @@
 
       <h2>研究背景</h2>
 
+      <figure>
+        <img src="/zkml-knowledge-base/assets/images/papers/zkllm-llm-structure.png" alt="LLM 典型結構：輸入序列經過 embedding 後通過 L 層 Transformer（每層包含 Multi-Head Attention + Feed Forward MLP），最後經 Linear + Softmax 輸出" style="max-width: 100%; height: auto;">
+        <figcaption>圖：大型語言模型（LLM）的典型結構。輸入 token 序列經過 embedding 後，通過 L 層堆疊的 Transformer 層（每層包含 Multi-Head Attention 與 Feed Forward MLP），最終經過 Linear 層與 Softmax 輸出下一個 token 的機率分佈。zkLLM 的核心挑戰在於如何有效證明這些大規模矩陣運算與非線性操作的正確性。<br><small>來源：Sun et al., "zkLLM: Zero Knowledge Proofs for Large Language Models" (CCS 2024), Figure 3: "Typical structure of LLMs."<sup><a href="#ref-1">[1]</a></sup></small></figcaption>
+      </figure>
+
       <h3>LLM 驗證挑戰</h3>
 
       <p>大型語言模型驗證面臨獨特挑戰<sup><a href="#ref-1">[1]</a></sup>：</p>
