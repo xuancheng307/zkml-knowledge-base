@@ -524,10 +524,33 @@
             </div>
         </div>
 
-        <h3>關鍵發現</h3>
+        <h3>關鍵發現：為什麼同一運算有多種表示法？</h3>
         <div class="highlight-box">
             <h3>同一運算，選錯實現方式，效能可能差 24 倍！</h3>
-            <p>例如 ReLU：位元分解 vs Lookup Table，最佳方案取決於全域電路配置</p>
+            <p>最佳方案取決於全域電路配置，不是單一運算的局部最佳</p>
+        </div>
+
+        <h4>ReLU 範例：兩種實現方式的 Trade-off</h4>
+        <div class="two-col">
+            <div class="card">
+                <h4>方法一：位元分解</h4>
+                <ul>
+                    <li>把 x 展開成多個 bit，檢查符號位</li>
+                    <li>需要 <strong>b+2 個 cell</strong>（b = 位寬）</li>
+                    <li>不需要 lookup table</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>方法二：Lookup Table</h4>
+                <ul>
+                    <li>直接建表存所有 x → ReLU(x)</li>
+                    <li>電路內只需 <strong>很少 cell</strong></li>
+                    <li>但表很大（2<sup>b</sup> 行）</li>
+                </ul>
+            </div>
+        </div>
+        <div class="card highlight">
+            <p><strong>哪個比較快？不是固定的。</strong>取決於：做多少次 ReLU、整體電路的 row/col 配置。只做 1 次 ReLU 時 lookup 可能更貴；做 2<sup>18</sup> 次時 lookup 可能更省。</p>
         </div>
     </section>
 
@@ -686,6 +709,10 @@
             <p><strong>解法：</strong>在電路外算好 B，電路內只驗證 Br = W(Ar)</p>
             <p><strong>效果：</strong>複雜度降到 O(n²)</p>
         </div>
+        <div class="card warning">
+            <h4>安全性考量</h4>
+            <p>隨機向量 r <strong>不能讓 prover 先知道</strong>，必須在 commitment 之後產生，否則 prover 可以作弊。</p>
+        </div>
     </section>
 
     <!-- Section 5: Optimizer -->
@@ -698,23 +725,59 @@
             <p>多用一點點 row → 從 2<sup>k</sup> 跳到 2<sup>k+1</sup> → 成本可能接近翻倍</p>
         </div>
 
-        <h3>Optimizer 做的事</h3>
-        <ol>
-            <li><strong>硬體 Benchmark：</strong>測量 FFT、MSM 在目標硬體上的時間</li>
-            <li><strong>產生邏輯布局：</strong>選擇每個運算的 gadget 實現</li>
-            <li><strong>產生物理布局：</strong>決定 columns 和 rows 配置</li>
-            <li><strong>成本估算：</strong>使用 row-exact simulator 精準預測</li>
-            <li><strong>選擇最佳方案：</strong>在所有可行方案中挑選成本最低的</li>
-        </ol>
+        <h3>Optimizer 流程（Algorithm 1）</h3>
+        <table>
+            <tr>
+                <th>步驟</th>
+                <th>說明</th>
+            </tr>
+            <tr>
+                <td><strong>1. BenchmarkOperations</strong></td>
+                <td>測量硬體上 FFT、MSM、lookup 建表時間（只需做一次）</td>
+            </tr>
+            <tr>
+                <td><strong>2. GenerateLogicalLayouts</strong></td>
+                <td>產生候選的邏輯布局（每層用哪種 gadget）</td>
+            </tr>
+            <tr>
+                <td><strong>3. GeneratePhysicalLayout</strong></td>
+                <td>決定實際的 columns 數量</td>
+            </tr>
+            <tr>
+                <td><strong>4. FindOptimalK</strong></td>
+                <td>找最適合的 k 使得 rows = 2<sup>k</sup></td>
+            </tr>
+            <tr>
+                <td><strong>5. EstimateCost</strong></td>
+                <td>用成本模型估算 proving time，選最低成本方案</td>
+            </tr>
+        </table>
+
+        <div class="card">
+            <h4>Heuristic Pruning 策略</h4>
+            <p>候選空間可能爆炸，ZKML 使用啟發式剪枝：<strong>傾向讓同類 layer 使用同一種實作</strong>，因為新增 constraint 的固定成本往往比新增 column 更貴。</p>
+        </div>
+
+        <h3>Row-exact Simulator：為什麼「精準」很重要？</h3>
+        <div class="card danger">
+            <p>因為 rows 有 <strong>2<sup>k</sup> 門檻</strong>。估錯一點點 → 以為在 2<sup>20</sup> 以內 → 實際超出 → 被迫跳到 2<sup>21</sup> → <strong>成本翻倍</strong></p>
+            <p>所以 row-exact simulation（精準計算實際 row 數）是 optimizer 能做對決策的核心。</p>
+        </div>
 
         <h3>成本模型</h3>
-        <p>Proving time 的主要來源：<strong>FFT</strong> (Fast Fourier Transform) + <strong>MSM</strong> (Multi-Scalar Multiplication)</p>
+        <p>Proving time 主要來源：<strong>FFT</strong> + <strong>MSM</strong> + lookup 建表 + field operations</p>
 
         <div class="formula">
             C<sub>FFT</sub> = n<sub>FFT</sub> × t<sub>FFT</sub>(k) + n'<sub>FFT</sub> × t<sub>FFT</sub>(k')
         </div>
 
-        <p>其中 k 使得 rows = 2<sup>k</sup></p>
+        <p>重點不是算到毫秒，而是<strong>排序要準</strong>：誰比較快，成本模型要能排得出來。</p>
+
+        <h3>多目標優化</h3>
+        <div class="card highlight">
+            <p>Optimizer 可切換目標：<strong>最短 proving time</strong> vs <strong>最小 proof size</strong></p>
+            <p>對區塊鏈場景很重要：鏈上儲存很貴，可能願意證明慢一點換 proof 小一點。</p>
+        </div>
     </section>
 
     <!-- Section 6: Results -->
