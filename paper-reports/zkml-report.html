@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKML: 零知識證明機器學習推論最佳化系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --light: #ebf8ff;
+            --text: #2d3748;
+            --muted: #718096;
+            --success: #38a169;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: #f7fafc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        header .meta {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        main {
+            background: white;
+            margin: 30px auto;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        section {
+            padding: 50px 60px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin: 25px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Figures */
+        .figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .figure figcaption {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .figure.large img {
+            width: 100%;
+        }
+
+        .figure.medium img {
+            max-width: 85%;
+        }
+
+        .figure.small img {
+            max-width: 60%;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .two-col.reverse {
+            direction: rtl;
+        }
+
+        .two-col.reverse > * {
+            direction: ltr;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .card.highlight {
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+            border-left: 4px solid var(--accent);
+        }
+
+        .card.warning {
+            background: #fffaf0;
+            border-left: 4px solid var(--warning);
+        }
+
+        .card.danger {
+            background: #fff5f5;
+            border-left: 4px solid var(--danger);
+        }
+
+        .card h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        /* Code / Technical */
+        code {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .formula {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .highlight-box h3 {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-box p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: var(--light);
+            color: var(--secondary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 3px;
+        }
+
+        .tag.green {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .tag.yellow {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        .tag.red {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            nav { display: none; }
+            header { padding: 30px 20px; }
+            section { padding: 30px 40px; }
+            .figure img { box-shadow: none; border: 1px solid #ddd; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col { grid-template-columns: 1fr; }
+            section { padding: 30px 25px; }
+            header h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body data-page-id="zkml-eurosys24-report">
+
+<header>
+    <div class="container">
+        <h1>ZKML</h1>
+        <p class="subtitle">An Optimizing System for ML Inference in Zero-Knowledge Proofs</p>
+        <p class="subtitle">零知識證明機器學習推論最佳化系統</p>
+        <p class="meta">EuroSys 2024 | Chen et al. (UIUC, Stanford, UC Berkeley)</p>
+    </div>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#motivation">研究動機</a></li>
+        <li><a href="#usecases">應用場景</a></li>
+        <li><a href="#background">技術背景</a></li>
+        <li><a href="#architecture">系統架構</a></li>
+        <li><a href="#gadgets">Gadgets</a></li>
+        <li><a href="#optimizer">Optimizer</a></li>
+        <li><a href="#results">實驗結果</a></li>
+        <li><a href="#conclusion">結論</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Section 1: Motivation -->
+    <section id="motivation">
+        <h2>研究動機</h2>
+
+        <div class="two-col">
+            <div>
+                <h3>問題背景</h3>
+                <p>機器學習模型越來越多地被部署在封閉系統後面，用戶無法驗證模型是否按照宣稱的方式運作：</p>
+                <ul>
+                    <li>社群媒體推薦系統影響資訊流</li>
+                    <li>醫療診斷 AI 影響重大決策</li>
+                    <li>信用評分模型決定貸款審批</li>
+                </ul>
+
+                <h3>核心矛盾</h3>
+                <div class="card warning">
+                    <p><strong>用戶需求：</strong>透明度與可驗證性</p>
+                    <p><strong>企業顧慮：</strong>隱私、商業機密（GPT-4 訓練成本 > $100M）</p>
+                </div>
+            </div>
+            <div>
+                <div class="figure">
+                    <img src="images/Figure_01_page01.png" alt="Twitter ZKML 使用案例">
+                    <figcaption>Figure 1: ZKML 讓用戶能驗證推薦結果確實來自承諾的模型</figcaption>
+                </div>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h3>ZKML 的核心價值</h3>
+            <p>把「相信平台」改成「驗證平台」<br>
+            平台每次給你結果時，也給你一個 <strong>proof</strong>，證明輸出確實來自承諾的模型</p>
+        </div>
+
+        <div class="card danger">
+            <h4>ZKML 不證明什麼</h4>
+            <ul>
+                <li>不保證模型是「好的」或「公平的」</li>
+                <li>只保證「平台沒有在計算過程上說謊」</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Section 2: Use Cases -->
+    <section id="usecases">
+        <h2>應用場景</h2>
+        <p>ZKML 的核心技術可應用於多種需要「可驗證計算」的場景：</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">Trustless Audits</div>
+                <div class="label">無需信任的審計</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">Biometric Auth</div>
+                <div class="label">隱私生物辨識</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">Credit Scores</div>
+                <div class="label">可驗證信用評分</div>
+            </div>
+        </div>
+
+        <h3>1. Trustless Audits（無需信任的審計）</h3>
+        <div class="card">
+            <p><strong>問題：</strong>ML 模型訓練於私人數據（如推薦系統），用戶無法驗證模型是否如宣稱運作。</p>
+            <p><strong>解法：</strong>模型提供者 commit 到固定模型，每次輸出附帶 ZK proof。結合 verified databases 可實現端到端審計。</p>
+            <p><strong>範例：</strong>Twitter 推薦算法、OpenAI 的商業模型（gpt-3.5-turbo, gpt-4）</p>
+        </div>
+
+        <h3>2. Private Biometric Authentication（隱私生物辨識）</h3>
+        <div class="card">
+            <p><strong>問題：</strong>線上服務需要確認用戶是真人，但現有生物辨識方案侵犯隱私。</p>
+            <p><strong>解法：</strong>結合 <strong>attested sensors</strong>（帶數位簽章的感測器），用戶拍照後在本地執行人臉比對 ML 模型，產生 ZK proof 證明比對成功，但不洩露照片或生物特徵。</p>
+        </div>
+
+        <h3>3. Trustless Credit Scores（可驗證信用評分）</h3>
+        <div class="card">
+            <p><strong>問題：</strong>區塊鏈上的 undercollateralized loans 需要信用評分，但傳統信用機構不適用。</p>
+            <p><strong>解法：</strong>從用戶的 on-chain history 計算信用分數，使用 ZK-SNARK 證明評分是由承諾的 ML 模型誠實計算。借貸雙方都能驗證評分未被篡改。</p>
+        </div>
+
+        <div class="card highlight">
+            <h4>共同特性</h4>
+            <p>以上應用都需要結合其他技術（verified databases、attested sensors）才能實現端到端安全。ZKML 專注於「ML inference 的可驗證性」這一環。</p>
+        </div>
+    </section>
+
+    <!-- Section 3: Background -->
+    <section id="background">
+        <h2>技術背景</h2>
+
+        <h3>ZKML 證明與驗證流程</h3>
+        <div class="figure large">
+            <img src="images/Figure_02_page03.png" alt="ZKML 流程圖">
+            <figcaption>Figure 2(a): ZKML 的三階段流程 - 編譯、證明、驗證</figcaption>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">1</div>
+                <div class="label">Model Compilation<br>模型 → 電路</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">2</div>
+                <div class="label">ZKML Proving<br>輸入 + 電路 → Proof</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">3</div>
+                <div class="label">ZKML Verification<br>驗證 Proof 有效性</div>
+            </div>
+        </div>
+
+        <h3>halo2 電路表示</h3>
+        <p>ZKML 使用 halo2 作為底層證明系統，電路被表示為 <strong>2D Grid</strong>：</p>
+
+        <div class="two-col">
+            <div>
+                <div class="card">
+                    <h4>三種約束類型</h4>
+                    <ol>
+                        <li><strong>多項式約束：</strong>特定多項式必須等於零</li>
+                        <li><strong>複製約束：</strong>兩個 cell 值必須相等</li>
+                        <li><strong>查表約束：</strong>值必須存在於預定義表中</li>
+                    </ol>
+                </div>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>關鍵限制</h4>
+                    <p style="font-size: 1.2rem; color: var(--danger); font-weight: bold;">
+                        Rows 必須是 2<sup>k</sup>
+                    </p>
+                    <p>這個限制讓全域優化變得非常重要 — 多用一點 row 可能導致成本翻倍</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>關鍵發現</h3>
+        <div class="highlight-box">
+            <h3>同一運算，選錯實現方式，效能可能差 24 倍！</h3>
+            <p>例如 ReLU：位元分解 vs Lookup Table，最佳方案取決於全域電路配置</p>
+        </div>
+    </section>
+
+    <!-- Section 3: Architecture -->
+    <section id="architecture">
+        <h2>ZKML 系統架構</h2>
+
+        <div class="figure large">
+            <img src="images/Figure_03_page05.png" alt="ZKML 架構圖">
+            <figcaption>Figure 3: ZKML 五層架構 - 從使用者工具到 ZK 後端</figcaption>
+        </div>
+
+        <h3>五層架構說明</h3>
+        <table>
+            <tr>
+                <th>層級</th>
+                <th>功能</th>
+                <th>實現</th>
+            </tr>
+            <tr>
+                <td><span class="tag yellow">User Tools</span></td>
+                <td>提供友善的 bash 介面</td>
+                <td>Prover, Verifier, Benchmark 工具</td>
+            </tr>
+            <tr>
+                <td><span class="tag green">Core</span></td>
+                <td>電路生成與佈局優化</td>
+                <td>Aggregator, Layout Optimizer</td>
+            </tr>
+            <tr>
+                <td><span class="tag yellow">Logical Layers</span></td>
+                <td>ML 層抽象</td>
+                <td>Fully Connected, Conv2D, Softmax...</td>
+            </tr>
+            <tr>
+                <td><span class="tag yellow">Low-level Gadgets</span></td>
+                <td>基礎運算電路</td>
+                <td>Shape, Arithmetic, Non-linearities</td>
+            </tr>
+            <tr>
+                <td><span class="tag">ZK Backend</span></td>
+                <td>零知識證明系統</td>
+                <td>halo2 + KZG/IPA commitment</td>
+            </tr>
+        </table>
+
+        <h3>KZG vs IPA：兩種 Commitment Scheme</h3>
+        <div class="two-col">
+            <div class="card">
+                <h4>KZG Commitment</h4>
+                <ul>
+                    <li><strong>Trusted Setup：</strong>需要一次性分散式設置（PSE 已完成 2<sup>28</sup>，超過 75 位參與者）</li>
+                    <li><strong>Proof Size：</strong>較小（O(1)）</li>
+                    <li><strong>Verification：</strong>極快（single pairing check）</li>
+                    <li><strong>適用：</strong>對驗證速度要求高、可接受 trusted setup 的場景</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>IPA Commitment</h4>
+                <ul>
+                    <li><strong>Transparent：</strong>無需 trusted setup</li>
+                    <li><strong>Proof Size：</strong>較大（O(log n)）</li>
+                    <li><strong>Verification：</strong>較慢（O(n) group operations）</li>
+                    <li><strong>適用：</strong>對去中心化要求高、不願依賴 trusted setup 的場景</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>Optimizer 流程</h3>
+        <div class="figure large">
+            <img src="images/Figure_04_page05.png" alt="Optimizer 流程">
+            <figcaption>Figure 4: Optimizer 將 ML 模型編譯為最佳電路佈局</figcaption>
+        </div>
+
+        <div class="card highlight">
+            <h4>Optimizer 四階段</h4>
+            <ol>
+                <li><strong>ML Model Specification:</strong> 解析模型結構</li>
+                <li><strong>Logical Plans:</strong> 選擇 gadget 實現方式</li>
+                <li><strong>Physical Plans:</strong> 決定電路佈局（columns, rows）</li>
+                <li><strong>Cost Estimation:</strong> 估算證明時間，選擇最佳方案</li>
+            </ol>
+        </div>
+    </section>
+
+    <!-- Section 4: Gadgets -->
+    <section id="gadgets">
+        <h2>Gadgets 設計</h2>
+
+        <h3>四大類 Gadgets</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">Shape</div>
+                <div class="label">reshape, slice, concat<br><span class="tag green">Free!</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">Arithmetic</div>
+                <div class="label">+, -, ×, ÷, dot product<br>多種實現方式</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">Non-linear</div>
+                <div class="label">ReLU, sigmoid, tanh<br>Lookup table</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">Specialized</div>
+                <div class="label">Softmax<br>Transformer 關鍵</div>
+            </div>
+        </div>
+
+        <h3>Softmax 的突破</h3>
+        <p>Softmax 是向量函數，無法直接用 lookup table（向量長度 n 需要 SF<sup>n</sup> 大小的表）。ZKML 將其分解為三個可驗證的 gadgets：</p>
+
+        <div class="formula">
+            Softmax: y<sub>i</sub> = e<sup>x<sub>i</sub></sup> / Σ e<sup>x<sub>j</sub></sup>
+        </div>
+
+        <div class="card highlight">
+            <h4>Numerical Stability Trick</h4>
+            <p>直接計算 e<sup>x</sup> 容易 overflow。ZKML 使用標準技巧：先減去最大值</p>
+            <div class="formula">
+                softmax(x<sub>i</sub>) = softmax(x<sub>i</sub> - max<sub>j</sub> x<sub>j</sub>)
+            </div>
+            <p>這樣所有 exponentials 的輸入都 ≤ 0，避免數值爆炸，同時結果不變（shift invariant）。</p>
+        </div>
+
+        <div class="two-col">
+            <div class="card">
+                <h4>1. Maximum Gadget</h4>
+                <p>找出最大值 c = max(a, b)</p>
+                <ul>
+                    <li>(c-a)(c-b) = 0（c 等於 a 或 b）</li>
+                    <li>c-a ∈ [0, N)（c ≥ a）</li>
+                    <li>c-b ∈ [0, N)（c ≥ b）</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>2. Scaled Exp Gadget</h4>
+                <p>計算 y = e<sup>x</sup> × SF</p>
+                <ul>
+                    <li>使用 lookup table</li>
+                    <li>SF = scale factor（避免精度損失）</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>3. Variable Division Gadget</h4>
+            <p>處理 c = Round(b/a)，其中 a 是變數（非固定常數）</p>
+            <p><strong>核心約束：</strong>b = c × a + r，其中 r 是餘數且 a - r ∈ [0, N)</p>
+            <p><strong>Rounding 技巧：</strong>Round(b/a) = floor((2b + a) / 2a)，轉換為標準整數除法</p>
+        </div>
+
+        <h3>矩陣乘法優化：Freivalds' Algorithm</h3>
+        <div class="card highlight">
+            <p><strong>問題：</strong>矩陣乘法 B = WA 需要 O(n³) 運算</p>
+            <p><strong>解法：</strong>在電路外算好 B，電路內只驗證 Br = W(Ar)</p>
+            <p><strong>效果：</strong>複雜度降到 O(n²)</p>
+        </div>
+    </section>
+
+    <!-- Section 5: Optimizer -->
+    <section id="optimizer">
+        <h2>Optimizer 詳解</h2>
+
+        <h3>為什麼 Optimizer 是核心？</h3>
+        <div class="card danger">
+            <h4>2<sup>k</sup> 限制的殘酷現實</h4>
+            <p>多用一點點 row → 從 2<sup>k</sup> 跳到 2<sup>k+1</sup> → 成本可能接近翻倍</p>
+        </div>
+
+        <h3>Optimizer 做的事</h3>
+        <ol>
+            <li><strong>硬體 Benchmark：</strong>測量 FFT、MSM 在目標硬體上的時間</li>
+            <li><strong>產生邏輯布局：</strong>選擇每個運算的 gadget 實現</li>
+            <li><strong>產生物理布局：</strong>決定 columns 和 rows 配置</li>
+            <li><strong>成本估算：</strong>使用 row-exact simulator 精準預測</li>
+            <li><strong>選擇最佳方案：</strong>在所有可行方案中挑選成本最低的</li>
+        </ol>
+
+        <h3>成本模型</h3>
+        <p>Proving time 的主要來源：<strong>FFT</strong> (Fast Fourier Transform) + <strong>MSM</strong> (Multi-Scalar Multiplication)</p>
+
+        <div class="formula">
+            C<sub>FFT</sub> = n<sub>FFT</sub> × t<sub>FFT</sub>(k) + n'<sub>FFT</sub> × t<sub>FFT</sub>(k')
+        </div>
+
+        <p>其中 k 使得 rows = 2<sup>k</sup></p>
+    </section>
+
+    <!-- Section 6: Results -->
+    <section id="results">
+        <h2>實驗結果</h2>
+
+        <h3>支援的模型（Table 5）</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">GPT-2</div>
+                <div class="label">81.3M 參數<br>188.9M FLOPs</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">Twitter</div>
+                <div class="label">48.1M 參數<br>96.2M FLOPs</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">Diffusion</div>
+                <div class="label">19.5M 參數<br>22.9B FLOPs</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">VGG16</div>
+                <div class="label">15.2M 參數<br>(CIFAR-10)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>實驗硬體環境</h4>
+            <p>所有數據測量於 AWS EC2 r6i 系列：</p>
+            <ul>
+                <li><strong>r6i.8xlarge</strong>：32 vCPU、256 GB RAM（大多數模型）</li>
+                <li><strong>r6i.16xlarge</strong>：64 vCPU、512 GB RAM（MobileNet）</li>
+                <li><strong>r6i.32xlarge</strong>：128 vCPU、1 TB RAM（GPT-2、Diffusion）</li>
+            </ul>
+        </div>
+
+        <h3>端到端效能 — KZG 後端（Table 6）</h3>
+        <table>
+            <tr>
+                <th>模型</th>
+                <th>Proving Time</th>
+                <th>Verification Time</th>
+                <th>Proof Size</th>
+            </tr>
+            <tr>
+                <td>MNIST</td>
+                <td>2.45s</td>
+                <td><span class="tag green">6.69ms</span></td>
+                <td>6,560 bytes</td>
+            </tr>
+            <tr>
+                <td>ResNet-18</td>
+                <td>52.9s</td>
+                <td><span class="tag green">11.84ms</span></td>
+                <td>15,744 bytes</td>
+            </tr>
+            <tr>
+                <td>VGG16</td>
+                <td>637.14s (~11min)</td>
+                <td><span class="tag green">9.62ms</span></td>
+                <td>12,064 bytes</td>
+            </tr>
+            <tr>
+                <td>MobileNet</td>
+                <td>1,225.5s (~20min)</td>
+                <td><span class="tag green">17.67ms</span></td>
+                <td>17,664 bytes</td>
+            </tr>
+            <tr>
+                <td>Twitter</td>
+                <td>358.7s (~6min)</td>
+                <td><span class="tag green">22.41ms</span></td>
+                <td>6,816 bytes</td>
+            </tr>
+            <tr>
+                <td>Diffusion</td>
+                <td>3,600.57s (~60min)</td>
+                <td><span class="tag yellow">92.78ms</span></td>
+                <td>28,704 bytes</td>
+            </tr>
+            <tr>
+                <td>GPT-2</td>
+                <td>3,651.67s (~61min)</td>
+                <td><span class="tag red">18.70s</span></td>
+                <td>28,128 bytes</td>
+            </tr>
+        </table>
+
+        <h3>端到端效能 — IPA 後端（Table 7）</h3>
+        <table>
+            <tr>
+                <th>模型</th>
+                <th>Proving Time</th>
+                <th>Verification Time</th>
+                <th>Proof Size</th>
+            </tr>
+            <tr>
+                <td>MNIST</td>
+                <td>2.36s</td>
+                <td><span class="tag green">22.26ms</span></td>
+                <td>7,680 bytes</td>
+            </tr>
+            <tr>
+                <td>ResNet-18</td>
+                <td>46.5s</td>
+                <td><span class="tag yellow">0.20s</span></td>
+                <td>17,120 bytes</td>
+            </tr>
+            <tr>
+                <td>VGG16</td>
+                <td>619.4s</td>
+                <td><span class="tag red">2.49s</span></td>
+                <td>17,184 bytes</td>
+            </tr>
+            <tr>
+                <td>Twitter</td>
+                <td>364.9s</td>
+                <td><span class="tag red">2.28s</span></td>
+                <td>8,448 bytes</td>
+            </tr>
+            <tr>
+                <td>GPT-2</td>
+                <td>3,949.60s</td>
+                <td><span class="tag red">11.98s</span></td>
+                <td>16,512 bytes</td>
+            </tr>
+        </table>
+
+        <div class="card highlight">
+            <h4>關鍵觀察</h4>
+            <ul>
+                <li><strong>Proving</strong> 很貴：從 2.5 秒（MNIST）到約 1 小時（GPT-2）</li>
+                <li><strong>Verification</strong> 通常便宜（KZG 下多數模型為毫秒級），但 <strong>GPT-2 例外達 18.70 秒</strong>；IPA 後端多模型驗證時間達秒級</li>
+                <li>Proof size 約 <strong>6-28 KB</strong>（極度壓縮）</li>
+            </ul>
+        </div>
+
+        <h3>量化後準確率（Table 8）</h3>
+        <p>ZKML 使用 fixed-point quantization 將浮點運算轉為有限域運算。關鍵問題：準確率會掉多少？</p>
+        <table>
+            <tr>
+                <th>模型</th>
+                <th>FP32 準確率</th>
+                <th>ZKML 準確率</th>
+                <th>差異</th>
+            </tr>
+            <tr>
+                <td>MNIST</td>
+                <td>99.06%</td>
+                <td>99.06%</td>
+                <td><span class="tag green">0%</span></td>
+            </tr>
+            <tr>
+                <td>VGG16</td>
+                <td>90.36%</td>
+                <td>90.37%</td>
+                <td><span class="tag green">+0.01%</span></td>
+            </tr>
+            <tr>
+                <td>ResNet-18</td>
+                <td>91.88%</td>
+                <td>91.87%</td>
+                <td><span class="tag green">-0.01%</span></td>
+            </tr>
+        </table>
+        <div class="card highlight">
+            <p><strong>結論：</strong>準確率損失不超過 0.01%，遠低於一般量化方法的 0.1% 門檻（差 20 倍）。ZKML 的 fixed-point 表示不會顯著影響模型品質。</p>
+        </div>
+
+        <h3>與先前工作比較 — CIFAR-10（Table 9）</h3>
+        <table>
+            <tr>
+                <th>系統</th>
+                <th>Accuracy</th>
+                <th>Proving Time</th>
+                <th>Verify Time</th>
+                <th>Proof Size</th>
+            </tr>
+            <tr>
+                <td>zkCNN</td>
+                <td>90.3%</td>
+                <td>88.3s</td>
+                <td>59ms</td>
+                <td>341 kB</td>
+            </tr>
+            <tr>
+                <td>vCNN</td>
+                <td>90.4%*</td>
+                <td>31 hours*</td>
+                <td>20 seconds</td>
+                <td><strong>0.34 kB</strong></td>
+            </tr>
+            <tr style="background: #c6f6d5;">
+                <td><strong>ZKML (ResNet-18)</strong></td>
+                <td><strong>91.9%</strong></td>
+                <td><strong>52.9s</strong></td>
+                <td><strong>12ms</strong></td>
+                <td>15.3 kB</td>
+            </tr>
+            <tr style="background: #e6fffa;">
+                <td>ZKML (VGG-16)</td>
+                <td>90.4%</td>
+                <td>584.1s</td>
+                <td>16ms</td>
+                <td>12.1 kB</td>
+            </tr>
+        </table>
+        <p style="font-size: 0.85rem; color: var(--muted);">* vCNN 的 proving time 由 zkCNN 論文估算；accuracy 為浮點精度估計值</p>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">~5×</div>
+                <div class="label">更快的驗證<br>(59ms → 12ms)</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">~22×</div>
+                <div class="label">更小的 Proof<br>(341kB → 15.3kB)</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">+1.6%</div>
+                <div class="label">更高準確率<br>(vs zkCNN)</div>
+            </div>
+        </div>
+
+        <h3>消融實驗</h3>
+
+        <div class="card">
+            <h4>Optimizer vs Fixed Configuration（Table 10）</h4>
+            <p>比較 ZKML optimizer 選擇的最佳配置 vs 固定 40 columns 配置：</p>
+            <table>
+                <tr><th>模型</th><th>ZKML (優化)</th><th>Fixed Config</th><th>改善幅度</th></tr>
+                <tr><td>MNIST</td><td>2.5s</td><td>4.4s</td><td>+76%</td></tr>
+                <tr><td>DLRM</td><td>34.4s</td><td>42.4s</td><td>+23%</td></tr>
+                <tr><td>ResNet-18</td><td>52.9s</td><td>74.8s</td><td>+41%</td></tr>
+                <tr><td>Twitter</td><td>358.7s</td><td>464.0s</td><td>+29%</td></tr>
+                <tr><td>VGG16</td><td>637.1s</td><td>1,474.0s</td><td><strong>+131%</strong></td></tr>
+                <tr><td>MobileNet</td><td>1,225.5s</td><td>2,407.8s</td><td>+96%</td></tr>
+                <tr><td>Diffusion</td><td>3,600.6s</td><td>4,989.7s</td><td>+39%</td></tr>
+                <tr><td>GPT-2</td><td>3,651.7s</td><td>5,952.0s</td><td>+63%</td></tr>
+            </table>
+        </div>
+
+        <div class="card">
+            <h4>多樣化 Gadgets 的重要性（Table 11）</h4>
+            <p>移除額外 gadget 實現後的模型層級退化（保留 optimizer）：</p>
+            <table>
+                <tr><th>模型</th><th>ZKML (完整)</th><th>無額外 Gadgets</th><th>退化倍數</th></tr>
+                <tr><td>MNIST</td><td>2.5s</td><td>6.2s</td><td>2.5×</td></tr>
+                <tr><td>DLRM</td><td>34.4s</td><td>859.5s</td><td><strong>24×</strong></td></tr>
+                <tr><td>ResNet-18</td><td>52.9s</td><td>812.6s</td><td>15×</td></tr>
+            </table>
+            <p style="margin-top: 15px; font-weight: bold; color: var(--danger);">
+                關鍵發現：同一運算的不同 gadget 實現，選錯可能差到 24 倍！
+            </p>
+        </div>
+
+        <h3>Optimizer 本身的效率</h3>
+        <p>ZKML 的 optimizer 使用 cost model 預測最佳配置，而非窮舉所有配置實際 benchmark。這能節省多少時間？</p>
+        <table>
+            <tr>
+                <th>模型</th>
+                <th>Optimizer 執行時間</th>
+                <th>窮舉 Benchmark 時間</th>
+                <th>加速倍數</th>
+            </tr>
+            <tr>
+                <td>MNIST</td>
+                <td>6.3s</td>
+                <td>3,622s</td>
+                <td><strong>575×</strong></td>
+            </tr>
+            <tr>
+                <td>GPT-2</td>
+                <td>185.3s</td>
+                <td>~1,078,449s (估計)</td>
+                <td><strong>5,900×</strong></td>
+            </tr>
+        </table>
+        <div class="card">
+            <p><strong>Cost Model 準確度：</strong>在 MNIST 上測量，optimizer 選出的配置確實是最佳配置。Kendall's rank correlation 達 <strong>0.89</strong>（KZG）和 <strong>0.88</strong>（IPA），證明 cost model 能準確排序不同配置的效能。</p>
+        </div>
+    </section>
+
+    <!-- Section 7: Conclusion -->
+    <section id="conclusion">
+        <h2>結論與限制</h2>
+
+        <h3>限制</h3>
+        <div class="two-col">
+            <div class="card warning">
+                <h4>記憶體瓶頸</h4>
+                <p>GPT-2 需要 <strong>1TB RAM</strong></p>
+            </div>
+            <div class="card warning">
+                <h4>不支援動態控制流</h4>
+                <p>無 branching 或 variable-length loops</p>
+            </div>
+            <div class="card warning">
+                <h4>模型架構需公開</h4>
+                <p>權重可私密，架構要公開</p>
+            </div>
+            <div class="card warning">
+                <h4>無形式化驗證</h4>
+                <p>TensorFlow → 電路的等價性未證明</p>
+            </div>
+        </div>
+
+        <h3>五個關鍵 Takeaways</h3>
+        <ol>
+            <li><strong>zkML 的難點是「能不能跑得動」</strong> — halo2 理論上什麼都能表示，性能是現實瓶頸</li>
+            <li><strong>同一運算的等價表示，選錯差 24 倍</strong> — 編譯 + 最佳化比想像的重要</li>
+            <li><strong>Softmax 是 Transformer 的關鍵門檻</strong> — ZKML 用三個 gadgets 解決</li>
+            <li><strong>Row 必須是 2<sup>k</sup> 讓全域布局選擇很關鍵</strong> — Row-exact simulator 是成功關鍵</li>
+            <li><strong>現階段仍非常吃硬體資源</strong> — 離「大型 LLM 每次推論都出 proof」還有距離</li>
+        </ol>
+
+        <div class="highlight-box">
+            <h3>核心貢獻</h3>
+            <p>ZKML 把「可驗證 ML 推論」從「只能 demo 小 CNN」推進到「可以處理現實世界模型」</p>
+        </div>
+
+        <div class="card">
+            <h4>開源程式碼</h4>
+            <p><a href="https://github.com/uiuc-kanglab/zkml" target="_blank">https://github.com/uiuc-kanglab/zkml</a></p>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>ZKML 論文研讀報告 | EuroSys 2024</p>
+    <p>Based on: Chen et al., "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs"</p>
+</footer>
+
+</body>
+</html>
