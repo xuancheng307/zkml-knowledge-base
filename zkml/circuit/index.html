@@ -625,8 +625,8 @@
       </table>
 
       <figure>
-        <img src="/zkml-knowledge-base/assets/images/papers/zktorch-dag-optimization.png" alt="ZKTorch DAG 優化：透過圖形轉換規則減少 basic blocks 數量" style="max-width: 100%; height: auto;">
-        <figcaption>圖：ZKTorch 的 DAG 優化範例。透過圖形轉換規則（如 GeLU、CustomCNN、MultiHeadMatMul 等）將高階運算轉換為更少的 basic blocks，減少證明開銷。<br><small>來源：Chen et al., "ZKTorch: Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation" (2025), Figure 2: "Optimization passes for basicblock DAG generation."<sup><a href="#ref-2">[2]</a></sup></small></figcaption>
+        <img src="/zkml-knowledge-base/assets/images/papers/zktorch-dag-optimization.png" alt="ZKTorch 圖形轉換規則：(a) GeLU 用一個 CQ 取代，(b) 固定矩陣 MatMul 用 CQLin + CQ 取代" style="max-width: 100%; height: auto;">
+        <figcaption>圖：ZKTorch 的圖形轉換規則範例。(a) 左側展示 GeLU 激活函數（包含 Pow、Mul、Add、Tanh 等多個運算）如何被單一個 CQ（查表）取代；(b) 右側展示固定矩陣的 MatMul 如何被 CQLin + CQ (Scale Down) 取代。這些轉換大幅減少 basic blocks 數量與證明開銷。<br><small>來源：Chen et al., "ZKTorch" (2025), Figure 2: "(a) One CQ for GeLU, (b) CQLin and CQ for MatMul with one fixed matrix."<sup><a href="#ref-2">[2]</a></sup></small></figcaption>
       </figure>
 
       <h3>3. 成本估算模型</h3>
