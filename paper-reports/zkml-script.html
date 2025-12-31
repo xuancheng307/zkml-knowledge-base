@@ -1,471 +1,563 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZKML 口頭報告講稿</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKML 口頭報告講稿</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        :root {
-            --primary: #1a365d;
-            --secondary: #2c5282;
-            --accent: #3182ce;
-            --light: #ebf8ff;
-            --text: #2d3748;
-            --muted: #718096;
-        }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      line-height: 2;
+      color: #333;
+      background: #f8f9fa;
+      padding: 40px 20px;
+    }
 
-        body {
-            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            line-height: 2;
-            color: var(--text);
-            background: #f7fafc;
-            font-size: 1.1rem;
-        }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 60px 50px;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+    h1 {
+      font-size: 1.8rem;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-align: center;
+    }
 
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 40px 20px;
-            text-align: center;
-        }
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
 
-        header h1 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      color: #3498db;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
 
-        header .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
+    .back-link:hover {
+      text-decoration: underline;
+    }
 
-        nav {
-            background: white;
-            padding: 15px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+    .section {
+      margin-bottom: 50px;
+    }
 
-        nav ul {
-            list-style: none;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 5px 15px;
-            max-width: 900px;
-            margin: 0 auto;
-        }
+    .section-title {
+      font-size: 1.3rem;
+      color: #2980b9;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+    }
 
-        nav a {
-            color: var(--secondary);
-            text-decoration: none;
-            font-weight: 500;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.95rem;
-        }
+    p {
+      margin-bottom: 18px;
+      text-align: justify;
+    }
 
-        nav a:hover {
-            background: var(--light);
-        }
+    .key-point {
+      background: #e8f4f8;
+      padding: 15px 20px;
+      border-left: 4px solid #3498db;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
 
-        main {
-            background: white;
-            margin: 30px auto;
-            max-width: 900px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            padding: 50px 60px;
-        }
+    .divider {
+      text-align: center;
+      margin: 40px 0;
+      color: #ccc;
+    }
 
-        .section {
-            margin-bottom: 50px;
-            padding-bottom: 30px;
-            border-bottom: 1px solid #e2e8f0;
-        }
+    footer {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+      color: #999;
+      font-size: 0.85rem;
+    }
 
-        .section:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
+    footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
 
-        h2 {
-            color: var(--primary);
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            padding: 10px 15px;
-            background: var(--light);
-            border-left: 4px solid var(--accent);
-            border-radius: 0 8px 8px 0;
-        }
-
-        h3 {
-            color: var(--secondary);
-            font-size: 1.2rem;
-            margin: 25px 0 15px 0;
-        }
-
-        p {
-            margin-bottom: 15px;
-            text-align: justify;
-        }
-
-        .highlight {
-            background: linear-gradient(120deg, #fef3c7 0%, #fde68a 100%);
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-
-        .key-point {
-            background: var(--light);
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid var(--accent);
-        }
-
-        .key-point strong {
-            color: var(--primary);
-        }
-
-        ul, ol {
-            margin: 15px 0 15px 30px;
-        }
-
-        li {
-            margin-bottom: 10px;
-        }
-
-        .note {
-            background: #fffaf0;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #d69e2e;
-            font-size: 1rem;
-        }
-
-        .summary-box {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 10px;
-            margin: 30px 0;
-            text-align: center;
-        }
-
-        .summary-box p {
-            font-size: 1.15rem;
-            margin: 0;
-        }
-
-        footer {
-            text-align: center;
-            padding: 30px 20px;
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        @media print {
-            nav { display: none; }
-            main { box-shadow: none; }
-        }
-
-        @media (max-width: 768px) {
-            main { padding: 30px 25px; }
-            header h1 { font-size: 1.6rem; }
-            body { font-size: 1rem; }
-        }
-    </style>
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 25px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <a href="zkml-report.html" class="back-link">&larr; 返回報告頁面</a>
 
-<header>
-    <div class="container">
-        <h1>ZKML 口頭報告講稿</h1>
-        <p class="subtitle">An Optimizing System for ML Inference in Zero-Knowledge Proofs</p>
-    </div>
-</header>
+    <h1>ZKML 口頭報告講稿</h1>
+    <p class="subtitle">ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs</p>
 
-<nav>
-    <ul>
-        <li><a href="#intro">開場</a></li>
-        <li><a href="#motivation">研究動機</a></li>
-        <li><a href="#usecases">應用場景</a></li>
-        <li><a href="#background">技術背景</a></li>
-        <li><a href="#architecture">系統架構</a></li>
-        <li><a href="#gadgets">Gadgets</a></li>
-        <li><a href="#optimizer">Optimizer</a></li>
-        <li><a href="#results">實驗結果</a></li>
-        <li><a href="#conclusion">結論</a></li>
-    </ul>
-</nav>
+    <!-- 開場 -->
+    <div class="section">
+      <p>大家好，今天我想報告的主題是 ZKML——全名是「ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs」，中文我會稱它是「零知識證明機器學習推論最佳化系統」。</p>
 
-<main>
-    <div class="section" id="intro">
-        <h2>開場</h2>
-        <p>大家好，今天我想報告的主題是 ZKML——全名是「ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs」，中文我會稱它是「零知識證明機器學習推論最佳化系統」。</p>
+      <p>我今天的講法會完全按照我這份報告頁面上的架構，一個區塊一個區塊往下走。你如果有在看投影片或網頁，也會發現順序是一樣的：研究動機、應用場景、技術背景、系統架構、Gadgets、Optimizer、實驗結果，最後是結論與限制。</p>
 
-        <p>我今天的講法會完全按照我這份報告頁面上的架構，一個區塊一個區塊往下走。你如果有在看投影片或網頁，也會發現順序是一樣的：研究動機、應用場景、技術背景、系統架構、Gadgets、Optimizer、實驗結果，最後是結論與限制。</p>
+      <p>我先講一個總結式的核心句，讓大家先抓住這篇的方向：</p>
 
-        <div class="summary-box">
-            <p><strong>核心價值：把「相信平台」改成「驗證平台」</strong></p>
-        </div>
+      <div class="key-point">
+        ZKML 的核心價值，是把「相信平台」改成「驗證平台」。
+      </div>
 
-        <p>模型提供者每次給你推論結果的同時，還會給你一個零知識證明（Zero-Knowledge Proof, ZKP），讓你可以驗證這個結果確實是由「事先承諾的模型」算出來的，而且在過程中不需要公開模型權重。</p>
+      <p>也就是：模型提供者每次給你推論結果的同時，還會給你一個零知識證明（Zero-Knowledge Proof, ZKP），讓你可以驗證這個結果確實是由「事先承諾的模型」算出來的，而且在過程中不需要公開模型權重。</p>
+
+      <p>好，接下來我就照區塊開始。</p>
     </div>
 
-    <div class="section" id="motivation">
-        <h2>區塊一：研究動機</h2>
+    <div class="divider">* * *</div>
 
-        <p>先從問題背景開始。現在很多機器學習模型（Machine Learning, ML）其實都部署在封閉系統（closed systems）或 API 後面。使用者拿到的只是「輸入 → 輸出」的服務，你看不到模型裡面到底怎麼做決策。</p>
+    <!-- 區塊一：研究動機 -->
+    <div class="section">
+      <h2 class="section-title">區塊一：研究動機</h2>
 
-        <p>這件事不只是在學術上有趣，它實際上會影響很具體的生活與社會決策。例如：</p>
-        <ul>
-            <li>社群媒體推薦系統會影響你看到的資訊流</li>
-            <li>醫療診斷 AI 會影響重大決策</li>
-            <li>信用評分模型會影響貸款審批</li>
-        </ul>
+      <p>先從問題背景開始。</p>
 
-        <p>當這些模型越來越重要，大家自然就會要求透明度（transparency）與可驗證性（verifiability）。最直覺的做法，就是把模型權重（model weights）公開，把資料公開。</p>
+      <p>現在很多機器學習模型（Machine Learning, ML）其實都部署在封閉系統（closed systems）或 API 後面。使用者拿到的只是「輸入 → 輸出」的服務，你看不到模型裡面到底怎麼做決策。</p>
 
-        <div class="key-point">
-            <strong>核心矛盾：</strong>使用者想要透明、可驗證；企業端卻有合理顧慮，包含隱私與商業機密。
-        </div>
+      <p>這件事不只是在學術上有趣，它實際上會影響很具體的生活與社會決策。例如：</p>
+      <p>第一，社群媒體推薦系統會影響你看到的資訊流。</p>
+      <p>第二，醫療診斷 AI 會影響重大決策。</p>
+      <p>第三，信用評分模型會影響貸款審批。</p>
 
-        <p>很多模型是用私密資料訓練的，你不可能要求它把訓練資料全摊開；而且模型權重本身可能是公司花極大成本訓練出來的資產，不會輕易公開。</p>
+      <p>當這些模型越來越重要，大家自然就會要求透明度（transparency）與可驗證性（verifiability）。</p>
+      <p>最直覺的做法，就是把模型權重（model weights）公開，把資料公開。</p>
 
-        <p>這時候，ZKML 想解的就是：<span class="highlight">我不要你公開權重，但我也不要完全「相信你」。我希望你用零知識證明來「證明你沒騙我」。</span></p>
+      <p>但這裡就出現報告頁面上寫的「核心矛盾」：</p>
+      <p>使用者想要透明、可驗證；</p>
+      <p>企業端卻有合理顧慮，包含隱私與商業機密。</p>
 
-        <h3>Figure 1 說明</h3>
-        <p>請大家看一下報告頁面上的 Figure 1，它用 Twitter 推薦作為例子。沒有 ZKML 的時候，平台說它用模型 M 幫你排序推薦內容，但你其實無法確認它是不是偷偷用另一個模型 M'。有了 ZKML 之後，平台除了給你「Interesting tweets？」的推薦結果，還會附上一個「ZKML proof」。你就可以驗證：這個輸出確實是由你期待的模型 M 算出來的。</p>
+      <p>我用更白話的方式說：很多模型是用私密資料訓練的，你不可能要求它把訓練資料全摊開；而且模型權重本身可能是公司花極大成本訓練出來的資產，不會輕易公開。</p>
 
-        <div class="note">
-            <strong>ZKML 不證明什麼？</strong>它不保證模型是「好的」或「公平的」；它只保證「平台沒有在計算過程上說謊」。如果模型本身偏誤（bias）很大，ZKML 不會神奇地讓它變公平。ZKML 解的是「誠實性」與「可驗證性」，不是「價值判斷」。
-        </div>
+      <p>這時候，ZKML 想解的就是：我不要你公開權重，但我也不要完全「相信你」。</p>
+      <p>我希望你用零知識證明來「證明你沒騙我」。</p>
+
+      <p>這裡請大家看一下報告頁面上的 Figure 1，它用 Twitter 推薦作為例子。</p>
+      <p>沒有 ZKML 的時候，平台說它用模型 M 幫你排序推薦內容，但你其實無法確認它是不是偷偷用另一個模型 M'。</p>
+      <p>有了 ZKML 之後，平台除了給你「Interesting tweets？」的推薦結果，還會附上一個「ZKML proof」。</p>
+      <p>你就可以驗證：這個輸出確實是由你期待的模型 M 算出來的，而不是員工臨時插手、或平台偷偷換模型。</p>
+
+      <p>所以在這個區塊的最後，我把 ZKML 的核心價值再唸一次：</p>
+      <p>把「相信平台」改成「驗證平台」，平台每次給你結果時，也給你 proof，證明輸出確實來自承諾的模型。</p>
+
+      <p>但同一個區塊也特別提醒一點：ZKML 不證明什麼？</p>
+      <p>它不保證模型是「好的」或「公平的」；</p>
+      <p>它只保證「平台沒有在計算過程上說謊」。</p>
+
+      <p>也就是說，如果模型本身偏誤（bias）很大，ZKML 不會神奇地讓它變公平。</p>
+      <p>ZKML 解的是「誠實性」與「可驗證性」，不是「價值判斷」。</p>
     </div>
 
-    <div class="section" id="usecases">
-        <h2>區塊二：應用場景</h2>
+    <div class="divider">* * *</div>
 
-        <p>報告頁面列了三個典型用途：無需信任的審計、隱私生物辨識、可驗證信用評分。</p>
+    <!-- 區塊二：應用場景 -->
+    <div class="section">
+      <h2 class="section-title">區塊二：應用場景</h2>
 
-        <h3>1. Trustless Audits（無需信任的審計）</h3>
-        <p>問題是什麼？很多 ML 模型訓練在私人數據上，例如推薦系統。使用者想審計：你是不是照你說的規則運作？你是不是偷偷改模型？</p>
-        <p>ZKML 的解法是：模型提供者先 commit 到固定模型，之後每次輸出都附 ZK proof。你不用看到權重，但你可以驗證它確實用那個承諾模型產生結果。</p>
+      <p>接下來進到「應用場景」，這裡報告頁面列了三個典型用途。我會依序講：無需信任的審計、隱私生物辨識、可驗證信用評分。</p>
 
-        <h3>2. Private Biometric Authentication（隱私生物辨識）</h3>
-        <p>問題是：線上服務想確認你是真人，但很多生物辨識方案侵犯隱私，因為你要把臉、指紋、聲紋交給平台。</p>
-        <p>做法是結合 attested sensors——帶有硬體簽章的感測器。使用者在本地拍照或感測，感測器對資料簽章，然後本地跑人臉比對模型，最後產生 ZK proof。平台只驗證 proof，不需要拿到你的照片或生物特徵。</p>
+      <p>第一個是 Trustless Audits，也就是「無需信任的審計」。</p>
+      <p>問題是什麼？很多 ML 模型訓練在私人數據上，例如推薦系統。</p>
+      <p>使用者想審計：你是不是照你說的規則運作？你是不是偷偷改模型？你是不是在特定族群上做差別待遇？</p>
+      <p>但企業又不能公開權重與資料。</p>
 
-        <h3>3. Trustless Credit Scores（可驗證信用評分）</h3>
-        <p>這個很常出現在區塊鏈場景。貸方想知道借方信用如何，但借方不想把完整財務與行為資料公開。做法是用 ZK-SNARK 證明這個分數確實依照承諾的 ML 模型誠實計算。</p>
+      <p>ZKML 的解法是：模型提供者先 commit 到固定模型，之後每次輸出都附 ZK proof。</p>
+      <p>你不用看到權重，但你可以驗證它確實用那個承諾模型產生結果。</p>
+      <p>如果再結合 verified databases（可驗證資料庫）之類的技術，就可以把「資料來源」到「推論過程」到「審計算法」串成端到端（end-to-end）的可驗證鏈。</p>
 
-        <div class="key-point">
-            <strong>共同特性：</strong>它們要完整安全，通常需要結合其他技術，例如 verified databases、attested sensors。ZKML 專注的是「ML inference 的可驗證性」這一環。
-        </div>
+      <p>第二個是 Private Biometric Authentication，也就是「隱私生物辨識」。</p>
+      <p>問題是：線上服務想確認你是真人，但很多生物辨識方案侵犯隱私，因為你要把臉、指紋、聲紋交給平台。</p>
+      <p>報告頁面提到的做法是結合 attested sensors——也就是帶有硬體簽章（digital signature）的感測器。</p>
+      <p>使用者在本地拍照或感測，感測器對資料簽章，然後本地跑人臉比對模型，最後產生 ZK proof。</p>
+      <p>平台只驗證 proof，不需要拿到你的照片或生物特徵，但仍然能得到「確實比對成功」這件事的可信保證。</p>
+
+      <p>第三個是 Trustless Credit Scores，也就是「可驗證信用評分」。</p>
+      <p>這個很常出現在區塊鏈場景，尤其是 undercollateralized loans（不足額抵押貸款）。</p>
+      <p>貸方想知道借方信用如何，但借方不想把完整財務與行為資料公開。</p>
+      <p>做法是：用戶可以用 on-chain history（鏈上歷史）或其他受控資料計算信用分數，再用 ZK-SNARK 證明這個分數確實依照承諾的 ML 模型誠實計算。</p>
+      <p>這樣借貸雙方都能驗證分數沒有被篡改，同時敏感資料不必公開。</p>
+
+      <p>這三個應用最後有一個「共同特性」，報告頁面也寫得很清楚：</p>
+      <p>它們要完整安全，通常需要結合其他技術，例如 verified databases、attested sensors。</p>
+      <p>ZKML 專注的是「ML inference 的可驗證性」這一環。</p>
     </div>
 
-    <div class="section" id="background">
-        <h2>區塊三：技術背景</h2>
+    <div class="divider">* * *</div>
 
-        <p>這個區塊主要要回答兩個問題：第一，ZKML 在做 proof 的流程是什麼？第二，它底層用的 halo2 電路模型，為什麼會讓「最佳化」變得很重要？</p>
+    <!-- 區塊三：技術背景 -->
+    <div class="section">
+      <h2 class="section-title">區塊三：技術背景</h2>
 
-        <h3>ZKML 證明與驗證流程（Figure 2）</h3>
-        <p>報告頁面把它拆成三個階段：</p>
-        <ol>
-            <li><strong>Model Compilation：</strong>把模型編譯成電路（circuit）</li>
-            <li><strong>ZKML Proving：</strong>把「輸入 + 電路」丟給 Prover，產生 Proof</li>
-            <li><strong>ZKML Verification：</strong>Verifier 用 verifying key 驗證 proof</li>
-        </ol>
+      <p>接下來是技術背景。這個區塊主要要回答兩個問題：</p>
+      <p>第一，ZKML 在做 proof 的流程是什麼？</p>
+      <p>第二，它底層用的 halo2 電路模型，為什麼會讓「最佳化」變得很重要？</p>
 
-        <h3>halo2 電路表示</h3>
-        <p>它把電路想成一個 2D grid，也就是二維格子表格。每個 cell 裡面是一個有限域（finite field）元素。然後，用 constraint（約束）把這些 cell 綁起來。</p>
+      <p>先看 ZKML 證明與驗證流程。</p>
+      <p>報告頁面有 Figure 2(a)，把它拆成三個階段：</p>
+      <p>第一階段，Model Compilation：把模型編譯成電路（circuit）。</p>
+      <p>第二階段，ZKML Proving：把「輸入 + 電路」丟給 Prover，產生 Proof。</p>
+      <p>第三階段，ZKML Verification：Verifier 用 verifying key 驗證 proof，得到「verified」或「not verified」。</p>
 
-        <p>約束分成三類：</p>
-        <ul>
-            <li><strong>多項式約束：</strong>要求某個多項式算出來要等於零，「你必須滿足某條等式」</li>
-            <li><strong>複製約束：</strong>要求兩個 cell 值要一樣，「這兩格必須相等」</li>
-            <li><strong>查表約束：</strong>要求某些值必須出現在預先定義的表裡，「你只能從合法表格裡選值」</li>
-        </ul>
+      <p>也就是：推論結果不是只靠平台口頭說，而是有 proof 可以驗證。</p>
 
-        <div class="key-point">
-            <strong>關鍵限制：Rows 必須是 2<sup>k</sup></strong><br>
-            你只要 row 數稍微超過 2<sup>k</sup> 一點點，你可能就得跳到 2<sup>(k+1)</sup>，整體成本可能接近翻倍。所以「電路布局」直接決定你證明快不快。
-        </div>
+      <p>同一張圖也會看到：ZKML 的輸出除了 ML output 以外，還有 proof；Verifier 驗證後能確認結果是否可信。</p>
 
-        <h3>ReLU 範例：為什麼同一運算有多種表示法？</h3>
-        <p><strong>方法一：位元分解</strong>——把 x 展開成 bit，檢查符號位，再重組。優點是不需要 lookup table；缺點是很吃 cell，位寬 b 的話要 b+2 個 cell。</p>
-        <p><strong>方法二：Lookup Table</strong>——直接建表存 (x, ReLU(x)) 的對應，電路內只要少量 cell 就能查表；但表大小至少 2<sup>b</sup> 行。</p>
-        <p>哪個快？不一定。如果只做一次 ReLU，做 lookup 可能反而更貴；但如果做很多次 ReLU，lookup 的攤提成本可能更划算。</p>
+      <p>接著報告頁面講 halo2 的電路表示。</p>
+      <p>它把電路想成一個 2D grid，也就是二維格子表格。每個 cell 裡面是一個有限域（finite field）元素。</p>
+      <p>然後，用 constraint（約束）把這些 cell 綁起來，確保它們符合你想要的運算規則。</p>
 
-        <div class="summary-box">
-            <p>同一運算，選錯實現方式，效能可能差 24 倍！</p>
-        </div>
+      <p>報告頁面把約束分成三類，我照著念重點，並用一句話口語化：</p>
+      <p>第一，多項式約束（polynomial constraint）：要求某個多項式算出來要等於零，也就是「你必須滿足某條等式」。</p>
+      <p>第二，複製約束（copy constraint）：要求兩個 cell 值要一樣，也就是「這兩格必須相等」。</p>
+      <p>第三，查表約束（lookup constraint）：要求某些值必須出現在預先定義的表裡，也就是「你只能從合法表格裡選值」。</p>
+
+      <p>這裡有一個非常關鍵、也會影響後面所有最佳化的限制：Rows 必須是 2^k。</p>
+      <p>也就是 row 數只能是 2 的冪次方。</p>
+
+      <p>為什麼這會很重要？</p>
+      <p>因為你只要 row 數稍微超過 2^k 一點點，你可能就得跳到 2^(k+1)，整體成本可能接近翻倍。</p>
+      <p>所以在 halo2 這種系統裡，「電路布局（layout）」跟「電路大小（grid size）」不是細節，它直接決定你證明快不快。</p>
+
+      <p>接著報告頁面給一個關鍵發現：</p>
+
+      <div class="key-point">
+        同一運算，選錯實現方式，效能可能差 24 倍。
+      </div>
+
+      <p>它用 ReLU 當例子。</p>
+      <p>ReLU 有兩種常見電路做法：</p>
+      <p>方法一：位元分解（bit decomposition）。</p>
+      <p>把 x 展開成 bit，檢查符號位，再重組。優點是不需要 lookup table；缺點是很吃 cell，位寬 b 的話要 b+2 個 cell。</p>
+      <p>方法二：Lookup Table。</p>
+      <p>直接建表存 (x, ReLU(x)) 的對應，電路內只要少量 cell 就能查表；但表大小至少 2^b 行，而且 lookup 本身也有成本。</p>
+
+      <p>哪個快？不一定。</p>
+      <p>如果只做一次 ReLU，做 lookup 可能反而更貴；</p>
+      <p>但如果做很多次 ReLU，lookup 的攤提成本可能更划算。</p>
+
+      <p>報告頁面還特別寫：只做 1 次 ReLU 時 lookup 可能更貴；做 2^18 次時 lookup 可能更省。</p>
+      <p>這句話其實就是在鋪陳：最佳化是全域問題，不是局部問題。</p>
     </div>
 
-    <div class="section" id="architecture">
-        <h2>區塊四：系統架構</h2>
+    <div class="divider">* * *</div>
 
-        <h3>ZKML 五層架構（Figure 3）</h3>
-        <ul>
-            <li><strong>ZK Backend：</strong>底層證明系統使用 halo2，支援 KZG 與 IPA 兩種 commitment schemes</li>
-            <li><strong>Low-level Gadgets：</strong>把常用運算做成電路積木（Shape, Arithmetic, Non-linearities, Specialized）</li>
-            <li><strong>Logical Layers：</strong>ML 層抽象，像 Fully connected、Conv2D 等</li>
-            <li><strong>Core：</strong>Aggregator 把 layers 組成電路；Layout Optimizer 選最有效率的佈局</li>
-            <li><strong>User Tools：</strong>提供 Prover、Verifier、Benchmark 等工具</li>
-        </ul>
+    <!-- 區塊四：系統架構 -->
+    <div class="section">
+      <h2 class="section-title">區塊四：系統架構</h2>
 
-        <p><span class="highlight">ZKML 不是只有「能做電路」，它是一整個「從模型到最佳電路、再到 proof 與驗證」的系統。</span></p>
+      <p>接下來進到系統架構。這裡重點有三個：</p>
+      <p>第一，ZKML 的五層架構。</p>
+      <p>第二，KZG 跟 IPA 兩種 commitment scheme 的差異。</p>
+      <p>第三，Optimizer 的整體工作流程。</p>
 
-        <h3>KZG vs IPA</h3>
-        <p><strong>KZG Commitment：</strong>需要 Trusted Setup（PSE 已完成 2<sup>28</sup>）。Proof size 較小，驗證極快（一個 pairing check）。適合很在乎驗證速度的場景。</p>
-        <p><strong>IPA Commitment：</strong>Transparent，不需要 trusted setup。但 proof size 較大，verification 較慢。適合更在乎去中心化與透明性的場景。</p>
+      <p>先看 Figure 3：ZKML 五層架構。</p>
+      <p>我照著表格把每一層的角色講清楚。</p>
 
-        <h3>Optimizer 流程（Figure 4）</h3>
-        <p>四階段：ML Model Specification → Logical Plans → Physical Plans → Cost Estimation</p>
-        <p>ZKML 的核心不是只做「轉換」，而是做「轉換 + 最佳化」。</p>
+      <p>最底層是 ZK Backend：底層證明系統使用 halo2，並支援 KZG 與 IPA 兩種 commitment schemes。</p>
+
+      <p>往上一層是 Low-level Gadgets：它把常用運算做成電路積木，分成 Shape operations、Arithmetic operations、Non-linearities、Specialized operations。</p>
+
+      <p>再往上一層是 Logical Layers：也就是 ML 層抽象，像 Fully connected、Conv2D、DepthwiseConv2D 等。</p>
+
+      <p>再往上一層是 Core：核心模組包含 Aggregator 跟 Layout Optimizer。</p>
+      <p>Aggregator 負責把 layers 組成完整 halo2 電路；</p>
+      <p>Layout Optimizer 負責選最有效率的佈局。</p>
+
+      <p>最上面是 User Tools：提供 Prover、Verifier、Benchmark、Test 等工具，讓使用者可以用比較友善的方式跑完整流程。</p>
+
+      <p>這張圖裡也特別標示：有些模組用 Rust 實作，偏 halo2 與 proving；有些用 Python 實作，偏 ML 與 optimizer。</p>
+      <p>我用一句話總結這張圖：ZKML 不是只有「能做電路」，它是一整個「從模型到最佳電路、再到 proof 與驗證」的系統。</p>
+
+      <p>接著講 KZG vs IPA。</p>
+      <p>報告頁面用兩張卡片比較，我照重點唸：</p>
+
+      <p>KZG Commitment：</p>
+      <p>需要 Trusted Setup，一次性的通用可信設定；報告頁面提到 PSE 已完成 2^28，超過 75 位參與者。</p>
+      <p>優點是 proof size 較小，驗證極快，基本上是一個 pairing check。</p>
+      <p>適合：你很在乎驗證速度，而且可接受 trusted setup 的場景。</p>
+
+      <p>IPA Commitment：</p>
+      <p>它是 transparent，不需要 trusted setup。</p>
+      <p>但 proof size 較大，verification 較慢，通常要做 O(n) 的群運算。</p>
+      <p>適合：你更在乎去中心化與透明性，不想依賴 trusted setup 的場景。</p>
+
+      <p>也就是：這兩種後端沒有絕對好壞，是你要的安全模型與部署場景不同。</p>
+
+      <p>最後是 Optimizer 流程，請看 Figure 4。</p>
+      <p>這張圖把 ZKML optimizer 講得很像「編譯器」或「資料庫 query optimizer」：先有規格，再有 plan，再選成本最低的。</p>
+
+      <p>它的四階段是：</p>
+      <p>第一，ML Model Specification：解析模型結構。</p>
+      <p>第二，Logical Plans：選每個運算、每一層要用哪種 gadget 實現。</p>
+      <p>第三，Physical Plans：決定電路佈局，包含 columns、rows 等配置。</p>
+      <p>第四，Cost Estimation：估算證明時間，選最佳方案。</p>
+
+      <p>到這裡，其實你就可以理解：ZKML 的核心不是只做「轉換」，而是做「轉換 + 最佳化」。</p>
     </div>
 
-    <div class="section" id="gadgets">
-        <h2>區塊五：Gadgets 設計</h2>
+    <div class="divider">* * *</div>
 
-        <h3>四大類 Gadgets</h3>
-        <ul>
-            <li><strong>Shape：</strong>reshape、slice、concat，幾乎是 Free（只是重排索引）</li>
-            <li><strong>Arithmetic：</strong>加減乘除、dot product，同一運算有多種電路寫法</li>
-            <li><strong>Non-linear：</strong>ReLU、sigmoid、tanh，多數用 lookup table 做</li>
-            <li><strong>Specialized：</strong>主要是為了 Softmax</li>
-        </ul>
+    <!-- 區塊五：Gadgets 設計 -->
+    <div class="section">
+      <h2 class="section-title">區塊五：Gadgets 設計</h2>
 
-        <h3>Softmax 的突破</h3>
-        <p>Softmax 是向量函數，沒辦法直接用 lookup table 表示整個向量。ZKML 用兩個策略：</p>
-        <p><strong>第一，數值穩定技巧：</strong>先減掉最大值，softmax(x<sub>i</sub>) = softmax(x<sub>i</sub> - max<sub>j</sub> x<sub>j</sub>)，讓 exponentials 輸入都 ≤ 0。</p>
-        <p><strong>第二，分解成三個 gadgets：</strong></p>
-        <ol>
-            <li><strong>Maximum Gadget：</strong>找最大值，用多項式約束 (c-a)(c-b)=0 加 lookup 約束</li>
-            <li><strong>Scaled Exp Gadget：</strong>算 y = e<sup>x</sup> × SF，用 lookup table</li>
-            <li><strong>Variable Division Gadget：</strong>處理分母是變數的除法，b = c × a + r</li>
-        </ol>
+      <p>接下來進 Gadgets 設計。這裡我會照報告頁面分三段講：</p>
+      <p>第一，四大類 gadgets 是什麼。</p>
+      <p>第二，Softmax 為什麼難，以及 ZKML 怎麼把它拆成三個 gadgets。</p>
+      <p>第三，矩陣乘法怎麼優化：Freivalds' Algorithm。</p>
 
-        <h3>矩陣乘法優化：Freivalds' Algorithm</h3>
-        <p>矩陣乘法 B = WA 直接做要 O(n³)；Freivalds 做法是：在電路外算好 B，電路內只驗證 Br = W(Ar)，把驗證成本降到 O(n²)。</p>
-        <p>白話理解：你不在電路裡重算整個矩陣乘法，而是用隨機向量 r 抽查結果。只要 r 真的隨機且在承諾之後產生，prover 就很難作弊。</p>
+      <p>先講四大類 gadgets。</p>
+      <p>第一類是 Shape：例如 reshape、slice、concat。</p>
+      <p>報告頁面直接寫它們幾乎是 Free，原因是 tensor 可以引用已存在的 cells，所以只是重排索引，不用新增 witness cells。</p>
+
+      <p>第二類是 Arithmetic：加減乘除、dot product 等。</p>
+      <p>這裡的重點不是「支援哪些運算」而已，而是「同一運算可以有多種電路寫法」，ZKML 會提供多種實作版本，讓 optimizer 挑。</p>
+
+      <p>第三類是 Non-linear：像 ReLU、sigmoid、tanh。</p>
+      <p>報告頁面提到多數非線性用 lookup table 做，因為用多項式約束去逼近會很不效率。</p>
+
+      <p>第四類是 Specialized：主要是為了 Softmax。</p>
+      <p>因為 Softmax 在 Transformer 這類現代模型非常關鍵，但在 ZK 電路裡很容易變得又慢又不準。</p>
+
+      <p>接著就進到 Softmax 的突破。</p>
+      <p>報告頁面先寫 Softmax 公式：y_i = e^{x_i} / Σ e^{x_j}。</p>
+      <p>它直接說一個關鍵困難：Softmax 是向量函數，沒辦法直接用 lookup table 表示整個向量，否則表的大小會爆炸。</p>
+
+      <p>所以 ZKML 用兩個策略：</p>
+      <p>第一，使用數值穩定技巧（Numerical Stability Trick）：先減掉最大值。</p>
+      <p>也就是 softmax(x_i) = softmax(x_i - max_j x_j)。</p>
+      <p>這樣 exponentials 的輸入都會 ≤ 0，比較不會 overflow，而且因為 softmax shift invariant，結果不變。</p>
+
+      <p>第二，把 Softmax 分解成三個可驗證的 gadgets：</p>
+
+      <p>第一個 gadget：Maximum Gadget，用來找最大值 c = max(a, b)。</p>
+      <p>它的約束分兩部分：</p>
+      <p>(1) 用多項式約束 (c-a)(c-b)=0，逼迫 c 只能等於 a 或 b。</p>
+      <p>(2) 用 lookup 約束 c-a ∈ [0, N)，c-b ∈ [0, N)，確保 c ≥ a 且 c ≥ b。</p>
+      <p>兩段加起來，c 就真的是最大值。</p>
+
+      <p>第二個 gadget：Scaled Exp Gadget，用來算 y = e^x × SF，其中 SF 是 scale factor。</p>
+      <p>用 lookup table 把 exp 對應值查出來，同時乘上縮放因子避免精度損失。</p>
+
+      <p>第三個 gadget：Variable Division Gadget，用來處理分母是變數的除法。</p>
+      <p>報告頁面寫：處理 c = Round(b/a)，其中 a 不是固定常數。</p>
+      <p>它的核心約束是：b = c × a + r，其中 r 是餘數，並要求 r 落在合理範圍內。</p>
+      <p>然後 rounding 的技巧是把 Round(b/a) 轉成 floor((2b + a) / 2a)，把四捨五入轉成標準整數除法形式。</p>
+
+      <p>講完 softmax 的三個 gadgets，最後是矩陣乘法優化：Freivalds' Algorithm。</p>
+      <p>報告頁面用一句話點出：</p>
+      <p>矩陣乘法 B = W A 直接做要 O(n^3)；</p>
+      <p>Freivalds 做法是：在電路外算好 B，電路內只驗證 B r = W (A r)，把驗證成本降到 O(n^2)。</p>
+
+      <p>我補一個白話理解：你不在電路裡重算整個矩陣乘法，而是用隨機向量 r 抽查結果。</p>
+      <p>只要 r 真的隨機且在承諾之後產生，prover 就很難作弊。</p>
     </div>
 
-    <div class="section" id="optimizer">
-        <h2>區塊六：Optimizer 詳解</h2>
+    <div class="divider">* * *</div>
 
-        <div class="key-point">
-            <strong>Optimizer 是核心。</strong>原因就是那句殘酷現實：Rows 必須是 2<sup>k</sup>。你多一點 row，可能就從 2<sup>k</sup> 跳到 2<sup>(k+1)</sup>，成本接近翻倍。
-        </div>
+    <!-- 區塊六：Optimizer 詳解 -->
+    <div class="section">
+      <h2 class="section-title">區塊六：Optimizer 詳解</h2>
 
-        <h3>Optimizer 流程（Algorithm 1）</h3>
-        <ol>
-            <li><strong>BenchmarkOperations：</strong>在目標硬體上測 FFT、MSM、lookup 建表等操作的時間（只要做一次）</li>
-            <li><strong>GenerateLogicalLayouts：</strong>產生候選的邏輯布局（每一層要用哪種 gadget）</li>
-            <li><strong>GeneratePhysicalLayout：</strong>決定實際的 columns 數量</li>
-            <li><strong>FindOptimalK：</strong>找最佳的 k，讓 rows = 2<sup>k</sup> 且能裝下電路</li>
-            <li><strong>EstimateCost：</strong>用成本模型估算 proving time，挑成本最低的方案</li>
-        </ol>
+      <p>接下來是 Optimizer。報告頁面在這裡的態度很明確：Optimizer 是核心。</p>
+      <p>原因其實就是我前面提過的那句殘酷現實：Rows 必須是 2^k。</p>
+      <p>你多一點 row，可能就從 2^k 跳到 2^{k+1}，成本接近翻倍。</p>
 
-        <h3>Heuristic Pruning</h3>
-        <p>候選空間會爆炸，所以要剪掉明顯不划算的選項。策略：傾向讓同類 layer 使用同一種實作，因為新增 constraint 的固定成本往往比新增 column 更貴。</p>
+      <p>所以 Optimizer 要做的事情，是在很多等價表示中選一個「最省」的。</p>
+      <p>報告頁面整理 Optimizer 流程（Algorithm 1）成表格，我照步驟講：</p>
 
-        <h3>Row-exact Simulator</h3>
-        <p>你如果估 row 數估錯一點點，就可能被迫跳到下一個 2<sup>k</sup>，成本翻倍。所以它做 row-exact simulation，精準算出某個 layout 會用掉多少 rows。</p>
+      <p>第一步：BenchmarkOperations。</p>
+      <p>在目標硬體上測 FFT、MSM、lookup 建表等操作的時間。這一步通常只要做一次。</p>
 
-        <h3>成本模型</h3>
-        <p>Proving time 主要來源是 FFT 與 MSM。重點不是算到毫秒，而是排序要準：誰比較快、誰比較慢，模型要能排出來。</p>
+      <p>第二步：GenerateLogicalLayouts。</p>
+      <p>產生候選的邏輯布局，也就是：每一層要用哪種 gadget 實作，但還不決定 columns 與 rows。</p>
 
-        <h3>多目標優化</h3>
-        <p>Optimizer 可以選擇目標是「最短 proving time」或「最小 proof size」。在區塊鏈場景特別重要，因為鏈上儲存很貴。</p>
+      <p>第三步：GeneratePhysicalLayout。</p>
+      <p>決定實際的 columns 數量。</p>
+
+      <p>第四步：FindOptimalK。</p>
+      <p>因為 rows 必須是 2^k，所以要找最佳的 k，讓 rows = 2^k 且能裝下電路。</p>
+
+      <p>第五步：EstimateCost。</p>
+      <p>用成本模型估算 proving time，挑成本最低的方案。</p>
+
+      <p>報告頁面也提到 heuristic pruning，也就是啟發式剪枝。</p>
+      <p>核心想法是：候選空間會爆炸，所以要剪掉明顯不划算的選項。</p>
+      <p>它舉的策略是：傾向讓同類 layer 使用同一種實作，因為新增 constraint 的固定成本往往比新增 column 更貴，而混用不同實作帶來的收益常不值得。</p>
+
+      <p>接著是 Row-exact Simulator。</p>
+      <p>報告頁面強調「精準」的重要性：你如果估 row 數估錯一點點，就可能被迫跳到下一個 2^k，成本翻倍。</p>
+      <p>所以它做 row-exact simulation，精準算出某個 layout 在某個 columns 設定下會用掉多少 rows。</p>
+
+      <p>最後是成本模型。</p>
+      <p>報告頁面說 proving time 主要來源是 FFT 與 MSM，再加上 lookup 建表與 field operations。</p>
+      <p>它還寫了一個簡化公式：C_FFT = n_FFT × t_FFT(k) + n'_FFT × t_FFT(k')。</p>
+      <p>重點不是算到毫秒，而是排序要準：誰比較快、誰比較慢，模型要能排出來，optimizer 才能選到接近最好的配置。</p>
+
+      <p>另外報告頁面也寫到多目標優化：Optimizer 可以選擇目標是「最短 proving time」或「最小 proof size」。</p>
+      <p>這在區塊鏈場景特別重要，因為鏈上儲存很貴，你可能願意證明慢一點換 proof 小一點。</p>
     </div>
 
-    <div class="section" id="results">
-        <h2>區塊七：實驗結果</h2>
+    <div class="divider">* * *</div>
 
-        <h3>支援的模型（Table 5）</h3>
-        <ul>
-            <li>GPT-2：81.3M 參數、188.9M FLOPs</li>
-            <li>Twitter：48.1M 參數、96.2M FLOPs</li>
-            <li>Diffusion：19.5M 參數、22.9B FLOPs</li>
-            <li>VGG16：15.2M 參數（在 CIFAR-10）</li>
-        </ul>
+    <!-- 區塊七：實驗結果 -->
+    <div class="section">
+      <h2 class="section-title">區塊七：實驗結果</h2>
 
-        <h3>實驗硬體環境</h3>
-        <p>AWS EC2 r6i 系列。GPT-2 與 Diffusion 用到 1TB RAM。這反映一個現實：ZK proof 對記憶體需求非常高。</p>
+      <p>接下來是實驗結果。這裡我會照報告頁面順序講四件事：</p>
+      <p>第一，支援哪些模型。</p>
+      <p>第二，端到端效能：KZG 與 IPA 各自的 proving、verification、proof size。</p>
+      <p>第三，量化後準確率掉多少。</p>
+      <p>第四，與先前工作比較與消融實驗。</p>
 
-        <h3>端到端效能重點數字（KZG）</h3>
-        <ul>
-            <li>MNIST：Proving 2.45 秒；Verification 6.69 毫秒</li>
-            <li>ResNet-18：Proving 52.9 秒；Verification 11.84 毫秒</li>
-            <li>GPT-2：Proving 約 61 分鐘；Verification 18.70 秒</li>
-        </ul>
+      <p>先講支援的模型，報告頁面引用 Table 5，列出幾個代表：</p>
+      <p>GPT-2：81.3M 參數、188.9M FLOPs。</p>
+      <p>Twitter：48.1M 參數、96.2M FLOPs。</p>
+      <p>Diffusion：19.5M 參數、22.9B FLOPs。</p>
+      <p>VGG16：15.2M 參數（在 CIFAR-10）。</p>
+      <p>另外還有 MobileNet、ResNet-18、DLRM、MNIST 等。</p>
 
-        <div class="key-point">
-            <strong>關鍵觀察：</strong>Proving 很貴（幾秒到一小時）；Verification 通常便宜（毫秒級），但 GPT-2 例外；Proof size 約 6-28 KB。
-        </div>
+      <p>接著是實驗硬體環境。</p>
+      <p>報告頁面寫：在 AWS EC2 r6i 系列上測量。</p>
+      <p>大多數模型用 r6i.8xlarge：32 vCPU、256GB RAM。</p>
+      <p>MobileNet 用 r6i.16xlarge：64 vCPU、512GB RAM。</p>
+      <p>GPT-2 與 Diffusion 用 r6i.32xlarge：128 vCPU、1TB RAM。</p>
+      <p>這裡其實也反映一個現實：ZK proof 對記憶體需求非常高。</p>
 
-        <h3>量化後準確率（Table 8）</h3>
-        <p>準確率損失不超過 0.01%，比一般量化方法的 0.1% 門檻還小很多。</p>
+      <p>再來是端到端效能，先講 KZG 後端（Table 6）。</p>
+      <p>我直接唸幾個代表性的數字：</p>
 
-        <h3>消融實驗重點</h3>
-        <p><strong>有 Optimizer vs 固定配置：</strong>VGG16 改善 131%，GPT-2 改善 63%。</p>
-        <p><strong>多樣化 gadgets 的重要性：</strong>拿掉額外 gadget 實現後，DLRM 慢到 24 倍，ResNet-18 慢 15 倍。</p>
+      <p>MNIST：Proving time 2.45 秒；Verification time 6.69 毫秒；Proof size 6,560 bytes。</p>
+      <p>ResNet-18：Proving 52.9 秒；Verification 11.84 毫秒；Proof size 15,744 bytes。</p>
+      <p>VGG16：Proving 637.14 秒，約 11 分鐘；Verification 9.62 毫秒；Proof size 12,064 bytes。</p>
+      <p>MobileNet：Proving 1,225.5 秒，約 20 分鐘；Verification 17.67 毫秒；Proof size 17,664 bytes。</p>
+      <p>Twitter：Proving 358.7 秒，約 6 分鐘；Verification 22.41 毫秒；Proof size 6,816 bytes。</p>
+      <p>Diffusion：Proving 3,600.57 秒，約 60 分鐘；Verification 92.78 毫秒；Proof size 28,704 bytes。</p>
+      <p>GPT-2：Proving 3,651.67 秒，約 61 分鐘；Verification 18.70 秒；Proof size 28,128 bytes。</p>
+
+      <p>報告頁面也有「關鍵觀察」：</p>
+      <p>Proving 很貴，從幾秒到一小時；</p>
+      <p>Verification 通常便宜，KZG 下多數模型是毫秒級，但 GPT-2 例外，驗證到 18.70 秒；</p>
+      <p>Proof size 大約 6 到 28 KB。</p>
+
+      <p>接著看 IPA 後端（Table 7），同樣我唸幾個代表數字：</p>
+
+      <p>MNIST：Proving 2.36 秒；Verification 22.26 毫秒；Proof size 7,680 bytes。</p>
+      <p>ResNet-18：Proving 46.5 秒；Verification 0.20 秒；Proof size 17,120 bytes。</p>
+      <p>VGG16：Proving 619.4 秒；Verification 2.49 秒；Proof size 17,184 bytes。</p>
+      <p>Twitter：Proving 364.9 秒；Verification 2.28 秒；Proof size 8,448 bytes。</p>
+      <p>GPT-2：Proving 3,949.60 秒；Verification 11.98 秒；Proof size 16,512 bytes。</p>
+
+      <p>報告頁面也總結：IPA 通常 proof size 比較大、verification 比較慢，因為不一樣的承諾與驗證成本結構；</p>
+      <p>但在某些情況下 proving 可能略快，因為底層運算差異。</p>
+
+      <p>接著是量化後準確率（Table 8）。</p>
+      <p>報告頁面說：ZKML 使用 fixed-point quantization，把浮點轉成有限域運算。</p>
+      <p>大家關心的是：準確率會不會掉？</p>
+
+      <p>它列了三個模型：</p>
+      <p>MNIST：FP32 99.06%，ZKML 99.06%，差異 0%。</p>
+      <p>VGG16：FP32 90.36%，ZKML 90.37%，差異 +0.01%。</p>
+      <p>ResNet-18：FP32 91.88%，ZKML 91.87%，差異 -0.01%。</p>
+
+      <p>也就是：準確率損失不超過 0.01%。</p>
+      <p>報告頁面還補一句：一般高品質量化通常以 0.1% 內變化為目標，他們比這門檻還小很多。</p>
+
+      <p>再來是與先前工作比較（Table 9）。</p>
+      <p>在 CIFAR-10 場景下：</p>
+      <p>zkCNN：Accuracy 90.3%；Proving 88.3 秒；Verify 59 毫秒；Proof 341 KB。</p>
+      <p>vCNN：Accuracy 90.4%（估計）；Proving 31 小時（估計）；Verify 20 秒；Proof 0.34 KB。</p>
+      <p>ZKML（ResNet-18）：Accuracy 91.9%；Proving 52.9 秒；Verify 12 毫秒；Proof 15.3 KB。</p>
+      <p>ZKML（VGG-16）：Accuracy 90.4%；Proving 584.1 秒；Verify 16 毫秒；Proof 12.1 KB。</p>
+
+      <p>報告頁面強調：ZKML 在驗證速度與 proof 大小上相對 zkCNN 有明顯優勢；而 vCNN 的 proof 非常小，但 proving 非常慢。</p>
+
+      <p>最後是消融實驗（ablation）。</p>
+      <p>報告頁面先講 Optimizer vs Fixed configuration（Table 10）。</p>
+      <p>例如：</p>
+      <p>MNIST：2.5 秒 vs 4.4 秒，改善 76%。</p>
+      <p>ResNet-18：52.9 秒 vs 74.8 秒，改善 41%。</p>
+      <p>VGG16：637.1 秒 vs 1474.0 秒，改善 131%。</p>
+      <p>GPT-2：3651.7 秒 vs 5952.0 秒，改善 63%。</p>
+      <p>這裡的訊息是：有 optimizer，效能差很多。</p>
+
+      <p>再來是「多樣化 gadgets 的重要性」（Table 11）。</p>
+      <p>把額外 gadget 實現拿掉，保留 optimizer，會怎樣？</p>
+      <p>MNIST：2.5 秒變 6.2 秒，慢 2.5 倍。</p>
+      <p>DLRM：34.4 秒變 859.5 秒，慢到 24 倍。</p>
+      <p>ResNet-18：52.9 秒變 812.6 秒，慢 15 倍。</p>
+      <p>這就直接支持它前面那句話：同一運算的不同實現，選錯真的可能差到 24 倍。</p>
+
+      <p>報告頁面也補充 optimizer 本身的效率：用 cost model 預測，不用窮舉全 benchmark。</p>
+      <p>例如 MNIST：optimizer 6.3 秒，但窮舉 benchmark 3,622 秒。</p>
+      <p>GPT-2：optimizer 185.3 秒，但窮舉 benchmark 估計要 1,078,449 秒。</p>
+      <p>所以 optimizer 能在很短時間內找到接近最好的配置。</p>
     </div>
 
-    <div class="section" id="conclusion">
-        <h2>區塊八：結論與限制</h2>
+    <div class="divider">* * *</div>
 
-        <h3>四個限制</h3>
-        <ol>
-            <li><strong>記憶體瓶頸：</strong>GPT-2 需要 1TB RAM</li>
-            <li><strong>不支援動態控制流：</strong>沒有 branching 或 variable-length loops</li>
-            <li><strong>模型架構需公開：</strong>權重可以私密，但 verifier 需要知道計算圖</li>
-            <li><strong>無形式化驗證：</strong>TensorFlow 到電路的等價性未做形式化證明</li>
-        </ol>
+    <!-- 區塊八：結論與限制 -->
+    <div class="section">
+      <h2 class="section-title">區塊八：結論與限制</h2>
 
-        <h3>五個 Takeaways</h3>
-        <ol>
-            <li>zkML 的難點是「能不能跑得動」——halo2 理論上什麼都能表示，但性能是現實瓶頸</li>
-            <li>同一運算的等價表示，選錯差 24 倍——編譯加最佳化比想像的重要</li>
-            <li>Softmax 是 Transformer 的關鍵門檻——ZKML 用三個 gadgets 解決</li>
-            <li>Row 必須是 2<sup>k</sup> 讓全域布局選擇很關鍵——Row-exact simulator 是成功關鍵</li>
-            <li>現階段仍非常吃硬體資源——離「大型 LLM 每次推論都出 proof」還有距離</li>
-        </ol>
+      <p>最後我進到結論與限制。報告頁面列了四個限制，我照順序講：</p>
 
-        <div class="summary-box">
-            <p>ZKML 把「可驗證 ML 推論」從只能 demo 小 CNN，推進到能處理更接近現實的模型類型，而且用「gadget 多樣性 + optimizer」把效能做出來。</p>
-        </div>
+      <p>第一，記憶體瓶頸。</p>
+      <p>像 GPT-2 需要 1TB RAM，這不是一般環境可輕易做到。</p>
 
-        <p style="text-align: center; margin-top: 30px; font-size: 1.2rem;">以上就是我今天的報告，謝謝大家。</p>
+      <p>第二，不支援動態控制流。</p>
+      <p>也就是沒有 branching 或 variable-length loops。</p>
+      <p>對 NLP 這類可變長輸入，通常需要固定長度、padding，或把分支與迴圈 unroll。</p>
+
+      <p>第三，模型架構需公開。</p>
+      <p>權重可以私密，但 verifier 需要知道你證明的計算圖與配置。</p>
+
+      <p>第四，無形式化驗證。</p>
+      <p>也就是 TensorFlow 到電路的等價性未做形式化證明；這是 zkML 類系統普遍難題。</p>
+
+      <p>最後報告頁面給五個 takeaways，我在結尾把它當作總結：</p>
+
+      <p>第一，zkML 的難點是「能不能跑得動」——halo2 理論上什麼都能表示，但性能是現實瓶頸。</p>
+      <p>第二，同一運算的等價表示，選錯差 24 倍——編譯加最佳化比想像的重要。</p>
+      <p>第三，Softmax 是 Transformer 的關鍵門檻——ZKML 用三個 gadgets 解決。</p>
+      <p>第四，Row 必須是 2^k 讓全域布局選擇很關鍵——Row-exact simulator 是成功關鍵。</p>
+      <p>第五，現階段仍非常吃硬體資源——離「大型 LLM 每次推論都出 proof」還有距離。</p>
+
+      <div class="key-point">
+        我用一句話收尾：ZKML 把「可驗證 ML 推論」從只能 demo 小 CNN，推進到能處理更接近現實的模型類型，而且用「gadget 多樣性 + optimizer」把效能做出來。
+      </div>
+
+      <p>以上就是我今天的報告，謝謝大家。</p>
     </div>
-</main>
 
-<footer>
-    <p>ZKML 口頭報告講稿 | EuroSys 2024</p>
-    <p><a href="zkml-report.html">← 返回完整報告頁面</a></p>
-</footer>
-
+    <footer>
+      <p>ZKML 口頭報告講稿 | 對應報告：<a href="zkml-report.html">ZKML (EuroSys'24) 論文導讀</a></p>
+    </footer>
+  </div>
 </body>
 </html>
