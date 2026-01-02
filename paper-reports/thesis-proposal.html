@@ -397,7 +397,7 @@
     <div class="container">
         <h1>論文方向想法說明書</h1>
         <p class="subtitle">ZKML 端到端配置自動調參：外層 Tuner / Meta-optimizer</p>
-        <p class="meta">研究提案 | 可直接跟教授討論的版本</p>
+        <p class="meta">研究提案</p>
         <p style="margin-top: 15px;"><a href="thesis-proposal-script.html" style="color: white; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; text-decoration: none; font-size: 0.95rem;">📖 講稿</a></p>
     </div>
 </header>
@@ -420,7 +420,7 @@
     <section id="starting-point">
         <h2>1. 出發點：ZKML 的 Optimizer 做了什麼</h2>
 
-        <p>我以 EuroSys 2024 的 ZKML 當起點，因為它把 zkML 的核心問題講得很清楚：</p>
+        <p>本研究以 EuroSys 2024 的 ZKML 當起點，因為它把 zkML 的核心問題講得很清楚：</p>
 
         <div class="card highlight">
             <p><strong>核心問題：</strong>同一個 ML 模型要變成 ZK proof，不能暴力試所有電路排法（太貴），所以需要 compiler + optimizer。</p>
@@ -439,7 +439,7 @@
         <div class="card warning">
             <h4>重要觀察</h4>
             <p>ZKML 的 optimizer 本質是：<strong>在固定電路表達/固定框架前提下，做 layout/gadget 層級的 cost-guided search。</strong></p>
-            <p>logrows (=k) 其實在 ZKML 內層就已經是核心要處理的變數之一，所以如果我論文只說「我要調 logrows」會非常弱，也很像重做。</p>
+            <p>logrows (=k) 其實在 ZKML 內層就已經是核心要處理的變數之一，所以如果論文只說「要調 logrows」會非常弱，也很像重做。</p>
         </div>
     </section>
 
@@ -447,7 +447,7 @@
     <section id="gap">
         <h2>2. 研究缺口（Gap）</h2>
 
-        <p>我覺得 ZKML 解得很好的是「電路內部怎麼排比較便宜」，但我想往上做的缺口是：</p>
+        <p>ZKML 解得很好的是「電路內部怎麼排比較便宜」，但值得往上做的缺口是：</p>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -480,7 +480,7 @@
         <h3>缺口 B：現在選參數常常是「工程試錯」</h3>
         <div class="card warning">
             <p>就算某些工具會給「建議值」，也不代表是最省 proving cost 的；而且不同模型、不同硬體、不同 PCS/stack 下，建議值可能完全不適用。</p>
-            <p><strong>這個領域需要的是：</strong>一個更上層的 Auto-Tuning 方法論，把「配置空間」系統化、把結果變成 Pareto frontier 與可解釋規則。</p>
+            <p><strong>領域真正需要的是：</strong>一個更上層的 Auto-Tuning 方法論，把「配置空間」系統化、把結果變成 Pareto frontier 與可解釋規則。</p>
         </div>
 
         <h3>缺口 C：ZKTorch 的參數/架構不同</h3>
@@ -495,7 +495,7 @@
         <h2>3. 核心主張：外層 Tuner / Meta-optimizer</h2>
 
         <div class="highlight-box">
-            <h3>我的論文核心主張</h3>
+            <h3>論文核心主張</h3>
             <p>沿用 ZKML 的基本精神：用成本模型/統計量引導搜尋，而不是暴力 profiling。<br>
             但把最佳化層級<strong>往上拉</strong>：做一個<strong>外層 tuner（meta-optimizer）</strong>，<br>
             去搜尋「端到端 configuration」，把內層的 ZKML optimizer 當作 subroutine。</p>
@@ -512,7 +512,7 @@
                 </ul>
             </div>
             <div class="card highlight">
-                <h4>外層（我的 Tuner）</h4>
+                <h4>外層（本研究的 Tuner）</h4>
                 <p>決定「到底用哪種量化/lookup/近似策略」才值得</p>
                 <ul>
                     <li>量化策略</li>
@@ -537,7 +537,7 @@
     <section id="config-space">
         <h2>4. 參數空間：分層＋條件式定義</h2>
 
-        <p>我不會把論文綁死在 bit/scale/k/lookup 這四個。更完整、更像研究的做法是把參數<strong>分層</strong>，並且允許<strong>條件式參數</strong>（tree-structured search space）：</p>
+        <p>本研究不會把論文綁死在 bit/scale/k/lookup 這四個。更完整、更像研究的做法是把參數<strong>分層</strong>，並且允許<strong>條件式參數</strong>（tree-structured search space）：</p>
 
         <div class="layer-card l1">
             <h4><span class="tag red">Layer 1</span> 量化/算術化（Arithmetization / Quantization）</h4>
@@ -589,7 +589,7 @@
     <section id="methodology">
         <h2>5. 研究方法：讓 Tuning「不是瞎調」</h2>
 
-        <p>我不會只說「我跑很多實驗歸納規則」。我會用一個比較完整的研究套路：</p>
+        <p>研究方法不只是「跑很多實驗歸納規則」，而是採用一個比較完整的研究套路：</p>
 
         <h3>5.1 形式化：帶約束的多目標最佳化</h3>
         <div class="card highlight">
@@ -646,9 +646,9 @@
 
         <h3>5.4 內層/外層（Bi-level）的關鍵點</h3>
         <div class="card warning">
-            <h4>我不是重做 ZKML</h4>
-            <p>我會把「layout 找最小可行 k*、最小 rows grid、columns 掃描」這種工作放在<strong>內層</strong>（沿用 ZKML 思想/或現有 compiler），外層 tuner 只負責決定「哪種 configuration 值得用」。</p>
-            <p><strong>研究貢獻會非常清楚</strong>：我做的是 meta 層的 configuration selection，不是把 ZKML 內層 optimizer 重寫一次。</p>
+            <h4>不是重做 ZKML</h4>
+            <p>「layout 找最小可行 k*、最小 rows grid、columns 掃描」這種工作放在<strong>內層</strong>（沿用 ZKML 思想/或現有 compiler），外層 tuner 只負責決定「哪種 configuration 值得用」。</p>
+            <p><strong>研究貢獻非常清楚</strong>：做的是 meta 層的 configuration selection，不是把 ZKML 內層 optimizer 重寫一次。</p>
         </div>
 
         <h3>5.5 可解釋規則（Rule Mining）</h3>
@@ -668,8 +668,8 @@
 
         <div class="card warning">
             <h4>重要聲明</h4>
-            <p>我不會說「同一組參數直接套用到 ZKTorch」。我會更嚴謹地說：</p>
-            <p>我把 ZKTorch 視為<strong>另一個 proving stack</strong>。我的外層 tuner 會先在 Halo2-style stack 上完成方法與評估；接著做延伸實驗：同一套 tuning 方法論是否能遷移到 ZKTorch-style stack。</p>
+            <p>這裡不會說「同一組參數直接套用到 ZKTorch」，而是更嚴謹地說：</p>
+            <p>將 ZKTorch 視為<strong>另一個 proving stack</strong>。外層 tuner 會先在 Halo2-style stack 上完成方法與評估；接著做延伸實驗：同一套 tuning 方法論是否能遷移到 ZKTorch-style stack。</p>
         </div>
 
         <h3>延伸的最小可行做法</h3>
@@ -685,8 +685,8 @@
         </ol>
 
         <div class="card highlight">
-            <p><strong>這樣就算 ZKTorch 在絕對速度上更強，我的貢獻仍然成立：</strong></p>
-            <p>我做的是「怎麼自動選擇配置與堆疊」，不是要跟 ZKTorch 拼單點速度。</p>
+            <p><strong>這樣就算 ZKTorch 在絕對速度上更強，本研究的貢獻仍然成立：</strong></p>
+            <p>做的是「怎麼自動選擇配置與堆疊」，不是要跟 ZKTorch 拼單點速度。</p>
         </div>
     </section>
 
@@ -694,7 +694,7 @@
     <section id="expected-results">
         <h2>7. 預期結果</h2>
 
-        <p>我會用<strong>可驗證的方式</strong>定義成功：</p>
+        <p>以<strong>可驗證的方式</strong>定義成功：</p>
 
         <div class="stats-grid">
             <div class="stat-card">
@@ -772,8 +772,8 @@
 
         <div class="highlight-box">
             <h3>核心定位</h3>
-            <p>我不是要重做 ZKML 的 optimizer，而是把它當作內層，往上做一個「端到端 configuration 的 Auto-Tuner」。</p>
-            <p style="margin-top: 20px;">我要解的是：在參數更多、堆疊更多（Halo2-stack / ZKTorch-stack）、而且每次 full proving 都昂貴的現實下，<br>
+            <p>本研究不是要重做 ZKML 的 optimizer，而是把它當作內層，往上做一個「端到端 configuration 的 Auto-Tuner」。</p>
+            <p style="margin-top: 20px;">要解的問題是：在參數更多、堆疊更多（Halo2-stack / ZKTorch-stack）、而且每次 full proving 都昂貴的現實下，<br>
             <strong>怎麼用有限試驗資源自動找到 Pareto 最佳配置，並把這件事從工程試錯變成可重現的方法論與規則。</strong></p>
         </div>
     </section>
