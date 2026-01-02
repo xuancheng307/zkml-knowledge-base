@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>論文方向想法說明書 - 口頭講稿</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      line-height: 2;
+      color: #333;
+      background: #f8f9fa;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 60px 50px;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      color: #805ad5;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      color: #805ad5;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #805ad5;
+    }
+
+    p {
+      margin-bottom: 18px;
+      text-align: justify;
+    }
+
+    .key-point {
+      background: #faf5ff;
+      padding: 15px 20px;
+      border-left: 4px solid #805ad5;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 40px 0;
+      color: #ccc;
+    }
+
+    footer {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+      color: #999;
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: #805ad5;
+      text-decoration: none;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="thesis-proposal.html" class="back-link">&larr; 返回說明書頁面</a>
+
+    <h1>論文方向想法說明書 - 口頭講稿</h1>
+    <p class="subtitle">ZKML 端到端配置自動調參：外層 Tuner / Meta-optimizer</p>
+
+    <!-- 開場 -->
+    <div class="section">
+      <p>教授好，我想跟您討論一下我論文方向的想法。</p>
+
+      <p>我的出發點是 EuroSys 2024 的 ZKML 這篇論文。我想做的事情，簡單講就是：</p>
+
+      <div class="key-point">
+        我不是要重做 ZKML 的 optimizer，而是把它當作內層，往上做一個「端到端 configuration 的 Auto-Tuner」。
+      </div>
+
+      <p>我先花幾分鐘講清楚我從哪裡出發、我看到什麼缺口、我想怎麼做、然後我預期達到什麼結果。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊一：出發點 -->
+    <div class="section">
+      <h2 class="section-title">一、我從哪裡出發：ZKML 做了什麼</h2>
+
+      <p>ZKML 這篇把 zkML 的核心問題講得很清楚：同一個 ML 模型要變成 ZK proof，不能暴力試所有電路排法，因為太貴了，所以需要 compiler 加 optimizer。</p>
+
+      <p>ZKML 的 optimizer，我把它叫「內層 optimizer」，它做的事情是：</p>
+
+      <p>把模型轉成 logical plans，每層可能有不同 gadget 或實作選項。再轉成 physical plans，決定電路的 layout，也就是 columns 跟 rows 怎麼分配。然後用 cost estimation，主要看 FFT、MSM、lookup 這些成本，去挑最省的 plan。</p>
+
+      <p>它會掃 columns 的不同配置，然後找最適合的 k，因為 rows 必須是 2 的 k 次方，k 的選擇影響非常大。為了避免組合爆炸，它會用 heuristic 把搜尋空間砍小。</p>
+
+      <p>所以 ZKML 的 optimizer 本質是：在固定電路表達、固定框架的前提下，做 layout 跟 gadget 層級的 cost-guided search。</p>
+
+      <div class="key-point">
+        重要的是：logrows，也就是 k，其實在 ZKML 內層就已經是核心要處理的變數之一。所以如果我論文只說「我要調 logrows」，這會非常弱，也很像重做。
+      </div>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊二：研究缺口 -->
+    <div class="section">
+      <h2 class="section-title">二、我看到的缺口</h2>
+
+      <p>我覺得 ZKML 解得很好的是「電路內部怎麼排比較便宜」。但我想往上做的缺口有三個：</p>
+
+      <p>第一個缺口是：端到端的 configuration 仍然是黑箱。</p>
+
+      <p>在真實使用場景裡，大家最常卡住的不是電路怎麼排，而是：量化跟定點表示到底怎麼設？bit-width、scale factor、rounding 要怎麼選？lookup table 的精度跟範圍怎麼設？精度高表就大，表大又會逼 k 跳階。非線性，像 exp、softmax、div，要用哪種近似或 gadget 方案？電路資源，columns budget、lookup strategy 怎麼配？甚至 PCS 不同，KZG 或 IPA，最佳配置的形狀可能完全不同。</p>
+
+      <p>這些不是單純靠 ZKML 的 layout optimizer 就能解完的，因為它的主要搜尋維度在電路排版跟 gadget 組合，而不是把「量化加近似加 lookup 設計」當成全局的主搜尋維度。</p>
+
+      <p>第二個缺口是：現在選參數常常是工程試錯。</p>
+
+      <p>就算某些工具會給建議值，也不代表是最省 proving cost 的。而且不同模型、不同硬體、不同 PCS 或 stack 下，建議值可能完全不適用。所以我覺得這個領域需要的是：一個更上層的 Auto-Tuning 方法論，把配置空間系統化，把結果變成 Pareto frontier 跟可解釋規則。</p>
+
+      <p>第三個缺口是：ZKTorch 的參數跟架構不同。</p>
+
+      <p>ZKTorch 走的是「拆成 basic blocks 加 accumulation」的 proving stack，跟「整個模型編成一張 halo2 大電路」不是同一種抽象。所以 ZKML 內層 optimizer 本來就不可能去調 ZKTorch 那一套 stack 的參數，像 block 選擇、累積策略、平行度配置這些。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊三：核心主張 -->
+    <div class="section">
+      <h2 class="section-title">三、我想做什麼：外層 Tuner</h2>
+
+      <p>我論文的核心主張可以是這樣：</p>
+
+      <p>我沿用 ZKML 的基本精神：用成本模型跟統計量引導搜尋，而不是暴力 profiling。但我把最佳化層級往上拉：做一個外層 tuner，或者叫 meta-optimizer，去搜尋「端到端 configuration」，把內層的 ZKML optimizer 或現有 layout 編譯器當作 subroutine。</p>
+
+      <div class="key-point">
+        換句話說：內層，也就是 ZKML optimizer，負責「給定某種表達跟設計，幫我把電路排到最好」。外層，也就是我的 tuner，負責「決定到底用哪種量化、lookup、近似策略才值得」，並且在有限試驗預算下快速逼近最優。
+      </div>
+
+      <p>最終輸出不是一個「我覺得不錯的參數」，而是在 accuracy 門檻下的 Pareto 最佳配置集合，以及可解釋的調參規則。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊四：參數空間 -->
+    <div class="section">
+      <h2 class="section-title">四、我要調的參數不只四個</h2>
+
+      <p>我不會把論文綁死在 bit、scale、k、lookup 這四個。更完整、更像研究的做法是把參數分層，並且允許條件式參數，也就是 tree-structured search space。</p>
+
+      <p>第一層是量化跟算術化。這些會直接影響精度跟溢位風險，也會影響 lookup domain 跟電路成本。包括 bit-width，可以做 per-layer 或 mixed precision；scale factor 策略，per-tensor、per-channel、per-layer；rounding mode，nearest 或 floor，甚至可以研究 stochastic rounding；clipping 跟 saturation，要不要截斷、截斷界怎麼設；還有 calibration 設定，用多少校準資料估 range。</p>
+
+      <p>第二層是非線性跟 lookup 近似策略。這是 zkML 成本炸裂的核心區。包括 lookup precision，也就是粒度跟精度；lookup input range，像 exp 的 clip range、softmax 的穩定化策略；table sharing，多算子共用表還是分開；piecewise table，分段近似還是單表；還有某些算子選 lookup 還是 bit-decomposition gadget，像 max 或 ReLU。</p>
+
+      <p>第三層是電路資源跟佈局。這層我會避免把所有 layout 細節都變成搜尋維度，太爆了。但我會保留能影響整體成本結構的 knob，像 columns budget、lookup 策略、表大小上限、表數量這些。至於 logrows，我更傾向當成內層推導出的最小可行 k，而不是外層主參數，因為它在 ZKML 本來就會被 FindOptimalK 處理。</p>
+
+      <p>第四層是 PCS 跟 proving backend。這裡我會明確區分：PCS backend 是 KZG 或 IPA，同一種電路前端下承諾方案不同，成本結構不同。Proving stack 是 Halo2-style compile-to-circuit 或 ZKTorch-style block+accumulation，這不是 PCS backend，是整條管線不同。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊五：研究方法 -->
+    <div class="section">
+      <h2 class="section-title">五、我會用什麼方法讓 tuning 不是瞎調</h2>
+
+      <p>我不會只說「我跑很多實驗歸納規則」。我會用一個比較完整的研究套路。</p>
+
+      <p>首先是形式化。我把它定義成帶約束的多目標最佳化。目標是最小化 proving time、peak RAM、proof size，可選 verifier cost。約束是 accuracy 必須大於等於門檻，而且配置必須可行，能編譯、能生成 witness、能通過 constraint check、避免 overflow 跟 wrap-around。輸出是 Pareto frontier，而不是單一最佳點。</p>
+
+      <p>第二是多保真評估，這讓我在筆電也能做。每個配置 θ 的評估，我分成三層：F0 是 compile 加電路統計量，像 rows_needed、cols、lookups 這些，超便宜，用來大量探索。F1 是 witness 加 mock 或 constraint check，確保可行性跟抓 overflow。F2 是 full proving，只對少數 Pareto 候選做，用來校正跟報告真實成本。這樣我能在有限資源下做大量試驗，同時保持論文結果可信。</p>
+
+      <p>第三是搜尋策略，不是 brute-force，而是 sample-efficient 的 tuner。工程穩定版我會用 Random warm-up 加 TPE，也就是 Tree-structured Parzen Estimator，或 RandomForest-BO。學術加分版可以用 constrained multi-objective Bayesian optimization，加可行性模型跟 hypervolume improvement。</p>
+
+      <p>第四是內層外層的關鍵點。我會把 layout 找最小可行 k、最小 rows grid、columns 掃描這種工作放在內層，沿用 ZKML 思想或現有 compiler。外層 tuner 只負責決定哪種 configuration 值得用。這樣我的研究貢獻會非常清楚：我做的是 meta 層的 configuration selection，不是把 ZKML 內層 optimizer 重寫一次。</p>
+
+      <p>第五是把 tuning 結果變成可解釋規則。我會把跑出的 trial logs 做 sensitivity analysis，看哪些參數最敏感。還有 decision tree、rule list、SHAP，產生像「如果模型是 softmax-heavy，lookup precision 要怎麼選」這種規則。讓結果不只是跑出一條 Pareto，而是真的產生設計準則。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊六：ZKTorch 延伸 -->
+    <div class="section">
+      <h2 class="section-title">六、我怎麼把這套方法延伸到 ZKTorch</h2>
+
+      <p>我不會說「同一組參數直接套用到 ZKTorch」。我會更嚴謹地說：</p>
+
+      <p>我把 ZKTorch 視為另一個 proving stack。我的外層 tuner 會先在 Halo2-style stack 上完成方法跟評估；接著做延伸實驗：同一套 tuning 方法論，也就是 budgeted search、multi-fidelity、Pareto、feasibility constraints，是否能遷移到 ZKTorch-style stack。</p>
+
+      <p>延伸的最小可行做法是這樣：定義統一的 metrics schema，包括 accuracy、time、RAM、proof size。在 ZKTorch 內部挑一小組它的可調參數，像 block 選擇、某些精度設定、平行度等，形成 θ_ZKTorch。讓 tuner 把 stack 當成 categorical 選項，在某些需求下，像 proof size 很嚴格或 proving time 很嚴格，tuner 是否會偏好不同 stack。還有評估 warm-start 或 transfer，在 Halo2-stack 上學到的先驗，能否讓 ZKTorch 的搜尋更快找到好解。</p>
+
+      <div class="key-point">
+        這樣就算 ZKTorch 在絕對速度上更強，我的貢獻仍然成立：我做的是「怎麼自動選擇配置與堆疊」，不是要跟 ZKTorch 拼單點速度。
+      </div>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊七：預期結果 -->
+    <div class="section">
+      <h2 class="section-title">七、我預期達到怎樣的結果</h2>
+
+      <p>我會用可驗證的方式定義成功：</p>
+
+      <p>第一，Sample efficiency。在固定 trial budget 下，例如 50 或 100 次，tuner 比 random 或 grid 更快找到滿足 accuracy 門檻的低成本配置。</p>
+
+      <p>第二，Pareto frontier。輸出不同模型的 cost–accuracy 前沿，展示參數交互，像 bit、scale、lookup，如何導致 k 跳階與成本劇變。</p>
+
+      <p>第三，可解釋規則。萃取可泛化的 ZK-friendly tuning rules，哪些參數最敏感、臨界點在哪。</p>
+
+      <p>第四，跨 stack 延伸，這是加分項。展示方法論可以遷移到 ZKTorch，或至少能用 stack selection 跟 warm-start 提升效率。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊八：執行路線 -->
+    <div class="section">
+      <h2 class="section-title">八、我打算怎麼做</h2>
+
+      <p>我會用「先做可用，再做漂亮」的路線：</p>
+
+      <p>Phase 1，把 runner 做到完整，這是最重要的。輸入 θ，輸出 metrics，包括 acc、cost、feasible，加電路統計跟 log。先用小模型，像 MLP 或 tiny CNN，跑通 multi-fidelity pipeline。</p>
+
+      <p>Phase 2，做第一版 tuner，可跑出 Pareto。先用 TPE 或 BO，跑出 Pareto frontier，並做 baseline 對照，包括 default、random、簡單 heuristic。</p>
+
+      <p>Phase 3，擴參數空間，從四個變多層。加入 rounding、clipping、table sharing、piecewise、mixed precision 等，做 sensitivity 跟 rule mining。</p>
+
+      <p>Phase 4，延伸到 ZKTorch，做方法遷移或 stack selection。把 stack 作為 categorical 選項或做 transfer，完成外層 tuner 的更大敘事。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 收尾 -->
+    <div class="section">
+      <h2 class="section-title">收尾</h2>
+
+      <p>最後用一句話總結我想做的事：</p>
+
+      <div class="key-point">
+        我不是要重做 ZKML 的 optimizer，而是把它當作內層，往上做一個「端到端 configuration 的 Auto-Tuner」。我要解的是：在參數更多、堆疊更多，而且每次 full proving 都昂貴的現實下，怎麼用有限試驗資源自動找到 Pareto 最佳配置，並把這件事從工程試錯變成可重現的方法論與規則。
+      </div>
+
+      <p>以上是我目前的想法，想請教授給我一些建議。</p>
+    </div>
+
+    <footer>
+      <p>論文方向想法說明書 - 口頭講稿 | 對應說明書：<a href="thesis-proposal.html">ZKML 端到端配置自動調參研究提案</a></p>
+    </footer>
+  </div>
+</body>
+</html>
