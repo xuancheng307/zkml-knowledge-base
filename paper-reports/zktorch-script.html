@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKTorch 口頭報告講稿</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      line-height: 2;
+      color: #333;
+      background: #f8f9fa;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 60px 50px;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      color: #3498db;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      color: #2980b9;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+    }
+
+    p {
+      margin-bottom: 18px;
+      text-align: justify;
+    }
+
+    .key-point {
+      background: #e8f4f8;
+      padding: 15px 20px;
+      border-left: 4px solid #3498db;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 40px 0;
+      color: #ccc;
+    }
+
+    footer {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+      color: #999;
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="zktorch-report.html" class="back-link">&larr; 返回報告頁面</a>
+
+    <h1>ZKTorch 口頭報告講稿</h1>
+    <p class="subtitle">Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation</p>
+
+    <!-- 開場 -->
+    <div class="section">
+      <p>各位好，今天我要報告的論文是 ZKTorch，全名是「Compiling ML Inference to Zero-Knowledge Proofs via Parallel Proof Accumulation」，是來自 UIUC Kang Lab 在 2025 年發表於 arXiv 的工作。</p>
+
+      <p>你可以把它理解成：作者做了一個端到端的系統，能把機器學習推論編譯成零知識證明。它最大的特色是用「基本積木（Basic Blocks）」加上「平行證明累積（Parallel Proof Accumulation）」，同時做到涵蓋面廣跟效率可用。</p>
+
+      <p>我今天會按照報告頁面的架構，一個區塊一個區塊往下走：研究動機、技術背景、系統架構、基本積木、平行累積、編譯器優化、實驗結果，最後是結論。</p>
+
+      <p>我先講一個總結式的核心句，讓大家先抓住這篇的方向：</p>
+
+      <div class="key-point">
+        ZKTorch 的核心想法是：把 ML 推論拆成一組可組合的密碼學積木，每個積木用專門協定證明，再用可平行化的累積技術把證明組合起來。
+      </div>
+
+      <p>這樣可以同時兼顧覆蓋率與效率。它不像通用電路那麼慢，也不像特化協定那麼受限。</p>
+
+      <p>好，接下來我就照區塊開始。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊一：研究動機 -->
+    <div class="section">
+      <h2 class="section-title">區塊一：研究動機</h2>
+
+      <p>先從問題背景開始。你想一個很現實的場景：</p>
+
+      <p>現在很多 AI 服務都是 API 形式，像是 ChatGPT、Claude、各種推薦系統。你看不到模型長什麼樣，也不知道它到底是不是照宣稱的方式運作。</p>
+
+      <p>問題是：用戶想驗證模型推論的正確性，但企業又不願意公開模型權重。因為訓練成本非常高，像 GPT-4 的訓練成本超過一億美元，權重是核心商業資產。</p>
+
+      <p>這就產生一個核心矛盾：透明稽核需求 vs 商業機密保護。</p>
+
+      <p>ZKTorch 要解決的就是這個問題：用零知識證明來實現「可驗證性」加「隱私性」。Prover 能證明「輸出確實由正確推論產生」，但不洩露模型權重。</p>
+
+      <p>在進到 ZKTorch 的細節之前，我先講一下既有方法的困境。</p>
+
+      <p>之前的 ZKML 方法大概分兩類：</p>
+
+      <p>第一類是通用電路編譯。把模型變成低階算術電路，像 halo2 或 Plonk。好處是通用性強，什麼模型都能塞進去。壞處是極慢，大模型可能要數百小時。</p>
+
+      <p>第二類是特化協定設計。針對特定模型架構設計專用協定，像只為 CNN 或只為 LLM 設計。好處是效能較好。壞處是不通用，CNN 的協定不支援 LLM，LLM 的協定不支援 CNN。</p>
+
+      <div class="key-point">
+        ZKTorch 的核心想法是：不要走極端，而是把 ML 推論拆成一組「基本積木」，每個積木用最適合的專門協定證明，然後用累積技術把證明組合起來。這樣可以同時兼顧覆蓋率與效率。
+      </div>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊二：技術背景 -->
+    <div class="section">
+      <h2 class="section-title">區塊二：技術背景</h2>
+
+      <p>接下來是技術背景。這個區塊主要要回答三個問題：ZK-SNARK 在 ZKML 裡怎麼用、為什麼選 KZG 承諾、以及原本的累積方法有什麼瓶頸。</p>
+
+      <p>先講 ZK-SNARK。</p>
+
+      <p>在 ZKML 的場景裡，你要證明的是一個關係 R。公開輸入 π 可能是輸入輸出的承諾，私密見證 w 是模型權重跟中間激活值。Prover 要說服 Verifier：「這個輸出確實是用這個模型對這個輸入算出來的」，但不洩露 w 的內容。</p>
+
+      <p>ZK-SNARK 有三個核心性質：完備性（誠實 prover 一定能產生有效證明）、健全性（作弊者無法偽造證明）、零知識性（Verifier 學不到 w 的資訊）。</p>
+
+      <p>接著講 KZG 多項式承諾。</p>
+
+      <p>ZKTorch 選 KZG 的原因是它非常適合「把向量或張量視為多項式」去承諾。它用 pairing（雙線性配對）做驗證，可以做批次開啟（batch opening），對 ML 這種「同一層很多元素做同樣檢查」的場景特別省成本。</p>
+
+      <p>代價是 KZG 需要 SRS（Structured Reference String），也就是可信設定。通常用 powers-of-tau 多方儀式來生成。</p>
+
+      <p>最後講原本累積方法的瓶頸。</p>
+
+      <p>把模型拆成基本積木後，會產生大量小 proof。如果每個都保留，proof size 會爆，驗證也會爆。所以必須做 folding，把很多證明折成一個。</p>
+
+      <p>Mira 是一個針對 pairing-based arguments 的 folding 方法。但問題是：Mira 原版是序列化的。它的介面是「一個 accumulator 加一個 proof」變成「新的 accumulator」。你必須有一個「目前累積到哪裡」的狀態，下一個 proof 才能 fold 進來。</p>
+
+      <div class="key-point">
+        結果就是：N 個 proof 需要 O(N) 次序列操作。當 proof 數量很大時，folding 本身就成為主要瓶頸。這就是 ZKTorch 要解決的核心問題之一。
+      </div>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊三：系統架構 -->
+    <div class="section">
+      <h2 class="section-title">區塊三：系統架構</h2>
+
+      <p>接下來進到系統架構。請看 Figure 1，它畫了整個系統流程。</p>
+
+      <p>ZKTorch 的 pipeline 是五個階段：</p>
+
+      <p>第一，吃 ONNX。因為 ONNX 是常見的模型交換格式，幾乎所有主流框架都能匯出 ONNX。</p>
+
+      <p>第二，跑 Compiler。注意這裡的 compiler 不是優化推論速度，而是優化「證明成本」。它會做圖層級的改寫，把 layer pattern 換成更省證明的版本。</p>
+
+      <p>第三，跑 Transpiler。把每個 layer 編譯成一串基本積木，形成一個 DAG（有向無環圖）。</p>
+
+      <p>第四，Prover 對 DAG 的每個基本積木出 proof。</p>
+
+      <p>第五，用累積器把大量 proof 聚合成一個最終 proof。Verifier 只需要驗最後那個。</p>
+
+      <p>這篇論文的三大核心貢獻對應到這個流程：</p>
+
+      <p>第一，擴充基本積木。他們支援 61 種常見 ML layer，CNN、RNN、Transformer 都涵蓋。</p>
+
+      <p>第二，把 Mira 累積推廣到可平行化。這是最核心的密碼學貢獻，最多可達 6 倍證明加速。</p>
+
+      <p>第三，編譯器優化。最多可達 4.8 倍證明時間下降、2398 倍證明大小下降。後面會詳細講這個數字是怎麼來的。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊四：基本積木 -->
+    <div class="section">
+      <h2 class="section-title">區塊四：基本積木（Basic Blocks）</h2>
+
+      <p>接下來進到基本積木的設計。</p>
+
+      <p>ZKTorch 最關鍵的工程抽象，是把 layer 不是直接編成通用電路，而是編成一張由 basic blocks 組成的 DAG。</p>
+
+      <p>這些 basic blocks 是「密碼學友善」且「能覆蓋 ML 常見運算」的最小集合。</p>
+
+      <p>積木大致分幾類：</p>
+
+      <p>算術類：Add、Sub、Mul、MulConst、Div、Mod。</p>
+
+      <p>布林與比較類：Eq、BooleanCheck。</p>
+
+      <p>查表類：CQ、CQ2。這是處理非線性的主力。</p>
+
+      <p>矩陣運算類：CQLin、MatMul。</p>
+
+      <p>形狀操作類：Concat、Permute、CopyConstraint。</p>
+
+      <p>排序檢查類：Ordered、OneToOne。</p>
+
+      <p>如果只記三個積木，我會說：CQLin、CQ/CQ2、MatMul。這三個大概就抓到 ZKTorch 的骨架。</p>
+
+      <p>CQLin 是固定矩陣的線性運算，適用於 Conv、固定權重的 MatMul。因為矩陣在 compile-time 已知，可以預處理，證明時間對輸入近線性。</p>
+
+      <p>CQ 跟 CQ2 是查表與集合包含。用於非線性函數，像 ReLU、GeLU、Softmax 近似，還有 scaling 跟範圍檢查。CQ 的關鍵優勢是 proving time 對 table size 不敏感，因為用了 cached quotient 技術。</p>
+
+      <p>MatMul 是一般矩陣乘法，適用於 LLM、RNN 的動態矩陣乘法。</p>
+
+      <div class="key-point">
+        更重要的是：作者刻意設計讓其中 13 個積木是「可累積」的。可累積就代表可以把大量重複結構折成常數大小證明。ML 有大量重複結構，這對效能至關重要。
+      </div>
+
+      <p>哪些積木可累積？Add、Sub、Mul、MulConst、CQ、CQ2、CQLin、MatMul、Concat、Permute 都可以。BooleanCheck、Ordered、MaxProof、CopyConstraint 則不行，因為它們涉及 grand product 或其他高次約束。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊五：平行累積 -->
+    <div class="section">
+      <h2 class="section-title">區塊五：平行累積（Parallel Accumulation）</h2>
+
+      <p>接下來是整篇論文最核心的密碼學貢獻：平行累積。</p>
+
+      <p>先回顧問題。Mira 的累積介面是「一個 accumulator 加一個 proof」變成「新的 accumulator」。你必須有一個「目前累積到哪裡」的狀態，下一個 proof 才能 fold 進來。所以 N 個 proof 需要 O(N) 次序列操作。</p>
+
+      <p>ZKTorch 的做法非常漂亮：它把 proof 也重新表達成 accumulator 的特例。</p>
+
+      <p>具體來說，令 proof 的 slack μ 等於 1、error e 等於 0，再加一個 bit 表示這個 instance 是 proof 還是 accumulator。</p>
+
+      <p>這樣一來，「任意兩個 accumulator」都能互相 fold。不再是「accumulator 加 proof」，而是「accA 加 accB」變成「accC」。</p>
+
+      <div class="key-point">
+        一旦 fold 的輸入輸出型態封閉（closure），就能做平行化：把一堆 proof 兩兩 fold 成一堆 acc，再兩兩 fold... 最後高度是 log N，而每一層可以平行跑。
+      </div>
+
+      <p>從 O(N) 降到 O(log N) 深度，而且每一層都能完全平行。這就是「平行累積」的威力。</p>
+
+      <p>那安全性怎麼保證？</p>
+
+      <p>累積的核心是用一個隨機挑戰 γ 做隨機線性組合（RLC）。把兩個 instance 的所有公開承諾、挑戰、slack、error 一次線性組合成新的 instance。</p>
+
+      <p>如果其中任一個 instance 是假的，想要在不知道 γ 之前就造出能同時滿足新 instance 的 error，會非常困難。這依賴知識健全性證明與 Fiat-Shamir。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊六：編譯器優化 -->
+    <div class="section">
+      <h2 class="section-title">區塊六：編譯器優化</h2>
+
+      <p>接下來是編譯器。</p>
+
+      <p>ZKTorch 的編譯器目標不是「推論更快」，而是「證明更便宜」。它把 ZK 成本當作 cost model 的目標函數。</p>
+
+      <p>優化分兩個層級：</p>
+
+      <p>第一，layer 內優化。同功能換一種更便宜的證明方式。</p>
+
+      <p>舉例：softmax 不是直接做 exp 再除法，因為 exp 容易超出 lookup table 範圍。先算 max，改算 exp(x_i - max)，讓指數變成負值、落在可查表範圍內。</p>
+
+      <p>第二，layer 間優化。把圖 rewrite 成更少昂貴積木。</p>
+
+      <p>目標是避免 CopyConstraint，多用可累積的積木。</p>
+
+      <p>論文列了 7 條 rewrite 規則：ReshapeTrans、GeLU、MultiHeadMatMul、RoPE、CustomCNN、MultiHeadConv、ConcatConv。</p>
+
+      <p>我特別講一下 CustomConv，因為它很有代表性。</p>
+
+      <p>一般 Conv 需要大量 shape 操作來展開 im2col，會逼你用 CopyConstraint 這種昂貴證明。</p>
+
+      <p>ZKTorch 反過來：改變資料 layout，讓 Conv 主要變成「很多次固定矩陣乘」，也就是 CQLin 的甜蜜點。再利用 KZG 的同態性，許多加法可以直接在承諾上做組合，幾乎不用額外 proof。最後用累積把大量重複 CQLin、CQ、add 折成常數級證明。</p>
+
+      <div class="key-point">
+        ZKTorch 的設計哲學是：把 ZK 成本當作 compiler cost model 的目標函數。這是它能跨模型仍保持可控的關鍵。
+      </div>
+
+      <p>Transpiler 的部分也很重要。它負責把 ONNX layer 變成積木序列。</p>
+
+      <p>幾個共通的 ZKML 模式：</p>
+
+      <p>浮點轉有限域：用 fixed-point 加 quantization，論文多數用 10 bits，GPT-j 用 12 bits。</p>
+
+      <p>乘法後要 rescaling：scale factor correction。ZKTorch 盡量把「非線性加 rescaling」合併成一次 CQ2 查表，因為 CQ2 可累積。</p>
+
+      <p>固定矩陣優先用 CQLin：比一般 MatMul 更省。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊七：實驗結果 -->
+    <div class="section">
+      <h2 class="section-title">區塊七：實驗結果</h2>
+
+      <p>接下來是實驗結果。這裡我會講四件事：實驗設定、端到端效能、消融實驗、以及關鍵觀察。</p>
+
+      <p>先講實驗設定。</p>
+
+      <p>曲線用 BN254，這是 pairing-friendly curve。量化多數用 10 bits，GPT-j 用 12 bits。硬體是 Intel Xeon Platinum 8358，64 threads，4TB RAM。這顯示它定位是 CPU-intensive 的 proving。</p>
+
+      <p>模型涵蓋 MLPerf Edge v4.1 全套，包括 ResNet-50、RetinaNet、BERT、GPT-j、3D-UNet、SDXL，外加 RNNT 跟 LLaMA-2-7B。</p>
+
+      <p>再來是端到端效能，我挑幾個代表性的數字講。</p>
+
+      <p>RNNT：證明約 19 秒，驗證約 1 秒，proof 約 59 KB。這是相對小的模型。</p>
+
+      <p>BERT：證明約 15 分鐘，驗證約 27 秒，proof 約 4.9 MB。</p>
+
+      <p>GPT-j：證明約 23 分鐘，驗證約 63 秒，proof 約 6.5 MB。</p>
+
+      <p>LLaMA-2-7B：證明約 44 分鐘，驗證約 100 秒，proof 約 23 MB。</p>
+
+      <p>ResNet-50：證明約 1.7 小時，驗證約 63 秒，proof 約 85 KB。</p>
+
+      <p>3D-UNet 跟 SDXL 就很誇張了。3D-UNet 證明要約 158 小時，SDXL 要約 19 小時。這顯示 ZKML 走向真正實用還有很長路。</p>
+
+      <div class="key-point">
+        但關鍵訊息是：ZKTorch 是第一個能在同一個框架內支援從 RNNT 這種小模型到 LLaMA-2-7B 這種大模型的 ZKML 系統。而且 proof size 仍維持相對可控。
+      </div>
+
+      <p>量化後準確率幾乎維持基準。BERT F1 從 90.874% 變 90.104%，ResNet-50 從 76.456% 變 76.038%。代表編譯與查表策略在數值層面是站得住腳的。</p>
+
+      <p>接著是消融實驗，這是最有說服力的部分。</p>
+
+      <p>平行累積的效果：GPT-j 的 prover 從 8663 秒降到 1398 秒，加速 6.2 倍。ResNet-50 的 verifier 從 1013 秒降到 63 秒，加速超過 16 倍。這直接證明原本序列 folding 的瓶頸非常真實。</p>
+
+      <p>編譯器優化的效果：BERT 的 prover 從 53000 秒降到 880 秒，加速 60 倍。ResNet-50 的 proof size 從 200 MB 降到 85 KB，壓縮 2398 倍。</p>
+
+      <p>這 2398 倍的數字很誇張，但它說明一個重要的事：proof size 的爆炸與壓縮其實是編譯器決定的。不 rewrite 圖、直接照原生 ONNX pattern 去證明，會大量落入昂貴的 shape 跟 copy constraint，導致 proof size 跟時間一起爆。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊八：結論與限制 -->
+    <div class="section">
+      <h2 class="section-title">區塊八：結論與限制</h2>
+
+      <p>最後進到結論與限制。</p>
+
+      <p>ZKTorch 解決了什麼問題？</p>
+
+      <p>第一，解決「通用 vs 特化」兩難。抽象成 basic blocks，介於兩者之間。每個 block 可用最適協定，避免全塞通用電路。</p>
+
+      <p>第二，讓 proof size 不隨模型深度爆炸。大量重複結構可折成常數。</p>
+
+      <p>第三，把 folding 從序列瓶頸變成可平行 reduce。</p>
+
+      <p>限制呢？</p>
+
+      <p>第一，Trusted Setup。KZG 需要 SRS，依賴 powers-of-tau。</p>
+
+      <p>第二，證明時間仍然很大。3D-UNet、SDXL 等模型需要數小時到數天。</p>
+
+      <p>第三，部署情境。Proof size 是 MB 級，可能不適合直接上鏈，更適合鏈下驗證或審計。</p>
+
+      <p>第四，可擴充性。新 layer 或新算子需要新增 transpiler 規則與對應積木組合。</p>
+
+      <p>最後我用五個 takeaways 收尾：</p>
+
+      <p>第一，Basic Blocks 是對的抽象層級。夠通用，又能針對每種運算選最合適的證明方式。</p>
+
+      <p>第二，平行累積是突破序列瓶頸的關鍵。把 proof 視為 accumulator 特例讓 folding 可平行化。</p>
+
+      <p>第三，編譯器是第一公民。ZK 成本是 cost model 的目標函數。</p>
+
+      <p>第四，覆蓋 MLPerf Edge v4.1。這是第一個能支援全套標準模型的 ZKML 系統。</p>
+
+      <p>第五，仍在「接近能用」的路上。離「所有大模型都即時」還有距離。</p>
+
+      <div class="key-point">
+        一句話收尾：ZKTorch 用「積木化」把 ML 推論轉成可證明的 DAG，用「可平行的累積」把大量小證明壓縮成單一 succinct proof，用 compiler 把整張圖改寫成更省證明的形式。它把 ZKML 從「能證明」推進到「更接近能用」。
+      </div>
+
+      <p>以上就是我今天的報告，謝謝大家。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 補充：與 ZKML 的比較 -->
+    <div class="section">
+      <h2 class="section-title">補充：ZKTorch vs ZKML (EuroSys'24) 比較</h2>
+
+      <p>ZKTorch 跟之前報告的 ZKML (EuroSys'24) 是同一個實驗室的連續工作。這裡簡單比較一下兩者的差異。</p>
+
+      <p><strong>1. 底層證明系統不同</strong></p>
+      <p>ZKML 用 halo2，是基於 Plonkish 算術化。ZKTorch 用 KZG 加上 Mira 累積，走 pairing-based 路線。這導致整個系統設計邏輯不同。</p>
+
+      <p><strong>2. 核心優化策略不同</strong></p>
+      <p>ZKML 的核心是 optimizer：在電路布局空間裡搜索最佳配置，因為 halo2 的 row 必須是 2^k，選錯配置會差很多倍。</p>
+      <p>ZKTorch 的核心是 parallel accumulation：把序列 folding 變成樹狀平行，加上用 basic blocks 讓大量積木可累積。</p>
+
+      <p><strong>3. 覆蓋的模型規模不同</strong></p>
+      <p>ZKML 最大做到 distilled GPT-2（約 80M 參數）。ZKTorch 做到 LLaMA-2-7B（7B 參數），規模大了將近 100 倍。</p>
+
+      <p><strong>4. 效能比較（GPT-2 等級）</strong></p>
+      <p>ZKML：proving 約 61 分鐘，verification 約 18.7 秒，proof 約 28 KB。</p>
+      <p>ZKTorch：proving 約 10 分鐘，verification 約 12 秒，proof 較小。</p>
+      <p>ZKTorch 在 GPT-2 上達到約 6 倍 proving 加速。</p>
+
+      <div class="key-point">
+        總結來說：ZKML 建立了「optimizer 很重要」的觀念，證明同一個運算選錯實作會差 24 倍。ZKTorch 則在另一個維度突破：用 parallel accumulation 解決 folding 的序列瓶頸，並把模型規模推進到 7B 參數等級。
+      </div>
+    </div>
+
+    <footer>
+      <p>ZKTorch 口頭報告講稿 | 對應報告：<a href="zktorch-report.html">ZKTorch (arXiv 2025) 論文導讀</a></p>
+    </footer>
+  </div>
+</body>
+</html>
