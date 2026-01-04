@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zkCNN: 卷積神經網路預測與準確度的零知識證明</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --light: #ebf8ff;
+            --text: #2d3748;
+            --muted: #718096;
+            --success: #38a169;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: #f7fafc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        header .meta {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        main {
+            background: white;
+            margin: 30px auto;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        section {
+            padding: 50px 60px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin: 25px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .two-col.reverse {
+            direction: rtl;
+        }
+
+        .two-col.reverse > * {
+            direction: ltr;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .card.highlight {
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+            border-left: 4px solid var(--accent);
+        }
+
+        .card.warning {
+            background: #fffaf0;
+            border-left: 4px solid var(--warning);
+        }
+
+        .card.danger {
+            background: #fff5f5;
+            border-left: 4px solid var(--danger);
+        }
+
+        .card h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        /* Code / Technical */
+        code {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .formula {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .highlight-box h3 {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-box p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: var(--light);
+            color: var(--secondary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 3px;
+        }
+
+        .tag.green {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .tag.yellow {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        .tag.red {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            nav { display: none; }
+            header { padding: 30px 20px; }
+            section { padding: 30px 40px; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col { grid-template-columns: 1fr; }
+            section { padding: 30px 25px; }
+            header h1 { font-size: 1.8rem; }
+        }
+
+        /* MathJax */
+        .math {
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+    </style>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body data-page-id="zkcnn-ccs21-report">
+
+<header>
+    <div class="container">
+        <h1>zkCNN</h1>
+        <p class="subtitle">Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy</p>
+        <p class="subtitle">卷積神經網路預測與準確度的零知識證明</p>
+        <p class="meta">CCS 2021 | Tianyi Liu, Xiang Xie, Yupeng Zhang</p>
+    </div>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#motivation">研究動機</a></li>
+        <li><a href="#background">技術背景</a></li>
+        <li><a href="#sumcheck-fft">新型 Sumcheck</a></li>
+        <li><a href="#convolution">卷積證明</a></li>
+        <li><a href="#system">系統設計</a></li>
+        <li><a href="#results">實驗結果</a></li>
+        <li><a href="#conclusion">結論</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Section 1: Motivation -->
+    <section id="motivation">
+        <h2>研究動機</h2>
+
+        <div class="two-col">
+            <div>
+                <h3>問題背景</h3>
+                <p>機器學習模型日益普及，應用於金融、醫療、自動駕駛等關鍵領域。但這帶來兩個核心問題：</p>
+                <ul>
+                    <li><strong>模型完整性：</strong>如何確認遠端伺服器確實使用宣稱的模型進行推論？</li>
+                    <li><strong>準確度驗證：</strong>如何在不透露測試資料的情況下驗證模型的準確度？</li>
+                </ul>
+
+                <h3>兩大應用場景</h3>
+                <div class="card warning">
+                    <p><strong>場景一：預測證明</strong><br>客戶將資料 $x$ 發送給伺服器，伺服器運算 $y = f(x)$ 並附上證明，客戶可驗證 $y$ 確實由正確模型計算</p>
+                    <p style="margin-top:10px;"><strong>場景二：準確度證明</strong><br>模型擁有者證明其模型在某測試集上達到特定準確度，無需透露模型權重或測試資料</p>
+                </div>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>zkCNN 的核心價值</h4>
+                    <p>第一個能夠高效證明 CNN 推論與準確度的零知識證明系統：</p>
+                    <ul>
+                        <li><strong>可驗證性：</strong>驗證者可確認計算正確</li>
+                        <li><strong>零知識性：</strong>不洩露模型權重（可選）</li>
+                        <li><strong>高效率：</strong>較先前方法快 1000 倍以上</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3>先前方法的問題</h3>
+        <div class="two-col">
+            <div class="card">
+                <h4>vCNN (IEEE S&P 2020)</h4>
+                <p>使用 Quadratic Arithmetic Programs (QAP) 方法</p>
+                <ul>
+                    <li><span class="tag green">優點</span> 證明大小 O(1)，恆定約 288 bytes</li>
+                    <li><span class="tag red">缺點</span> Prover 時間極慢，LeNet 需 500+ 秒</li>
+                    <li><span class="tag red">缺點</span> 需要可信設置 (trusted setup)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>ZEN (USENIX Security 2021)</h4>
+                <p>使用 GKR 協定 + Freivalds' Algorithm</p>
+                <ul>
+                    <li><span class="tag green">優點</span> 較 vCNN 快</li>
+                    <li><span class="tag red">缺點</span> 仍需 18.7 秒處理 LeNet</li>
+                    <li><span class="tag red">缺點</span> 不支援大型網路如 VGG</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h3>zkCNN 的核心突破</h3>
+            <p>設計全新的 <strong>sumcheck protocol for FFT</strong>，將 prover 複雜度從 $O(N \log N)$ 降至 $O(N)$<br>
+            並將 2D 卷積轉換為 FFT 運算，實現高效的卷積層證明</p>
+        </div>
+    </section>
+
+    <!-- Section 2: Background -->
+    <section id="background">
+        <h2>技術背景</h2>
+
+        <h3>GKR 協定回顧</h3>
+        <div class="card">
+            <p><strong>GKR (Goldwasser-Kalai-Rothblum) 協定</strong>是一種互動式證明系統，專為分層算術電路設計：</p>
+            <ul>
+                <li>電路分為 $d$ 層，每層有 $2^{s_i}$ 個閘</li>
+                <li>Prover 複雜度：$O(|C|)$（電路大小線性）</li>
+                <li>Verifier 複雜度：$O(d \cdot \log |C|)$（電路深度對數）</li>
+                <li>可處理加法閘與乘法閘</li>
+            </ul>
+        </div>
+
+        <h3>Sumcheck Protocol</h3>
+        <div class="two-col">
+            <div>
+                <p>Sumcheck 是 GKR 的核心組件，用於證明多元多項式在布林超立方 $\{0,1\}^l$ 上的求和：</p>
+                <div class="formula">
+                    $H = \sum_{b_1 \in \{0,1\}} \cdots \sum_{b_l \in \{0,1\}} g(b_1, \ldots, b_l)$
+                </div>
+                <p>互動流程：</p>
+                <ol>
+                    <li>Prover 聲稱 $H$ 為求和結果</li>
+                    <li>每回合 Prover 發送單變數多項式 $g_i(X_i)$</li>
+                    <li>Verifier 發送隨機挑戰 $r_i$</li>
+                    <li>共 $l$ 回合後，Verifier 檢查 $g(r_1, \ldots, r_l)$</li>
+                </ol>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>Sumcheck 複雜度</h4>
+                    <table>
+                        <tr>
+                            <td>Prover 時間</td>
+                            <td>$O(2^l)$ 域運算</td>
+                        </tr>
+                        <tr>
+                            <td>Verifier 時間</td>
+                            <td>$O(l)$ 域運算</td>
+                        </tr>
+                        <tr>
+                            <td>通訊量</td>
+                            <td>$O(l)$ 域元素</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <h3>為什麼 FFT 是瓶頸？</h3>
+        <div class="card danger">
+            <h4>直接使用 GKR 的問題</h4>
+            <p>CNN 中的卷積可以透過 FFT 加速計算（$O(N \log N)$），但若將 FFT 電路直接餵給 GKR：</p>
+            <ul>
+                <li>FFT 電路深度為 $O(\log N)$</li>
+                <li>每層需要進行 sumcheck，每次 sumcheck 的 prover 時間為 $O(N)$</li>
+                <li>總 prover 時間：$O(N \log N)$</li>
+            </ul>
+            <p><strong>問題：</strong>證明時間比直接計算 FFT 還慢！</p>
+        </div>
+    </section>
+
+    <!-- Section 3: Sumcheck for FFT -->
+    <section id="sumcheck-fft">
+        <h2>新型 Sumcheck Protocol for FFT</h2>
+
+        <p>zkCNN 的核心貢獻是設計了一個專門針對 FFT 的 sumcheck protocol，將 prover 時間從 $O(N \log N)$ 降至 $O(N)$。</p>
+
+        <h3>FFT 的遞迴結構</h3>
+        <div class="two-col">
+            <div>
+                <p>給定多項式 $a(X) = \sum_{i=0}^{N-1} a_i X^i$，FFT 計算 $a(\omega^j)$ 對所有 $j \in [N]$。</p>
+                <p>Cooley-Tukey 遞迴：</p>
+                <div class="formula">
+                    $a(\omega^j) = a^{(0)}(\omega^{2j}) + \omega^j \cdot a^{(1)}(\omega^{2j})$
+                </div>
+                <p>其中：</p>
+                <ul>
+                    <li>$a^{(0)}(X)$：偶數項係數 $a_0, a_2, a_4, \ldots$</li>
+                    <li>$a^{(1)}(X)$：奇數項係數 $a_1, a_3, a_5, \ldots$</li>
+                </ul>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>關鍵觀察</h4>
+                    <p>FFT 的蝶形結構有特殊的規律性：每一層的運算可以用<strong>稀疏多項式</strong>來表達。</p>
+                    <p>zkCNN 利用這個結構設計專用的 sumcheck，避免對每層分別證明。</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>核心技術：Combining Layers</h3>
+        <div class="card">
+            <h4>定理 1（zkCNN 論文 Theorem 3.4）</h4>
+            <p>對於 $N$ 點 FFT（$N = 2^n$），存在一個互動式證明協定：</p>
+            <ul>
+                <li><strong>Prover 時間：</strong>$O(N)$ 域運算</li>
+                <li><strong>Verifier 時間：</strong>$O(N)$ 域運算（或使用承諾降至 $O(\log N)$）</li>
+                <li><strong>通訊量：</strong>$O(\log N)$ 域元素</li>
+                <li><strong>回合數：</strong>$O(\log N)$</li>
+            </ul>
+        </div>
+
+        <h3>技術細節：Phase 構建</h3>
+        <div class="two-col">
+            <div>
+                <p>協定分為多個 phase，每個 phase 處理 FFT 的一層轉換：</p>
+                <div class="formula">
+                    $\tilde{V}_{i+1}(g) = \sum_{b \in \{0,1\}} \tilde{V}_i(g, b) \cdot (1 + \omega^{h(g)} \cdot b)$
+                </div>
+                <p>其中 $h(g)$ 是由 $g$ 決定的指數函數。</p>
+            </div>
+            <div>
+                <p>關鍵觀察：</p>
+                <ul>
+                    <li>每個 phase 只需要對<strong>一個變數</strong>做 sumcheck</li>
+                    <li>$\omega^{h(g)}$ 可以在 $O(\log N)$ 時間內計算</li>
+                    <li>利用前一輪的計算結果，避免重複工作</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>複雜度比較</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>方法</th>
+                    <th>Prover 時間</th>
+                    <th>Verifier 時間</th>
+                    <th>通訊量</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>直接 FFT + GKR</td>
+                    <td>$O(N \log N)$</td>
+                    <td>$O(\log^2 N)$</td>
+                    <td>$O(\log^2 N)$</td>
+                </tr>
+                <tr>
+                    <td><strong>zkCNN 新 Sumcheck</strong></td>
+                    <td><strong>$O(N)$</strong></td>
+                    <td>$O(\log N)$</td>
+                    <td>$O(\log N)$</td>
+                </tr>
+                <tr>
+                    <td>改進幅度</td>
+                    <td><span class="tag green">$\log N$ 倍加速</span></td>
+                    <td><span class="tag green">$\log N$ 倍加速</span></td>
+                    <td><span class="tag green">$\log N$ 倍減少</span></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="highlight-box">
+            <h3>核心突破的意義</h3>
+            <p>Prover 證明 FFT 的時間現在比直接計算 FFT 還快！<br>
+            這是 zkCNN 能夠高效處理大型 CNN 的關鍵基礎。</p>
+        </div>
+    </section>
+
+    <!-- Section 4: Convolution -->
+    <section id="convolution">
+        <h2>2D 卷積的零知識證明</h2>
+
+        <p>CNN 的核心運算是 2D 卷積。zkCNN 將卷積轉換為 FFT 運算，再利用新設計的 sumcheck protocol 進行證明。</p>
+
+        <h3>2D 卷積與 FFT 的關係</h3>
+        <div class="two-col">
+            <div>
+                <p>給定輸入 $X \in \mathbb{R}^{n \times n}$ 和 kernel $K \in \mathbb{R}^{m \times m}$，2D 卷積定義為：</p>
+                <div class="formula">
+                    $(X * K)[i,j] = \sum_{p=0}^{m-1} \sum_{q=0}^{m-1} X[i+p, j+q] \cdot K[p,q]$
+                </div>
+                <p>直接計算複雜度：$O(n^2 m^2)$</p>
+            </div>
+            <div>
+                <p>利用卷積定理：</p>
+                <div class="formula">
+                    $X * K = \text{IFFT}(\text{FFT}(X) \odot \text{FFT}(K))$
+                </div>
+                <p>FFT 方法複雜度：$O(n^2 \log n)$</p>
+                <p>其中 $\odot$ 表示逐元素乘法。</p>
+            </div>
+        </div>
+
+        <h3>zkCNN 的卷積證明流程</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">1</div>
+                <div class="label">2D FFT<br>輸入 $X$ 與 kernel $K$</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">2</div>
+                <div class="label">逐元素乘法<br>頻域相乘</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">3</div>
+                <div class="label">2D IFFT<br>轉回空間域</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">4</div>
+                <div class="label">裁剪<br>取有效輸出區域</div>
+            </div>
+        </div>
+
+        <h3>2D FFT 的處理</h3>
+        <div class="card">
+            <p>2D FFT 可分解為兩次 1D FFT：</p>
+            <ol>
+                <li>對每一行做 1D FFT</li>
+                <li>對結果的每一列做 1D FFT</li>
+            </ol>
+            <p>zkCNN 對每次 1D FFT 使用新設計的 sumcheck protocol，總 prover 時間為 $O(n^2)$。</p>
+        </div>
+
+        <h3>多通道卷積</h3>
+        <div class="two-col">
+            <div>
+                <p>實際 CNN 中，卷積層有多個輸入通道 $C_{in}$ 和輸出通道 $C_{out}$：</p>
+                <div class="formula">
+                    $Y_j = \sum_{i=1}^{C_{in}} X_i * K_{i,j}$
+                </div>
+                <p>需要處理 $C_{in} \times C_{out}$ 個 kernel。</p>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>批次處理優化</h4>
+                    <p>zkCNN 可以批次處理多個卷積：</p>
+                    <ul>
+                        <li>共享 FFT 計算</li>
+                        <li>平行化 sumcheck</li>
+                        <li>攤平多通道到單次證明</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: System Design -->
+    <section id="system">
+        <h2>zkCNN 系統設計</h2>
+
+        <p>除了卷積層，CNN 還包含 ReLU、池化、全連接等層。zkCNN 提供完整的電路設計來處理這些運算。</p>
+
+        <h3>支援的層類型</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>層類型</th>
+                    <th>處理方式</th>
+                    <th>複雜度</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>卷積層 (Conv)</td>
+                    <td>FFT + 新 sumcheck</td>
+                    <td>$O(n^2)$</td>
+                </tr>
+                <tr>
+                    <td>全連接層 (FC)</td>
+                    <td>矩陣-向量乘法 GKR</td>
+                    <td>$O(nm)$</td>
+                </tr>
+                <tr>
+                    <td>ReLU</td>
+                    <td>位元分解 + 範圍檢查</td>
+                    <td>$O(n \cdot \text{bits})$</td>
+                </tr>
+                <tr>
+                    <td>Max Pooling</td>
+                    <td>位元比較電路</td>
+                    <td>$O(n \cdot \text{bits})$</td>
+                </tr>
+                <tr>
+                    <td>Average Pooling</td>
+                    <td>加法 + 除法</td>
+                    <td>$O(n)$</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>ReLU 的電路實現</h3>
+        <div class="two-col">
+            <div>
+                <p>ReLU 定義：$\text{ReLU}(x) = \max(0, x)$</p>
+                <p>在有限域上實現需要：</p>
+                <ol>
+                    <li><strong>符號判斷：</strong>將 $x$ 分解為位元 $(b_0, b_1, \ldots, b_{k-1})$</li>
+                    <li><strong>範圍證明：</strong>確保每個 $b_i \in \{0, 1\}$</li>
+                    <li><strong>輸出計算：</strong>若最高位為 1（負數），輸出 0；否則輸出 $x$</li>
+                </ol>
+            </div>
+            <div>
+                <div class="card">
+                    <h4>位元分解約束</h4>
+                    <div class="formula">
+                        $x = \sum_{i=0}^{k-1} b_i \cdot 2^i$
+                    </div>
+                    <div class="formula">
+                        $b_i \cdot (1 - b_i) = 0, \quad \forall i$
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3>Max Pooling 的電路實現</h3>
+        <div class="card">
+            <p>Max pooling 需要比較多個元素並選出最大值。對於 $2 \times 2$ 池化窗口：</p>
+            <ol>
+                <li>比較 $a$ 與 $b$：計算 $a - b$，檢查符號位</li>
+                <li>比較 $c$ 與 $d$：同上</li>
+                <li>比較兩個勝者，得到最大值</li>
+            </ol>
+            <p>每次比較需要 $O(\text{bits})$ 個約束用於位元分解。</p>
+        </div>
+
+        <h3>量化與定點數</h3>
+        <div class="two-col">
+            <div>
+                <p>神經網路使用浮點數，但 ZKP 在有限域上運算。zkCNN 使用定點數表示：</p>
+                <div class="formula">
+                    $\hat{x} = \lfloor x \cdot 2^f \rceil$
+                </div>
+                <p>其中 $f$ 是小數位數。</p>
+            </div>
+            <div>
+                <div class="card warning">
+                    <h4>溢位風險</h4>
+                    <p>定點數乘法會增加位數。zkCNN 在每層後進行截斷，並證明截斷的正確性。</p>
+                    <p>需要仔細選擇 $f$ 以平衡精度與電路大小。</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>多項式承諾方案</h3>
+        <div class="card highlight">
+            <h4>無可信設置的離散對數承諾</h4>
+            <p>zkCNN 使用基於離散對數的多項式承諾（類似 Bulletproofs）：</p>
+            <ul>
+                <li><strong>無 trusted setup：</strong>不需要 ceremony，只需公開參數</li>
+                <li><strong>承諾大小：</strong>1 個群元素</li>
+                <li><strong>開啟時間：</strong>$O(N)$ 群運算</li>
+                <li><strong>驗證時間：</strong>$O(N)$（或 $O(\log N)$ 使用批次驗證）</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Section 6: Results -->
+    <section id="results">
+        <h2>實驗結果</h2>
+
+        <h3>實驗環境</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">AWS</div>
+                <div class="label">r5.8xlarge<br>256 GB RAM</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">32</div>
+                <div class="label">vCPU 核心數</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">C++</div>
+                <div class="label">實作語言<br>libsnark 基礎</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">254-bit</div>
+                <div class="label">有限域大小<br>BN128 曲線</div>
+            </div>
+        </div>
+
+        <h3>VGG-16 效能（ImageNet，15M 參數）</h3>
+        <div class="highlight-box">
+            <div class="stats-grid" style="color: var(--text);">
+                <div class="stat-card">
+                    <div class="number">88.3s</div>
+                    <div class="label">Prover 時間</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">59.3ms</div>
+                    <div class="label">Verifier 時間</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">341 KB</div>
+                    <div class="label">證明大小</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">15M</div>
+                    <div class="label">模型參數數</div>
+                </div>
+            </div>
+        </div>
+
+        <h3>與先前方法的比較</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>系統</th>
+                    <th>模型</th>
+                    <th>Prover 時間</th>
+                    <th>Verifier 時間</th>
+                    <th>證明大小</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>vCNN (S&P 2020)</td>
+                    <td>LeNet-5</td>
+                    <td>546.3s</td>
+                    <td>3.7ms</td>
+                    <td>288 bytes</td>
+                </tr>
+                <tr>
+                    <td>ZEN (USENIX 2021)</td>
+                    <td>LeNet-5</td>
+                    <td>18.7s</td>
+                    <td>0.2ms</td>
+                    <td>10 KB</td>
+                </tr>
+                <tr>
+                    <td><strong>zkCNN</strong></td>
+                    <td>LeNet-5</td>
+                    <td><strong>0.43s</strong></td>
+                    <td>8.8ms</td>
+                    <td>35 KB</td>
+                </tr>
+                <tr>
+                    <td colspan="5" style="text-align: center; background: #e6fffa;">
+                        <strong>zkCNN 比 vCNN 快 1264×，比 ZEN 快 43×</strong>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>各層運算時間分析（VGG-16）</h3>
+        <div class="two-col">
+            <div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>層類型</th>
+                            <th>Prover 時間</th>
+                            <th>佔比</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>卷積層</td>
+                            <td>71.2s</td>
+                            <td>80.6%</td>
+                        </tr>
+                        <tr>
+                            <td>ReLU</td>
+                            <td>10.5s</td>
+                            <td>11.9%</td>
+                        </tr>
+                        <tr>
+                            <td>全連接層</td>
+                            <td>5.4s</td>
+                            <td>6.1%</td>
+                        </tr>
+                        <tr>
+                            <td>Max Pooling</td>
+                            <td>1.2s</td>
+                            <td>1.4%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>關鍵觀察</h4>
+                    <p>卷積層佔據 80% 以上的證明時間，這解釋了為什麼 FFT sumcheck 優化如此重要。</p>
+                    <p>ReLU 的位元分解也是主要開銷之一。</p>
+                </div>
+            </div>
+        </div>
+
+        <h3>準確度證明</h3>
+        <div class="card">
+            <h4>MNIST 1000 筆測試資料</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>模型</th>
+                        <th>Prover 時間</th>
+                        <th>Verifier 時間</th>
+                        <th>證明大小</th>
+                        <th>準確度</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>LeNet-5 × 1000</td>
+                        <td>436s (7.3 分鐘)</td>
+                        <td>9.1s</td>
+                        <td>35 KB</td>
+                        <td>98.5%</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>驗證者可確認模型在 1000 筆測試資料上達到 98.5% 準確度，無需看到測試資料或模型權重。</p>
+        </div>
+    </section>
+
+    <!-- Section 7: Conclusion -->
+    <section id="conclusion">
+        <h2>結論與討論</h2>
+
+        <h3>主要貢獻總結</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">O(N)</div>
+                <div class="label">FFT Prover<br>從 $O(N \log N)$ 降至線性</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">1264×</div>
+                <div class="label">比 vCNN 快<br>LeNet-5 基準</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">VGG-16</div>
+                <div class="label">首次支援<br>15M 參數模型</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">無</div>
+                <div class="label">Trusted Setup<br>透明設置</div>
+            </div>
+        </div>
+
+        <h3>技術創新</h3>
+        <div class="two-col">
+            <div class="card highlight">
+                <h4>理論貢獻</h4>
+                <ul>
+                    <li>首個線性時間的 FFT sumcheck protocol</li>
+                    <li>將 FFT/IFFT 證明時間降至計算時間以下</li>
+                    <li>可組合性：適用於任何使用 FFT 的協定</li>
+                </ul>
+            </div>
+            <div class="card highlight">
+                <h4>系統貢獻</h4>
+                <ul>
+                    <li>完整的 CNN 電路設計（含 ReLU、pooling）</li>
+                    <li>高效的多通道卷積批次處理</li>
+                    <li>準確度證明的端到端實現</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>局限性</h3>
+        <div class="card warning">
+            <h4>目前的限制</h4>
+            <ul>
+                <li><strong>模型類型：</strong>專注於 CNN，不直接支援 Transformer / RNN</li>
+                <li><strong>證明大小：</strong>341 KB 仍較大，相比 vCNN 的 288 bytes</li>
+                <li><strong>Verifier 時間：</strong>$O(N)$ 或 $O(\log N)$，較 SNARK 的 O(1) 慢</li>
+                <li><strong>非線性層：</strong>ReLU、max pooling 需要位元分解，開銷仍大</li>
+            </ul>
+        </div>
+
+        <h3>後續發展</h3>
+        <div class="card">
+            <h4>zkCNN 開創的研究方向</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>後續工作</th>
+                        <th>年份</th>
+                        <th>改進方向</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>zkLLM</td>
+                        <td>2024</td>
+                        <td>擴展到 LLM（13B 參數）</td>
+                    </tr>
+                    <tr>
+                        <td>ZKTorch</td>
+                        <td>2025</td>
+                        <td>通用 ML 框架 + 平行累積</td>
+                    </tr>
+                    <tr>
+                        <td>EZKL</td>
+                        <td>持續</td>
+                        <td>產業級工具 + halo2 後端</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="highlight-box">
+            <h3>歷史地位</h3>
+            <p>zkCNN (CCS 2021) 是 ZKML 領域的奠基之作，<br>
+            首次證明大規模 CNN 的可驗證推論在實務上可行，<br>
+            其 FFT sumcheck 技術成為後續研究的重要基礎。</p>
+        </div>
+    </section>
+
+    <!-- References -->
+    <section id="references">
+        <h2>參考文獻</h2>
+        <ol>
+            <li id="ref-1">
+                <cite>Tianyi Liu, Xiang Xie, Yupeng Zhang. "zkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy." ACM CCS 2021.</cite>
+                <a href="https://doi.org/10.1145/3460120.3485379" target="_blank" rel="noopener">DOI</a> |
+                <a href="https://eprint.iacr.org/2021/673" target="_blank" rel="noopener">ePrint</a>
+            </li>
+            <li id="ref-2">
+                <cite>S. Goldwasser, Y. Kalai, G. Rothblum. "Delegating Computation: Interactive Proofs for Muggles." STOC 2008.</cite>
+            </li>
+            <li id="ref-3">
+                <cite>S. Lee, H. Ko, J. Kim, H. Oh. "vCNN: Verifiable Convolutional Neural Network." IEEE S&P 2020.</cite>
+            </li>
+            <li id="ref-4">
+                <cite>B. Feng, L. Qin, Z. Zhang, Y. Ding, S. Chu. "ZEN: An Optimizing Compiler for Verifiable, Zero-Knowledge Neural Network Inferences." USENIX Security 2021.</cite>
+            </li>
+            <li id="ref-5">
+                <cite>J. Cooley, J. Tukey. "An Algorithm for the Machine Calculation of Complex Fourier Series." Mathematics of Computation, 1965.</cite>
+            </li>
+        </ol>
+    </section>
+</main>
+
+<footer>
+    <p>ZKML 知識庫 | zkCNN 論文報告</p>
+    <p>基於 CCS 2021 論文整理</p>
+</footer>
+
+</body>
+</html>
