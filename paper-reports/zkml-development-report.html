@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKML 發展脈絡：從可驗證計算到零知識機器學習</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --light: #ebf8ff;
+            --text: #2d3748;
+            --muted: #718096;
+            --success: #38a169;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: #f7fafc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        header .meta {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        main {
+            background: white;
+            margin: 30px auto;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        section {
+            padding: 50px 60px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin: 25px 0 15px 0;
+        }
+
+        h4 {
+            color: var(--primary);
+            font-size: 1.1rem;
+            margin: 20px 0 10px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .card.highlight {
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+            border-left: 4px solid var(--accent);
+        }
+
+        .card.warning {
+            background: #fffaf0;
+            border-left: 4px solid var(--warning);
+        }
+
+        .card.danger {
+            background: #fff5f5;
+            border-left: 4px solid var(--danger);
+        }
+
+        .card.success {
+            background: #f0fff4;
+            border-left: 4px solid var(--success);
+        }
+
+        .card h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            margin-top: 0;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        /* Code / Technical */
+        code {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .formula {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .highlight-box h3 {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-box p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: var(--light);
+            color: var(--secondary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 3px;
+        }
+
+        .tag.green {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .tag.yellow {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        .tag.red {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .tag.blue {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+
+        /* Figures */
+        .figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .figure figcaption {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .figure.large img {
+            width: 100%;
+        }
+
+        .figure.medium img {
+            max-width: 85%;
+        }
+
+        .figure.small img {
+            max-width: 60%;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin: 30px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding-left: 20px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+
+        .timeline-item .year {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        .timeline-item .title {
+            font-weight: 600;
+            color: var(--primary);
+            margin: 5px 0;
+        }
+
+        .timeline-item .desc {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        /* Paper Card */
+        .paper-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            transition: box-shadow 0.2s;
+        }
+
+        .paper-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .paper-card .paper-title {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .paper-card .paper-meta {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .paper-card .paper-contribution {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            nav { display: none; }
+            header { padding: 30px 20px; }
+            section { padding: 30px 40px; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col, .three-col { grid-template-columns: 1fr; }
+            section { padding: 30px 25px; }
+            header h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>ZKML 發展脈絡</h1>
+        <p class="subtitle">從可驗證計算到零知識機器學習的技術演進</p>
+        <p class="meta">Zero-Knowledge Proofs for Machine Learning: Technical Evolution (2017-2024)</p>
+    </div>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#intro">引言</a></li>
+        <li><a href="#background">問題背景</a></li>
+        <li><a href="#abstraction">密碼學抽象</a></li>
+        <li><a href="#arithmetization">算術化</a></li>
+        <li><a href="#timeline">發展時間線</a></li>
+        <li><a href="#milestones">里程碑論文</a></li>
+        <li><a href="#design-space">設計空間</a></li>
+        <li><a href="#bottlenecks">瓶頸與展望</a></li>
+        <li><a href="#references">參考文獻</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Section 0: Introduction -->
+    <section id="intro">
+        <h2>引言與核心概念</h2>
+
+        <div class="highlight-box">
+            <h3>一句話總結 ZKML</h3>
+            <p>「ZK × ML 的核心是：把 ML 推論/評估寫成有限域上的算術約束，讓 Prover 能在不洩漏敏感資料下，證明推論或模型性質正確。」</p>
+        </div>
+
+        <div class="card highlight">
+            <h4>兩個關鍵區分</h4>
+            <div class="two-col">
+                <div>
+                    <h4>Verifiable Computation（可驗證計算）</h4>
+                    <p>重點是「算對沒」— Verifier 能確認 Prover 正確執行了計算，但不一定隱藏任何資訊。</p>
+                </div>
+                <div>
+                    <h4>Zero-Knowledge（零知識）</h4>
+                    <p>重點是「算對且不洩漏 witness」— 除了計算正確外，Verifier 不會獲得額外資訊。</p>
+                </div>
+            </div>
+            <p style="margin-top: 15px; color: var(--muted);">早期工作很多是先把 verifiable 做起來，再往 ZK 推進（這是歷史脈絡的重點）。</p>
+        </div>
+
+        <figure class="figure medium">
+            <img src="images/zkml-development/survey_fig1_framework.png" alt="ZKML Framework">
+            <figcaption>Figure 1: ZKML 框架示意圖 — ML Client 發送輸入 x，ML Service Provider 執行推論並生成零知識證明 π<sup><a href="#ref-1">[1]</a></sup></figcaption>
+        </figure>
+    </section>
+
+    <!-- Section 1: Background -->
+    <section id="background">
+        <h2>問題背景與需求</h2>
+
+        <h3>1.1 為什麼要把 ZK 跟 ML 結合？</h3>
+
+        <p>當 ML 推論被外包到雲端、第三方服務或區塊鏈時，會遇到以下問題：</p>
+
+        <div class="two-col">
+            <div class="card warning">
+                <h4>正確性/誠實性問題</h4>
+                <ul>
+                    <li>雲端偷懶（使用較小模型）</li>
+                    <li>換模型（用不同於宣稱的模型）</li>
+                    <li>回假答案（直接編造結果）</li>
+                </ul>
+            </div>
+            <div class="card danger">
+                <h4>隱私問題</h4>
+                <ul>
+                    <li>輸入敏感（醫療、金融資料）</li>
+                    <li>模型權重是商業機密</li>
+                    <li>不想暴露模型架構</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card success">
+            <h4>理想目標</h4>
+            <ul>
+                <li>Verifier 不用重算，就能確信結果正確</li>
+                <li>同時不取得輸入或模型（或至少其中之一）</li>
+            </ul>
+        </div>
+
+        <h3>1.2 三種典型隱私需求</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>類型</th>
+                    <th>模型</th>
+                    <th>輸入</th>
+                    <th>難度</th>
+                    <th>典型場景</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="tag green">Type A</span></td>
+                    <td>公開</td>
+                    <td>私密</td>
+                    <td>中</td>
+                    <td>使用者隱私保護（醫療診斷）</td>
+                </tr>
+                <tr>
+                    <td><span class="tag yellow">Type B</span></td>
+                    <td>私密</td>
+                    <td>公開</td>
+                    <td>中</td>
+                    <td>模型 IP 保護（商業 API）</td>
+                </tr>
+                <tr>
+                    <td><span class="tag red">Type C</span></td>
+                    <td>私密</td>
+                    <td>私密</td>
+                    <td>最高</td>
+                    <td>完全隱私場景（金融風控）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <figure class="figure medium">
+            <img src="images/zkml-development/zkml_fig1_example.png" alt="ZKML Example">
+            <figcaption>Figure 2: ZKML 實際應用範例 — 驗證推薦系統使用正確模型<sup><a href="#ref-2">[2]</a></sup></figcaption>
+        </figure>
+    </section>
+
+    <!-- Section 2: Cryptographic Abstraction -->
+    <section id="abstraction">
+        <h2>密碼學抽象：把 ML 變成 ZK 要證明的「關係」</h2>
+
+        <h3>2.1 角色與流程（Prover / Verifier）</h3>
+
+        <div class="two-col">
+            <div class="card">
+                <h4>Prover（證明者）</h4>
+                <p>拿到輸入 x、（可能也拿到）模型 f<sub>θ</sub>，計算 y = f<sub>θ</sub>(x)，並產生證明 π</p>
+            </div>
+            <div class="card">
+                <h4>Verifier（驗證者）</h4>
+                <p>只看 statement（公開資訊）與證明 π，就能驗證計算正確性</p>
+            </div>
+        </div>
+
+        <figure class="figure medium">
+            <img src="images/zkml-development/survey_fig2_workflow.png" alt="ZKML Workflow">
+            <figcaption>Figure 3: ZKML 典型工作流程<sup><a href="#ref-1">[1]</a></sup></figcaption>
+        </figure>
+
+        <h3>2.2 推論關係的形式化定義（Inference Relation）</h3>
+
+        <div class="card highlight">
+            <h4>Statement / Witness / Relation 框架</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>元素</th>
+                        <th>說明</th>
+                        <th>範例</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Statement（公開）</strong></td>
+                        <td>公開資訊，所有人可見</td>
+                        <td>輸出 y、模型承諾 Com(f)、輸入承諾 Com(x)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Witness（私密）</strong></td>
+                        <td>只有 Prover 知道的秘密</td>
+                        <td>輸入 x、模型參數 θ、各層中間值</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Relation</strong></td>
+                        <td>需要滿足的約束關係</td>
+                        <td>R(x, w) = 1 當且僅當電路輸出等於 y</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <figure class="figure large">
+            <img src="images/zkml-development/zkml_fig2_audit.png" alt="ZKML Audit Workflow">
+            <figcaption>Figure 4: ZKML 審計流程 — 包含模型編譯、證明生成、驗證、以及 accuracy 審計<sup><a href="#ref-2">[2]</a></sup></figcaption>
+        </figure>
+    </section>
+
+    <!-- Section 3: Arithmetization -->
+    <section id="arithmetization">
+        <h2>工程核心：ML 的算術化（Arithmetization）</h2>
+
+        <div class="card warning">
+            <h4>核心問題</h4>
+            <p>ZK 後端擅長處理「加法/乘法」約束，但 ML 包含浮點運算、除法、比較等非天然友善的操作。如何將 ML 模型轉換成 ZK 電路能處理的形式？</p>
+        </div>
+
+        <h3>3.1 量化（Quantization）</h3>
+
+        <p>早期幾乎必做的步驟：把 float32 變成整數/定點數，讓推論可用「整數乘加」表示。</p>
+
+        <figure class="figure medium">
+            <img src="images/zkml-development/quantization_fig1.png" alt="Quantization">
+            <figcaption>Figure 5: 量化示意圖 — 將浮點數映射到定點數表示<sup><a href="#ref-3">[3]</a></sup></figcaption>
+        </figure>
+
+        <div class="formula">
+            <p><strong>量化公式：</strong> q = round(r / S) + Z</p>
+            <p style="font-size: 0.9rem; color: var(--muted);">其中 r 為實數值，S 為 scale，Z 為 zero-point，q 為量化後整數</p>
+        </div>
+
+        <h3>3.2 線性層（Linear Layers）— 相對友善</h3>
+
+        <div class="two-col">
+            <div class="card">
+                <h4>全連接層（FC）</h4>
+                <p>y = Wx + b</p>
+                <p>只需乘法和加法，直接轉換為算術約束</p>
+            </div>
+            <div class="card">
+                <h4>卷積層（Conv）</h4>
+                <p>可展開成大量 dot-product</p>
+                <p>計算量大但運算類型友善</p>
+            </div>
+        </div>
+
+        <h3>3.3 非線性/比較 — 早期最大瓶頸</h3>
+
+        <div class="card danger">
+            <h4>「難算」的操作</h4>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number">ReLU</div>
+                    <div class="label">max(0, x) 需要比較</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">MaxPool</div>
+                    <div class="label">多值比較取最大</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">Argmax</div>
+                    <div class="label">找最大值索引</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">Softmax</div>
+                    <div class="label">exp 和除法</div>
+                </div>
+            </div>
+        </div>
+
+        <h3>3.4 早期三大解法</h3>
+
+        <div class="three-col">
+            <div class="card">
+                <h4>1. 多項式近似</h4>
+                <p>把非線性換成低次多項式（只剩加乘）</p>
+                <p><span class="tag yellow">改變模型語義</span></p>
+            </div>
+            <div class="card">
+                <h4>2. 範圍證明/位元分解</h4>
+                <p>先證明值落在某範圍，再做符號/比較 gadget</p>
+                <p><span class="tag red">成本較高</span></p>
+            </div>
+            <div class="card">
+                <h4>3. 查表（Lookup）</h4>
+                <p>用 table 或分段逼近函數</p>
+                <p><span class="tag green">保留語義</span></p>
+            </div>
+        </div>
+
+        <div class="card warning" style="margin-top: 30px;">
+            <h4>關鍵認知</h4>
+            <p>「ZK 保證的是你定義的 relation 的正確性；但如果你用多項式近似或量化，relation 的語義本身就變了。」這不是缺點，而是 ZKML 設計必須面對的 trade-off。</p>
+        </div>
+    </section>
+
+    <!-- Section 4: Timeline -->
+    <section id="timeline">
+        <h2>早期里程碑時間線</h2>
+
+        <figure class="figure large">
+            <img src="images/zkml-development/survey_fig6_timeline.png" alt="ZKML Timeline">
+            <figcaption>Figure 6: ZKML 研究時間線 (2017-2024)<sup><a href="#ref-1">[1]</a></sup></figcaption>
+        </figure>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>年份</th>
+                    <th>論文</th>
+                    <th>類型</th>
+                    <th>主要貢獻</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2017</td>
+                    <td><strong>SafetyNets</strong></td>
+                    <td><span class="tag">Verifiable</span></td>
+                    <td>把 DNN 推論表成算術電路，讓雲端提供短證明證明算對</td>
+                </tr>
+                <tr>
+                    <td>2020</td>
+                    <td><strong>ZKDT</strong> (Decision Tree)</td>
+                    <td><span class="tag blue">ZK</span></td>
+                    <td>對決策樹給出 ZK 預測證明，並可 ZK 證明 accuracy 等性質</td>
+                </tr>
+                <tr>
+                    <td>2020</td>
+                    <td><strong>Polynomial Approx.</strong></td>
+                    <td><span class="tag green">ZK-friendly</span></td>
+                    <td>研究用低次多項式替代 ReLU，改善近似帶來的精度損失</td>
+                </tr>
+                <tr>
+                    <td>2021</td>
+                    <td><strong>ZEN</strong></td>
+                    <td><span class="tag yellow">Compiler</span></td>
+                    <td>用編譯器思維生成 ZK 推論方案，包含 ZENinfer 與 ZENacc</td>
+                </tr>
+                <tr>
+                    <td>2021</td>
+                    <td><strong>zkCNN</strong></td>
+                    <td><span class="tag blue">ZK</span></td>
+                    <td>針對 CNN 結構設計更有效的 ZK 推論證明（GKR-based）</td>
+                </tr>
+                <tr>
+                    <td>2024</td>
+                    <td><strong>ZKML</strong> (EuroSys)</td>
+                    <td><span class="tag yellow">System</span></td>
+                    <td>優化系統，自動選擇最佳電路配置，大幅降低證明成本</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Section 5: Milestone Papers -->
+    <section id="milestones">
+        <h2>里程碑論文詳解</h2>
+
+        <p>每篇論文都用同一個六格框架分析：<strong>Problem → Threat Model → Statement/Witness/Relation → Arithmetization → Key Innovation → Limitation</strong></p>
+
+        <!-- SafetyNets -->
+        <div class="paper-card">
+            <div class="paper-title">5.1 SafetyNets (2017) — 先把「推論可驗證」做起來</div>
+            <div class="paper-meta">Ghodsi, Gu, Garg | arXiv 2017</div>
+
+            <div class="two-col">
+                <div>
+                    <h4>Problem</h4>
+                    <p>雲端推論不可信，client 想要「算對的證明」</p>
+
+                    <h4>Threat Model</h4>
+                    <p>不信任雲端；要保證計算正確性</p>
+
+                    <h4>Key Innovation</h4>
+                    <p>把 DNN 表示成算術電路，使用 interactive proof 做 verifiable execution</p>
+                </div>
+                <div>
+                    <h4>Statement / Witness / Relation</h4>
+                    <ul>
+                        <li>Statement: 模型、輸入、輸出</li>
+                        <li>Witness: 中間計算值</li>
+                        <li>Relation: 推論計算正確</li>
+                    </ul>
+
+                    <h4>Limitation</h4>
+                    <p>強調 verifiable，不一定是零知識；對模型類型有限制</p>
+                </div>
+            </div>
+
+            <div class="paper-contribution">
+                <strong>定位：</strong>「SafetyNets 展示了 DNN 推論可被形式化並可被驗證，是後續 ZK 版推論證明的基礎脈絡。」
+            </div>
+        </div>
+
+        <!-- ZKDT -->
+        <div class="paper-card">
+            <div class="paper-title">5.2 ZKDT — Decision Tree 的 ZK 預測與 Accuracy (2020)</div>
+            <div class="paper-meta">J. Zhang et al. | CCS 2020</div>
+
+            <div class="two-col">
+                <div>
+                    <h4>Problem</h4>
+                    <p>證明決策樹預測正確，且可證明模型 accuracy</p>
+
+                    <h4>為什麼先從 Decision Tree 做？</h4>
+                    <p>計算結構離散、路徑可用比較描述，容易做 ZK protocol 設計</p>
+
+                    <h4>兩類證明</h4>
+                    <ol>
+                        <li><strong>Prediction correctness</strong>：某筆輸入的預測結果正確</li>
+                        <li><strong>Accuracy claim</strong>：模型在資料集上達到某種準確度門檻</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4>Relation 定義</h4>
+                    <ul>
+                        <li>R<sub>infer</sub>：證明 leaf/label 正確</li>
+                        <li>R<sub>acc</sub>：證明多筆樣本加總後達到門檻</li>
+                    </ul>
+
+                    <h4>Key Innovation</h4>
+                    <p>首次明確提出 ZK 不只可以證明單次推論，也能證明統計性性質（例如 accuracy）</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- zkCNN -->
+        <div class="paper-card">
+            <div class="paper-title">5.3 zkCNN (2021) — CNN 結構化優化的代表作</div>
+            <div class="paper-meta">Liu, Xie, Zhang | CCS 2021</div>
+
+            <figure class="figure medium">
+                <img src="images/zkml-development/zkcnn_fig1_cnn.png" alt="CNN Architecture">
+                <figcaption>zkCNN 處理的 CNN 結構：Conv → ReLU → Pool → FC</figcaption>
+            </figure>
+
+            <div class="two-col">
+                <div>
+                    <h4>Problem</h4>
+                    <p>CNN 比 tree 難：乘加多、非線性多、pool/activation 的比較更痛</p>
+
+                    <h4>Key Innovation</h4>
+                    <ul>
+                        <li>使用 GKR protocol 做分層驗證</li>
+                        <li>設計 Sumcheck for FFT 降低卷積證明成本</li>
+                        <li>同時支援 prediction 與 accuracy 證明</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>CNN 哪裡最貴？</h4>
+                    <ul>
+                        <li><span class="tag red">ReLU</span> — 需要比較操作</li>
+                        <li><span class="tag red">MaxPool</span> — 多值比較</li>
+                        <li><span class="tag yellow">Conv</span> — 大量乘加</li>
+                    </ul>
+
+                    <h4>Limitation</h4>
+                    <p>對特定 CNN 結構優化，不是通用方案</p>
+                </div>
+            </div>
+
+            <figure class="figure medium">
+                <img src="images/zkml-development/zkcnn_fig2_system.png" alt="zkCNN System">
+                <figcaption>zkCNN 系統架構<sup><a href="#ref-4">[4]</a></sup></figcaption>
+            </figure>
+        </div>
+
+        <!-- ZEN -->
+        <div class="paper-card">
+            <div class="paper-title">5.4 ZEN (2021) — 編譯器化、工具化</div>
+            <div class="paper-meta">Feng, Qin, Zhang, Ding, Chu | ePrint 2021</div>
+
+            <div class="two-col">
+                <div>
+                    <h4>定位</h4>
+                    <p>從「單一手工 protocol」邁向「compiler」的重要一步</p>
+
+                    <h4>兩個子系統</h4>
+                    <ul>
+                        <li><strong>ZENinfer</strong>：證明某次推論結果正確</li>
+                        <li><strong>ZENacc</strong>：證明模型達到宣稱 accuracy</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>編譯器做了什麼？</h4>
+                    <ol>
+                        <li>模型表示（量化、層轉換）</li>
+                        <li>電路生成（layer → 約束）</li>
+                        <li>優化（降低成本、重用結構）</li>
+                    </ol>
+
+                    <h4>注意</h4>
+                    <p>ZENacc 證明的是「在特定 test set 上達到某聲明」，不是對所有輸入的保證</p>
+                </div>
+            </div>
+
+            <div class="paper-contribution">
+                <strong>歷史意義：</strong>「讓 ZK × NN 從研究原型往工程系統走，開始把『生成/優化』當成第一級問題。」
+            </div>
+        </div>
+
+        <!-- ZKML EuroSys -->
+        <div class="paper-card">
+            <div class="paper-title">5.5 ZKML (2024) — 系統優化的集大成者</div>
+            <div class="paper-meta">Sun et al. | EuroSys 2024</div>
+
+            <figure class="figure large">
+                <img src="images/zkml-development/zkml_fig3_system.png" alt="ZKML System">
+                <figcaption>ZKML 系統架構：包含 Cost Model、Circuit Generator、Optimizer<sup><a href="#ref-2">[2]</a></sup></figcaption>
+            </figure>
+
+            <div class="two-col">
+                <div>
+                    <h4>Key Innovation</h4>
+                    <ul>
+                        <li>自動化參數調優（logrows, lookup_bits 等）</li>
+                        <li>建立精確 cost model 預測證明時間</li>
+                        <li>支援多種後端（halo2, EZKL）</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4>性能提升</h4>
+                    <ul>
+                        <li>證明時間減少 3-10x</li>
+                        <li>記憶體使用減少 2-5x</li>
+                        <li>自動找到最佳配置</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 6: Design Space -->
+    <section id="design-space">
+        <h2>設計空間總結</h2>
+
+        <figure class="figure large">
+            <img src="images/zkml-development/survey_fig7_categorization.png" alt="ZKML Categorization">
+            <figcaption>Figure 7: ZKML 工作分類 — 按通用性、效率、隱私目標分類<sup><a href="#ref-1">[1]</a></sup></figcaption>
+        </figure>
+
+        <h3>6.1 證明目標（你要證明什麼？）</h3>
+
+        <div class="two-col">
+            <div class="card">
+                <h4>Inference Correctness</h4>
+                <p>單次推論正確 — 對輸入 x，模型輸出確實是 y</p>
+            </div>
+            <div class="card">
+                <h4>Model Properties</h4>
+                <p>模型性質（如 accuracy）— 模型在測試集上達到宣稱的準確度</p>
+            </div>
+        </div>
+
+        <h3>6.2 隱私目標（你要保護什麼？）</h3>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">輸入隱私</div>
+                <div class="label">保護使用者資料</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">模型隱私</div>
+                <div class="label">保護模型權重</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.5rem;">架構隱私</div>
+                <div class="label">保護模型結構</div>
+            </div>
+        </div>
+
+        <h3>6.3 算術化策略</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>策略</th>
+                    <th>方法</th>
+                    <th>優點</th>
+                    <th>缺點</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>量化（定點）</strong></td>
+                    <td>float → int</td>
+                    <td>大幅降低電路複雜度</td>
+                    <td>精度損失</td>
+                </tr>
+                <tr>
+                    <td><strong>多項式近似</strong></td>
+                    <td>ReLU → polynomial</td>
+                    <td>只剩加乘運算</td>
+                    <td>改變模型語義</td>
+                </tr>
+                <tr>
+                    <td><strong>Range-check</strong></td>
+                    <td>bit-decomposition</td>
+                    <td>保留原始語義</td>
+                    <td>成本較高</td>
+                </tr>
+                <tr>
+                    <td><strong>Lookup</strong></td>
+                    <td>預計算表</td>
+                    <td>保留語義、效率較好</td>
+                    <td>表格大小限制</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>6.4 論文定位矩陣</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>論文</th>
+                    <th>證明目標</th>
+                    <th>隱私目標</th>
+                    <th>算術化策略</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>SafetyNets</td>
+                    <td>Inference</td>
+                    <td>Public input, private output</td>
+                    <td>量化</td>
+                </tr>
+                <tr>
+                    <td>ZKDT</td>
+                    <td>Inference + Accuracy</td>
+                    <td>模型隱私</td>
+                    <td>比較 gadget</td>
+                </tr>
+                <tr>
+                    <td>zkCNN</td>
+                    <td>Inference + Accuracy</td>
+                    <td>通用</td>
+                    <td>GKR + Sumcheck</td>
+                </tr>
+                <tr>
+                    <td>ZEN</td>
+                    <td>Inference + Accuracy</td>
+                    <td>通用</td>
+                    <td>編譯器自動選擇</td>
+                </tr>
+                <tr>
+                    <td>ZKML</td>
+                    <td>Inference + Audit</td>
+                    <td>通用</td>
+                    <td>Lookup + 自動優化</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Section 7: Bottlenecks -->
+    <section id="bottlenecks">
+        <h2>早期瓶頸與未來展望</h2>
+
+        <h3>7.1 早期瓶頸</h3>
+
+        <div class="three-col">
+            <div class="card danger">
+                <h4>非線性太貴</h4>
+                <p>ReLU/max/softmax 的比較操作在 ZK 電路中成本極高</p>
+            </div>
+            <div class="card warning">
+                <h4>語義差異</h4>
+                <p>量化帶來語義改變 — 你證明的是 quantized 模型</p>
+            </div>
+            <div class="card danger">
+                <h4>規模爆炸</h4>
+                <p>電路/約束規模隨模型深度指數增長</p>
+            </div>
+        </div>
+
+        <h3>7.2 從早期到後來：為什麼會出現 Compiler / 工具化？</h3>
+
+        <div class="card highlight">
+            <h4>歷史必然性</h4>
+            <ul>
+                <li>手刻電路不可維護 → ZEN 類 compiler 思維出現</li>
+                <li>更大模型 → 更需要自動化與系統化</li>
+                <li>非線性/規模瓶頸 → 逼出 compiler 與更系統的優化</li>
+            </ul>
+        </div>
+
+        <h3>7.3 未來方向</h3>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">更大模型</div>
+                <div class="label">LLM、Transformer</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">更快證明</div>
+                <div class="label">硬體加速、並行化</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">更好工具</div>
+                <div class="label">自動化編譯器</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">實際部署</div>
+                <div class="label">區塊鏈 AI 應用</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 8: Conclusion -->
+    <section id="conclusion">
+        <h2>結語</h2>
+
+        <div class="highlight-box">
+            <h3>三個 Takeaways</h3>
+        </div>
+
+        <div class="three-col">
+            <div class="card">
+                <h4>1. 核心轉換</h4>
+                <p>ZK × ML 的核心是把推論/評估變成有限域算術約束的 relation</p>
+            </div>
+            <div class="card">
+                <h4>2. 早期突破</h4>
+                <p>多圍繞「怎麼便宜地處理非線性/比較」與「怎麼把工作系統化」</p>
+            </div>
+            <div class="card">
+                <h4>3. 差異維度</h4>
+                <p>證明目標 × 隱私目標 × 算術化策略</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- References -->
+    <section id="references">
+        <h2>參考文獻</h2>
+
+        <ol>
+            <li id="ref-1">
+                <cite>Chen et al. "A Survey of Zero-Knowledge Proof Based Verifiable Machine Learning." arXiv:2502.18535, 2025.</cite>
+                <a href="https://arxiv.org/abs/2502.18535" target="_blank" rel="noopener">arXiv</a>
+            </li>
+            <li id="ref-2">
+                <cite>Sun et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+                <a href="https://doi.org/10.1145/3627703.3629556" target="_blank" rel="noopener">DOI</a>
+            </li>
+            <li id="ref-3">
+                <cite>Jacob et al. "Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference." CVPR 2018.</cite>
+                <a href="https://arxiv.org/abs/1712.05877" target="_blank" rel="noopener">arXiv</a>
+            </li>
+            <li id="ref-4">
+                <cite>Liu, Xie, Zhang. "zkCNN: Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy." CCS 2021.</cite>
+                <a href="https://doi.org/10.1145/3460120.3485379" target="_blank" rel="noopener">DOI</a>
+            </li>
+            <li id="ref-5">
+                <cite>Ghodsi, Gu, Garg. "SafetyNets: Verifiable Execution of Deep Neural Networks on an Untrusted Cloud." arXiv:1706.10268, 2017.</cite>
+                <a href="https://arxiv.org/abs/1706.10268" target="_blank" rel="noopener">arXiv</a>
+            </li>
+            <li id="ref-6">
+                <cite>Zhang et al. "Zero Knowledge Proofs for Decision Tree Predictions and Accuracy." CCS 2020.</cite>
+                <a href="https://doi.org/10.1145/3372297.3417278" target="_blank" rel="noopener">DOI</a>
+            </li>
+            <li id="ref-7">
+                <cite>Feng et al. "ZEN: Efficient Zero-Knowledge Proofs for Neural Networks." IACR ePrint 2021/087.</cite>
+                <a href="https://eprint.iacr.org/2021/087" target="_blank" rel="noopener">ePrint</a>
+            </li>
+            <li id="ref-8">
+                <cite>Ali, So, Avestimehr. "On Polynomial Approximations for Privacy-Preserving and Verifiable ReLU Networks." arXiv:2011.05530, 2020.</cite>
+                <a href="https://arxiv.org/abs/2011.05530" target="_blank" rel="noopener">arXiv</a>
+            </li>
+        </ol>
+    </section>
+</main>
+
+<footer>
+    <p>ZKML Knowledge Base | 高璿程</p>
+    <p>最後更新：2025-01</p>
+</footer>
+
+</body>
+</html>
