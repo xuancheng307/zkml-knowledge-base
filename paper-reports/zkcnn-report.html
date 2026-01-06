@@ -401,39 +401,40 @@
     <section id="motivation">
         <h2>研究動機</h2>
 
+        <h3>問題背景</h3>
+        <p>機器學習模型日益普及，應用於金融、醫療、自動駕駛等關鍵領域。卷積神經網路 (CNN) 是影像辨識的核心架構：</p>
+
+        <div class="figure medium">
+            <img src="images/zkcnn/Figure_1_page03.png" alt="CNN 架構示意圖">
+            <figcaption>Figure 1: 卷積神經網路架構範例 - 包含卷積層、激活函數、池化層與全連接層</figcaption>
+        </div>
+
+        <p>但這帶來兩個核心問題：</p>
+        <ul>
+            <li><strong>模型完整性：</strong>如何確認遠端伺服器確實使用宣稱的模型進行推論？</li>
+            <li><strong>準確度驗證：</strong>如何在不透露測試資料的情況下驗證模型的準確度？</li>
+        </ul>
+
+        <h3>兩大應用場景</h3>
         <div class="two-col">
-            <div>
-                <h3>問題背景</h3>
-                <p>機器學習模型日益普及，應用於金融、醫療、自動駕駛等關鍵領域。卷積神經網路 (CNN) 是影像辨識的核心架構：</p>
-
-                <div class="figure medium">
-                    <img src="images/zkcnn/Figure_1_page03.png" alt="CNN 架構示意圖">
-                    <figcaption>Figure 1: 卷積神經網路架構範例 - 包含卷積層、激活函數、池化層與全連接層</figcaption>
-                </div>
-
-                <p>但這帶來兩個核心問題：</p>
-                <ul>
-                    <li><strong>模型完整性：</strong>如何確認遠端伺服器確實使用宣稱的模型進行推論？</li>
-                    <li><strong>準確度驗證：</strong>如何在不透露測試資料的情況下驗證模型的準確度？</li>
-                </ul>
-
-                <h3>兩大應用場景</h3>
-                <div class="card warning">
-                    <p><strong>場景一：預測證明</strong><br>客戶將資料 $x$ 發送給伺服器，伺服器運算 $y = f(x)$ 並附上證明，客戶可驗證 $y$ 確實由正確模型計算</p>
-                    <p style="margin-top:10px;"><strong>場景二：準確度證明</strong><br>模型擁有者證明其模型在某測試集上達到特定準確度，無需透露模型權重或測試資料</p>
-                </div>
+            <div class="card warning">
+                <h4>場景一：預測證明</h4>
+                <p>客戶將資料 $x$ 發送給伺服器，伺服器運算 $y = f(x)$ 並附上證明，客戶可驗證 $y$ 確實由正確模型計算</p>
             </div>
-            <div>
-                <div class="card highlight">
-                    <h4>zkCNN 的核心價值</h4>
-                    <p>第一個能夠高效證明 CNN 推論與準確度的零知識證明系統：</p>
-                    <ul>
-                        <li><strong>可驗證性：</strong>驗證者可確認計算正確</li>
-                        <li><strong>零知識性：</strong>不洩露模型權重（可選）</li>
-                        <li><strong>高效率：</strong>較先前方法快 1000 倍以上</li>
-                    </ul>
-                </div>
+            <div class="card warning">
+                <h4>場景二：準確度證明</h4>
+                <p>模型擁有者證明其模型在某測試集上達到特定準確度，無需透露模型權重或測試資料</p>
             </div>
+        </div>
+
+        <div class="card highlight">
+            <h4>zkCNN 的核心價值</h4>
+            <p>第一個能夠高效證明 CNN 推論與準確度的零知識證明系統：</p>
+            <ul>
+                <li><strong>可驗證性：</strong>驗證者可確認計算正確</li>
+                <li><strong>零知識性：</strong>不洩露模型權重（可選）</li>
+                <li><strong>高效率：</strong>較先前方法快 1000 倍以上</li>
+            </ul>
         </div>
 
         <h3>先前方法的問題</h3>
