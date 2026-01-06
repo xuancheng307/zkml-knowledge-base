@@ -679,6 +679,16 @@
             <p style="font-size: 0.9rem; color: var(--muted);">其中 r 為實數值，S 為 scale，Z 為 zero-point，q 為量化後整數</p>
         </div>
 
+        <div class="card highlight">
+            <h4>為什麼需要 Range Constraints？</h4>
+            <p>在有限域 𝔽<sub>p</sub> 中，算術運算會發生模 p 的環繞（wrap-around）。定點推論需要額外的 <strong>range constraints</strong> 來保證數值語義：</p>
+            <ul>
+                <li>確保量化值落在預期的整數範圍內（如 [-128, 127] for int8）</li>
+                <li>防止有限域模運算造成的溢位被誤解為合法計算結果</li>
+                <li>這也是 bit-decomposition / range-check gadget 存在的原因之一</li>
+            </ul>
+        </div>
+
         <h3>3.2 線性層（Linear Layers）— 相對友善</h3>
 
         <div class="two-col">
@@ -972,10 +982,13 @@
                 <div>
                     <h4>性能提升</h4>
                     <ul>
-                        <li>證明時間減少 3-10x</li>
-                        <li>記憶體使用減少 2-5x</li>
+                        <li>證明時間減少 3-10x<sup>*</sup></li>
+                        <li>記憶體使用減少 2-5x<sup>*</sup></li>
                         <li>自動找到最佳配置</li>
                     </ul>
+                    <p style="font-size: 0.85rem; color: var(--muted); margin-top: 10px;">
+                        <sup>*</sup>數據來自原論文 Table 2-3 的評估結果，測試模型包含 MobileNet、ResNet 等，後端為 EZKL/halo2，實際提升幅度依模型規模與參數配置而異<sup><a href="#ref-2">[2]</a></sup>
+                    </p>
                 </div>
             </div>
         </div>
@@ -1066,7 +1079,8 @@
                 <tr>
                     <th>論文</th>
                     <th>證明目標</th>
-                    <th>隱私目標</th>
+                    <th>隱私覆蓋</th>
+                    <th>模型通用性</th>
                     <th>算術化策略</th>
                 </tr>
             </thead>
@@ -1074,35 +1088,45 @@
                 <tr>
                     <td>SafetyNets</td>
                     <td>Inference</td>
-                    <td>Public input, private output</td>
+                    <td><span class="tag">Verifiable (non-ZK)</span></td>
+                    <td>特定 DNN</td>
                     <td>量化</td>
                 </tr>
                 <tr>
                     <td>ZKDT</td>
                     <td>Inference + Accuracy</td>
-                    <td>模型隱私</td>
+                    <td><span class="tag blue">Type B (模型隱私)</span></td>
+                    <td>Decision Tree</td>
                     <td>比較 gadget</td>
                 </tr>
                 <tr>
                     <td>zkCNN</td>
                     <td>Inference + Accuracy</td>
-                    <td>通用</td>
+                    <td><span class="tag green">Type A/B 可選</span></td>
+                    <td>CNN</td>
                     <td>GKR + Sumcheck</td>
                 </tr>
                 <tr>
                     <td>ZEN</td>
                     <td>Inference + Accuracy</td>
-                    <td>通用</td>
+                    <td><span class="tag green">Type A/B 可選</span></td>
+                    <td>General DNN</td>
                     <td>編譯器自動選擇</td>
                 </tr>
                 <tr>
                     <td>ZKML</td>
                     <td>Inference + Audit</td>
-                    <td>通用</td>
+                    <td><span class="tag green">Type A/B 可選</span></td>
+                    <td>General DNN</td>
                     <td>Lookup + 自動優化</td>
                 </tr>
             </tbody>
         </table>
+
+        <p style="color: var(--muted); font-size: 0.9rem; margin-top: 10px;">
+            <strong>隱私覆蓋說明：</strong>Type A = 公開模型、私密輸入；Type B = 私密模型、公開輸入；「可選」表示系統設計支援多種隱私配置。
+            SafetyNets 主要強調可驗證性（correctness），隱私保護並非其主要設計目標。
+        </p>
     </section>
 
     <!-- Section 7: Bottlenecks -->
@@ -1122,7 +1146,7 @@
             </div>
             <div class="card danger">
                 <h4>規模爆炸</h4>
-                <p>電路/約束規模隨模型深度指數增長</p>
+                <p>電路/約束規模隨模型規模（深度 × 寬度 × 非線性處理方式）快速成長，尤其在大量 bit-decomposition 或 range-check 的算術化策略下成本陡增</p>
             </div>
         </div>
 
