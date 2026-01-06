@@ -308,6 +308,36 @@
             color: #c53030;
         }
 
+        /* Figures */
+        .figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .figure figcaption {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .figure.large img {
+            width: 100%;
+        }
+
+        .figure.medium img {
+            max-width: 85%;
+        }
+
+        .figure.small img {
+            max-width: 60%;
+        }
+
         /* Footer */
         footer {
             text-align: center;
@@ -350,6 +380,7 @@
         <p class="subtitle">Zero Knowledge Proofs for Convolutional Neural Network Predictions and Accuracy</p>
         <p class="subtitle">卷積神經網路預測與準確度的零知識證明</p>
         <p class="meta">CCS 2021 | Tianyi Liu, Xiang Xie, Yupeng Zhang</p>
+        <p style="margin-top: 15px;"><a href="zkcnn-script.html" style="color: white; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; text-decoration: none; font-size: 0.95rem;">講稿</a></p>
     </div>
 </header>
 
@@ -373,7 +404,14 @@
         <div class="two-col">
             <div>
                 <h3>問題背景</h3>
-                <p>機器學習模型日益普及，應用於金融、醫療、自動駕駛等關鍵領域。但這帶來兩個核心問題：</p>
+                <p>機器學習模型日益普及，應用於金融、醫療、自動駕駛等關鍵領域。卷積神經網路 (CNN) 是影像辨識的核心架構：</p>
+
+                <div class="figure small">
+                    <img src="images/zkcnn/Figure_1_page03.png" alt="CNN 架構示意圖">
+                    <figcaption>Figure 1: 卷積神經網路架構範例 - 包含卷積層、激活函數、池化層與全連接層</figcaption>
+                </div>
+
+                <p>但這帶來兩個核心問題：</p>
                 <ul>
                     <li><strong>模型完整性：</strong>如何確認遠端伺服器確實使用宣稱的模型進行推論？</li>
                     <li><strong>準確度驗證：</strong>如何在不透露測試資料的情況下驗證模型的準確度？</li>
@@ -583,6 +621,11 @@
             </tbody>
         </table>
 
+        <div class="figure medium">
+            <img src="images/zkcnn/Figure_3_page11.png" alt="FFT Sumcheck 效能比較">
+            <figcaption>Figure 3: FFT Sumcheck 效能比較 - 紅色為 zkCNN 方法，藍色為 FFT 電路方法，紫色為 naive 方法（斜線表示超時）</figcaption>
+        </div>
+
         <div class="highlight-box">
             <h3>核心突破的意義</h3>
             <p>Prover 證明 FFT 的時間現在比直接計算 FFT 還快！<br>
@@ -645,6 +688,11 @@
             <p>zkCNN 對每次 1D FFT 使用新設計的 sumcheck protocol，總 prover 時間為 $O(n^2)$。</p>
         </div>
 
+        <div class="figure medium">
+            <img src="images/zkcnn/Figure_4_page12.png" alt="卷積 Sumcheck 效能比較">
+            <figcaption>Figure 4: 單一卷積的 Sumcheck 效能比較 - 橘色為 zkCNN sumcheck，藍色為 naive sumcheck，紅色/紫色為計算時間</figcaption>
+        </div>
+
         <h3>多通道卷積</h3>
         <div class="two-col">
             <div>
@@ -673,6 +721,11 @@
         <h2>zkCNN 系統設計</h2>
 
         <p>除了卷積層，CNN 還包含 ReLU、池化、全連接等層。zkCNN 提供完整的電路設計來處理這些運算。</p>
+
+        <div class="figure medium">
+            <img src="images/zkcnn/Figure_2_page10.png" alt="zkCNN 系統結構圖">
+            <figcaption>Figure 2: zkCNN 系統結構設計 - 展示輸入 X、權重 W、位元分解如何流經各層</figcaption>
+        </div>
 
         <h3>支援的層類型</h3>
         <table>
@@ -933,6 +986,11 @@
                 </tbody>
             </table>
             <p>驗證者可確認模型在 1000 筆測試資料上達到 98.5% 準確度，無需看到測試資料或模型權重。</p>
+        </div>
+
+        <div class="figure large">
+            <img src="images/zkcnn/Figure_5_page18.png" alt="VGG16 準確度證明效能">
+            <figcaption>Figure 5: zkCNN 準確度證明效能 - (a) Prover 時間隨圖片數量線性增長 (b) 證明大小維持穩定 (c) Verifier 時間隨圖片數量增加</figcaption>
         </div>
     </section>
 
