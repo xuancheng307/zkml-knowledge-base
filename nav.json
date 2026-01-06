@@ -209,6 +209,7 @@
       "icon": "📄",
       "collapsed": true,
       "items": [
+        { "id": "zkml-development-report", "title": "ZKML 發展脈絡", "path": "/paper-reports/zkml-development-report.html", "status": "done" },
         { "id": "zkml-eurosys24-report", "title": "ZKML (EuroSys'24)", "path": "/paper-reports/zkml-report.html", "status": "done" },
         { "id": "zktorch-arxiv25-report", "title": "ZKTorch (arXiv'25)", "path": "/paper-reports/zktorch-report.html", "status": "done" },
         { "id": "zkcnn-ccs21-report", "title": "zkCNN (CCS'21)", "path": "/paper-reports/zkcnn-report.html", "status": "done" },
