@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKML 發展脈絡 - 口頭報告講稿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 2;
+            color: #2d3748;
+            background: #f7fafc;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: #1a365d;
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #2c5282;
+            font-size: 1.4rem;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3182ce;
+        }
+
+        p {
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3182ce;
+            margin: 25px 0;
+        }
+
+        .highlight p {
+            margin-bottom: 0;
+        }
+
+        .key-point {
+            background: #fffaf0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #d69e2e;
+            margin: 25px 0;
+        }
+
+        .warning {
+            background: #fff5f5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #e53e3e;
+            margin: 25px 0;
+        }
+
+        ul, ol {
+            margin: 15px 0 20px 30px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        code {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .formula {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Consolas', monospace;
+        }
+
+        .paper-box {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .paper-box h4 {
+            color: #1a365d;
+            margin-bottom: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ZKML 發展脈絡</h1>
+    <p class="subtitle">口頭報告講稿 | 從可驗證計算到零知識機器學習</p>
+
+    <p>各位好，今天我要報告的主題是「ZKML 發展脈絡：從可驗證計算到零知識機器學習」。這不是單一論文的報告，而是一個技術綜述，幫助大家理解 ZKML 這個領域是怎麼演進過來的。</p>
+
+    <p>我會從一個故事開始，然後講核心概念、技術挑戰、重要論文，最後做一個設計空間的總結。</p>
+
+    <p>好，讓我先從故事開始。</p>
+
+    <h2>第一部分：為什麼需要 ZKML？</h2>
+
+    <p>想像一個場景。你是一家醫院，想用雲端 AI 服務來分析病人的 X 光片。你把影像上傳，雲端回傳一個診斷結果。</p>
+
+    <p>這裡有兩個問題。</p>
+
+    <p>第一個問題是：你怎麼知道雲端真的用了它宣稱的那個高準確度模型？它可能偷偷換了一個便宜的小模型來省錢，反正你也看不出來。這叫做「正確性問題」或「誠實性問題」。</p>
+
+    <p>第二個問題是：病人的 X 光片是隱私資料，雲端服務商不應該看到。但你又需要它幫你算。這叫做「隱私問題」。</p>
+
+    <p>這兩個問題，就是 ZKML 要解決的。</p>
+
+    <p>ZKML，全名是 Zero-Knowledge Machine Learning，零知識機器學習。它的目標是：讓你可以驗證 AI 推論的正確性，同時保護敏感資料不被洩漏。</p>
+
+    <div class="highlight">
+        <p><strong>核心總結：</strong>把 ML 推論或評估寫成有限域上的算術約束，讓 Prover 能在不洩漏敏感資料的情況下，證明推論或模型性質正確。</p>
+    </div>
+
+    <p>這句話很重要，我等一下會拆解。</p>
+
+    <h2>第二部分：先搞清楚兩個概念</h2>
+
+    <p>在講 ZKML 之前，我要先區分兩個容易混淆的概念。</p>
+
+    <p>第一個是「可驗證計算」，英文叫 Verifiable Computation。它的重點是「算對沒」。Verifier 可以確認 Prover 正確執行了計算，但不一定隱藏任何資訊。</p>
+
+    <p>第二個是「零知識」，英文叫 Zero-Knowledge。它的重點是「算對，而且不洩漏 witness」。除了計算正確外，Verifier 不會獲得任何額外資訊。</p>
+
+    <div class="key-point">
+        <p><strong>為什麼要區分這兩個？</strong>因為早期很多工作是先把「可驗證」做出來，之後才把「零知識」的性質補上。這是歷史演進的脈絡。</p>
+    </div>
+
+    <p>換句話說，ZKML 不是一開始就有的，它是從可驗證計算慢慢演化過來的。</p>
+
+    <h2>第三部分：三種隱私需求</h2>
+
+    <p>ZKML 的應用場景可以分成三種，根據「誰的資料要保護」來分：</p>
+
+    <ul>
+        <li><strong>Type A：公開模型，私密輸入。</strong>這就是剛才醫院的例子。模型是公開的，但病人資料要保護。</li>
+        <li><strong>Type B：私密模型，公開輸入。</strong>比方說你是一家 AI 公司，模型是你的商業機密，但客戶的輸入可以公開。你要證明你真的用了某個模型，但不想透露模型權重。</li>
+        <li><strong>Type C：模型和輸入都是私密的。</strong>這是最難的情況。比方說金融風控，模型是銀行機密，客戶資料也是隱私，但你還是要證明推論正確。</li>
+    </ul>
+
+    <p>後面講每篇論文的時候，我都會標明它屬於哪一種類型。</p>
+
+    <h2>第四部分：密碼學抽象 — Prover 和 Verifier</h2>
+
+    <p>現在進入技術部分。</p>
+
+    <p>ZKML 的架構有兩個角色。</p>
+
+    <p><strong>Prover</strong>，證明者。他拿到輸入 x，可能也拿到模型 f，計算出結果 y 等於 f(x)，然後產生一個證明，我們用希臘字母 π 來表示。</p>
+
+    <p><strong>Verifier</strong>，驗證者。他只看公開資訊和證明 π，就能驗證計算是否正確。他不需要重算一次。</p>
+
+    <div class="highlight">
+        <p><strong>三個關鍵術語：</strong></p>
+        <ul style="margin-bottom: 0;">
+            <li><strong>Statement</strong>：公開的資訊。可能是輸出 y、模型的承諾、輸入的承諾。</li>
+            <li><strong>Witness</strong>：私密的資訊。可能是輸入 x、模型參數、中間計算值。</li>
+            <li><strong>Relation</strong>：要滿足的約束關係。R(statement, witness) = 1 當且僅當計算正確。</li>
+        </ul>
+    </div>
+
+    <p>這三個詞在後面會一直出現，務必記住。</p>
+
+    <h2>第五部分：工程核心 — 算術化</h2>
+
+    <p>好，現在進入最關鍵的技術問題：算術化，英文叫 Arithmetization。</p>
+
+    <p>問題是這樣的：ZK 證明系統擅長處理加法和乘法。但機器學習模型有浮點數、除法、比較、ReLU 等等，這些都不是加法乘法。</p>
+
+    <p>怎麼辦？我們需要把 ML 模型「翻譯」成 ZK 能處理的形式。這個翻譯過程就叫算術化。</p>
+
+    <p>第一步是<strong>量化</strong>。把 float32 變成整數或定點數。比方說乘以 2 的 16 次方再取整數。這樣推論就變成整數乘加，ZK 可以處理。</p>
+
+    <div class="formula">
+        量化公式：q = round(r / S) + Z<br>
+        其中 r 是實數值，S 是 scale，Z 是 zero-point，q 是量化後的整數
+    </div>
+
+    <div class="warning">
+        <p><strong>重要問題：</strong>ZK 系統在有限域上運算，有限域的數字會「繞回來」，這叫 wrap-around。如果你的量化值不小心溢位了，它會變成一個看起來合法但完全錯誤的值。</p>
+        <p>所以我們需要額外的 <strong>range constraints</strong>（範圍約束）來確保數值落在預期範圍內。這就是為什麼後面會講到 bit-decomposition 和 range-check 這些技術。</p>
+    </div>
+
+    <h2>第六部分：線性層 vs 非線性層</h2>
+
+    <p>量化之後，神經網路的運算可以分成兩類。</p>
+
+    <p><strong>第一類是線性層</strong>，包括全連接層和卷積層。全連接就是 y = Wx + b，卷積可以展開成很多點積。這些都只需要乘法和加法，對 ZK 來說相對友善。</p>
+
+    <p><strong>第二類是非線性層</strong>，這是早期最大的瓶頸。包括：</p>
+
+    <ul>
+        <li><strong>ReLU</strong>：max(0, x)，需要比較 x 和 0 誰大</li>
+        <li><strong>MaxPool</strong>：比較多個元素選最大</li>
+        <li><strong>Softmax</strong>：有指數函數和除法</li>
+        <li><strong>Argmax</strong>：找最大值的索引</li>
+    </ul>
+
+    <p>這些操作在有限域上都很難處理。</p>
+
+    <h2>第七部分：三大解法</h2>
+
+    <p>早期 ZKML 研究發展出三種主要解法來處理非線性：</p>
+
+    <div class="paper-box">
+        <h4>1. 多項式近似</h4>
+        <p>把 ReLU 換成一個低次多項式，比方說二次函數。這樣只剩加法乘法，ZK 可以處理。<br>
+        <strong>缺點：</strong>你改變了模型的語義。你證明的不再是原本的 ReLU 網路，而是一個「近似版」。</p>
+    </div>
+
+    <div class="paper-box">
+        <h4>2. 範圍證明和位元分解</h4>
+        <p>把每個數字分解成 k 個位元，然後用位元來做比較。比方說判斷 x 是正是負，就看最高位元是 0 還是 1。<br>
+        <strong>缺點：</strong>每個數字需要 O(k) 個額外約束，成本很高。</p>
+    </div>
+
+    <div class="paper-box">
+        <h4>3. 查表（Lookup）</h4>
+        <p>預先計算好一張表，比方說 ReLU 在 -128 到 127 的所有輸出值，然後證明你的結果在這張表裡面。<br>
+        <strong>缺點：</strong>表格大小有限制，不能無限大。</p>
+    </div>
+
+    <p>這三種方法各有優缺點，後面的論文會用不同的組合。</p>
+
+    <div class="warning">
+        <p><strong>非常重要的認知：</strong>ZK 保證的是你定義的 relation 的正確性。但如果你用多項式近似或量化，relation 的語義本身就變了。</p>
+        <p>這不是 bug，這是 ZKML 設計必須面對的 trade-off。你證明的東西，跟原本的 float32 模型可能有些許差異。你需要在「證明效率」和「語義精確度」之間做取捨。</p>
+    </div>
+
+    <h2>第八部分：發展時間線</h2>
+
+    <p>好，技術背景講完了，現在來看歷史發展。</p>
+
+    <p><strong>2017 年，SafetyNets。</strong>這是 ZKML 思想的起點之一。它把 DNN 推論表示成算術電路，用互動式證明來驗證。但它主要強調「可驗證」，不一定是零知識。</p>
+
+    <p><strong>2020 年，ZKDT</strong>，全名是 Zero Knowledge Decision Tree。這是第一次明確喊出「ZK 加 ML」。它對決策樹做 ZK 預測證明，而且首次提出：ZK 不只可以證明單次推論，也能證明統計性性質，比方說準確度。</p>
+
+    <p><strong>同年 2020 年</strong>，有一篇研究多項式近似的論文。專門研究用低次多項式替代 ReLU，討論怎麼設計多項式能減少準確度損失。</p>
+
+    <p><strong>2021 年，ZEN。</strong>這是第一個「編譯器化」的嘗試。它把「怎麼把 NN 變成 ZK 電路」這件事做成一個 compiler pipeline。ZEN 有兩個子系統：ZENinfer 證明推論正確，ZENacc 證明模型準確度。</p>
+
+    <p><strong>同年 2021 年，zkCNN。</strong>這是 CNN 領域的里程碑。它設計了一個線性時間的 FFT sumcheck，第一次讓 VGG-16 這種大型 CNN 的可驗證推論變得實際可行。</p>
+
+    <p><strong>2024 年，ZKML</strong>，發表在 EuroSys。這是系統優化的集大成者。它建立精確的 cost model，自動選擇最佳的電路參數。根據論文的評估，證明時間減少 3 到 10 倍，記憶體使用減少 2 到 5 倍。當然，實際提升幅度取決於模型規模和參數配置。</p>
+
+    <h2>第九部分：里程碑論文詳解</h2>
+
+    <p>現在我用一個統一的框架來分析每篇里程碑論文。這個框架有六格：Problem、Threat Model、Statement/Witness/Relation、Arithmetization、Key Innovation、Limitation。</p>
+
+    <div class="paper-box">
+        <h4>SafetyNets (2017)</h4>
+        <p><strong>Problem：</strong>雲端推論不可信，客戶想要「算對的證明」。</p>
+        <p><strong>Threat Model：</strong>不信任雲端，要保證計算正確性。它不太強調隱私，主要是可驗證。</p>
+        <p><strong>Key Innovation：</strong>把 DNN 表示成算術電路，用互動式證明。</p>
+        <p><strong>Limitation：</strong>強調 verifiable，不一定是零知識；對模型類型有限制。</p>
+        <p><strong>歷史定位：</strong>它展示了 DNN 推論可以被形式化並被驗證，是後續 ZK 版推論證明的基礎脈絡。</p>
+    </div>
+
+    <div class="paper-box">
+        <h4>ZKDT (2020)</h4>
+        <p><strong>Problem：</strong>證明決策樹預測正確，且可證明模型準確度。</p>
+        <p><strong>為什麼從決策樹開始？</strong>因為它的計算結構離散，路徑可以用比較描述，比較容易做 ZK protocol 設計。</p>
+        <p><strong>Key Innovation：</strong>首次提出兩類證明。R_infer 證明預測正確，R_acc 證明準確度達標。</p>
+        <p><strong>隱私覆蓋：</strong>Type B，模型隱私。</p>
+        <p><strong>最重要的貢獻：</strong>它告訴我們 ZK 不只能證明單次推論，也能證明統計性性質。</p>
+    </div>
+
+    <div class="paper-box">
+        <h4>zkCNN (2021)</h4>
+        <p><strong>Problem：</strong>CNN 比決策樹難很多。乘加多，非線性多，pool 和 activation 的比較更痛。</p>
+        <p><strong>Key Innovation：</strong>設計了 Sumcheck for FFT，把 prover 時間從 O(N log N) 降到 O(N)。這讓證明 FFT 比直接計算還快。</p>
+        <p><strong>隱私覆蓋：</strong>Type A 和 Type B 都可以支援。</p>
+        <p><strong>模型通用性：</strong>限於 CNN 結構。</p>
+        <p><strong>Limitation：</strong>只支援 CNN，不支援 Transformer；證明大小比較大。</p>
+        <p><strong>歷史地位：</strong>ZKML 領域的里程碑，首次讓大規模 CNN 的可驗證推論變得實際可行。</p>
+    </div>
+
+    <div class="paper-box">
+        <h4>ZEN (2021)</h4>
+        <p><strong>定位：</strong>從手工 protocol 邁向 compiler。</p>
+        <p><strong>兩個子系統：</strong>ZENinfer 證明推論正確，ZENacc 證明模型準確度。</p>
+        <p><strong>編譯器做的事：</strong>模型表示、電路生成、優化。</p>
+        <p><strong>隱私覆蓋：</strong>Type A 和 Type B 可選。</p>
+        <p><strong>注意：</strong>ZENacc 證明的是「在特定測試集上達到某準確度」，不是對所有輸入的保證。這很容易被誤解。</p>
+        <p><strong>歷史意義：</strong>讓 ZK + NN 從研究原型往工程系統走，開始把「生成和優化」當成第一級問題。</p>
+    </div>
+
+    <div class="paper-box">
+        <h4>ZKML (2024, EuroSys)</h4>
+        <p><strong>Key Innovation：</strong>自動化參數調優，建立精確 cost model，支援多種後端。</p>
+        <p><strong>核心理念：</strong>讓使用者不需要手動調參，系統自動找到最佳配置。</p>
+        <p><strong>隱私覆蓋：</strong>Type A 和 Type B 可選。</p>
+        <p><strong>歷史地位：</strong>代表 ZKML 領域從「能不能做」走向「怎麼做得好」的轉變。</p>
+    </div>
+
+    <h2>第十部分：設計空間總結</h2>
+
+    <p>現在讓我把這些論文的差異收斂成一個框架。ZKML 研究可以從三個維度來分析：</p>
+
+    <div class="highlight">
+        <p><strong>維度一：證明目標</strong>（你要證明什麼？）</p>
+        <ul style="margin-bottom: 0;">
+            <li><strong>Inference Correctness：</strong>單次推論正確。對輸入 x，模型輸出確實是 y。</li>
+            <li><strong>Model Properties：</strong>模型性質，比方說準確度。</li>
+        </ul>
+    </div>
+
+    <div class="highlight">
+        <p><strong>維度二：隱私目標</strong>（你要保護什麼？）</p>
+        <ul style="margin-bottom: 0;">
+            <li>輸入隱私：保護使用者資料</li>
+            <li>模型隱私：保護模型權重</li>
+            <li>架構隱私：保護模型結構</li>
+        </ul>
+    </div>
+
+    <div class="highlight">
+        <p><strong>維度三：算術化策略</strong>（你用什麼方法？）</p>
+        <ul style="margin-bottom: 0;">
+            <li>量化：float 轉 int，但有精度損失</li>
+            <li>多項式近似：只剩加乘，但改變語義</li>
+            <li>Range-check：保留語義，但成本高</li>
+            <li>Lookup：保留語義、效率好，但表格有限</li>
+        </ul>
+    </div>
+
+    <h2>第十一部分：早期瓶頸</h2>
+
+    <p>總結早期 ZKML 面臨的三大瓶頸：</p>
+
+    <ol>
+        <li><strong>非線性太貴：</strong>ReLU、max、softmax 的比較操作在 ZK 電路中成本極高。</li>
+        <li><strong>語義差異：</strong>量化會改變語義，你證明的是量化後的模型，不是原本的 float 模型。</li>
+        <li><strong>規模爆炸：</strong>電路和約束的規模隨模型規模快速成長，特別是在大量 bit-decomposition 的策略下。</li>
+    </ol>
+
+    <p>這些瓶頸推動了後續的研究方向：更好的算術化方法、更高效的證明系統、以及自動化的編譯器。</p>
+
+    <h2>第十二部分：未來方向</h2>
+
+    <ul>
+        <li><strong>更大的模型：</strong>往 Transformer、LLM 發展。zkLLM 已經在做這件事。</li>
+        <li><strong>更快的證明：</strong>硬體加速、GPU 並行化、更高效的證明系統。</li>
+        <li><strong>更好的工具：</strong>自動化編譯器、跟現有 ML 框架的整合。</li>
+        <li><strong>實際部署：</strong>區塊鏈 AI 應用、隱私保護 ML-as-a-Service。</li>
+    </ul>
+
+    <h2>第十三部分：三個 Takeaways</h2>
+
+    <div class="highlight">
+        <ol style="margin-bottom: 0;">
+            <li><strong>ZK × ML 的核心</strong>是把推論或評估變成有限域算術約束的 relation。</li>
+            <li><strong>早期突破</strong>多圍繞「怎麼便宜地處理非線性和比較」以及「怎麼把工作系統化」。</li>
+            <li><strong>不同論文的差異</strong>主要在：證明目標 × 隱私目標 × 算術化策略。</li>
+        </ol>
+    </div>
+
+    <p style="text-align: center; margin-top: 40px; font-size: 1.2rem;"><strong>報告完畢，謝謝大家。</strong></p>
+
+    <footer>
+        <p>ZKML Knowledge Base | 高璿程</p>
+        <p>最後更新：2025-01</p>
+    </footer>
+</div>
+
+</body>
+</html>
