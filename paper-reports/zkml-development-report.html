@@ -212,6 +212,17 @@
             <img src="images/zkml-development/survey_fig1_framework.png" alt="ZKML Framework">
             <figcaption>ZKML 框架：ML Client 發送輸入，Service Provider 執行推論並生成零知識證明 π</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>流程說明</h4>
+            <ol>
+                <li><strong>ML Client</strong>（左側）從資料庫取得輸入資料 x，發送給服務提供者</li>
+                <li><strong>ML Service Provider</strong>（右側）收到 x 後，讀取模型權重 w，執行推論 r = W(x, w)</li>
+                <li>服務提供者接著生成零知識證明 π，證明「輸出 r 確實是用模型 w 對輸入 x 計算出來的」</li>
+                <li>客戶端收到結果 r 和證明 π，執行 <strong>ZKP Verification</strong> 驗證正確性</li>
+            </ol>
+            <p style="margin-top: 10px; color: var(--muted);">關鍵：模型權重 w 是 <strong>private witness</strong>（私密見證），驗證者無法得知 w 的內容，只能確認計算正確。</p>
+        </div>
     </section>
 
     <!-- 2. ML 推論基礎 -->
@@ -305,8 +316,15 @@
 
         <figure class="figure medium">
             <img src="images/zkml-development/quantization_fig1.png" alt="Quantization">
-            <figcaption>量化示意：將浮點數映射到定點數表示</figcaption>
+            <figcaption>量化示意：將浮點數映射到定點數表示（Jacob et al., CVPR 2018）</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>圖片說明（三個部分）</h4>
+            <p><strong>(a) 純整數推論</strong>：量化後的計算流程。輸入和權重都是 uint8（8 位元整數），卷積後用 32 位元累加器相加偏置，最後經過 ReLU6 輸出 uint8。全程只有整數運算。</p>
+            <p><strong>(b) 模擬量化訓練</strong>：訓練時仍用 float32，但在權重和激活值後面插入「量化模擬節點」（wt quant / act quant），讓模型學會適應量化帶來的誤差。</p>
+            <p><strong>(c) 精度與延遲的權衡</strong>：右側散點圖比較 float（紅點）和 8-bit 量化（藍方塊）在 ImageNet 上的表現。可以看到量化雖然稍微降低準確度，但大幅降低推論延遲。</p>
+        </div>
 
         <h3>3.2 非線性操作問題（最大瓶頸）</h3>
 
@@ -416,8 +434,15 @@
 
         <figure class="figure medium">
             <img src="images/zkml-development/zkml_fig1_example.png" alt="ZKML Example">
-            <figcaption>ZKML 應用範例：驗證推薦系統使用正確模型</figcaption>
+            <figcaption>ZKML 應用範例：驗證推薦系統使用正確模型（ZKML EuroSys 2024）</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>情境說明</h4>
+            <p>以 Twitter 推薦系統為例，使用者想知道「我看到的推文是被公平排序的嗎？」</p>
+            <p><strong>上半部（沒有 ZKML）</strong>：使用者問「有什麼有趣的推文？」，Twitter 回傳「ZK is cool」。但使用者無法確認這是用哪個模型（M 或 M'）產生的推薦——可能是公開宣稱的模型 M，也可能是另一個模型 M'。</p>
+            <p><strong>下半部（有 ZKML）</strong>：同樣的請求，但這次回傳時附帶 <strong>ZKML Proof</strong>。使用者可以驗證這個證明，確認推薦結果確實是用模型 M（而非其他模型）計算出來的。</p>
+        </div>
     </section>
 
     <!-- 7. 形式化定義 -->
@@ -456,6 +481,18 @@ R_acc = { (statement, witness) :
             <img src="images/zkml-development/survey_fig2_workflow.png" alt="ZKML Workflow">
             <figcaption>ZKML 典型工作流程</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>流程走一遍</h4>
+            <ol>
+                <li><strong>① 承諾階段</strong>：Prover（P）持有 Model 和 Data，先對它們做承諾（commit）</li>
+                <li><strong>② 設置階段</strong>：根據任務 Task 執行 Setup，產生 <code>proving.key</code> 和 <code>verification.key</code></li>
+                <li><strong>③ 執行推論</strong>：P.execute 用模型跑推論，得到結果 <code>r.result</code></li>
+                <li><strong>④ 生成證明</strong>：prove 步驟用 proving.key 和計算過程，產出零知識證明 π</li>
+                <li><strong>⑤ 驗證階段</strong>：Verifier（V）收到 π 後，用 verification.key 驗證，確認無誤後可 commit 結果</li>
+                <li><strong>⑥ 迴圈</strong>：若有多輪互動或批次處理，可回到 ① 繼續</li>
+            </ol>
+        </div>
     </section>
 
     <!-- 8. 時間線 -->
@@ -466,6 +503,18 @@ R_acc = { (statement, witness) :
             <img src="images/zkml-development/survey_fig6_timeline.png" alt="ZKML Timeline">
             <figcaption>ZKML 研究時間線 (2017-2024)</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>時間線解讀</h4>
+            <p>此圖呈現 ZKML 領域的研究發展脈絡，時間從左上角開始（2017）沿箭頭方向前進。</p>
+            <ul>
+                <li><strong>2017 SafetyNets</strong>：首篇將 DNN 放進可驗證計算的論文，開啟這個領域</li>
+                <li><strong>2020 年</strong>：ZKDT、vCNN 等多篇論文出現，探索不同模型架構的 ZK 證明</li>
+                <li><strong>2021 年</strong>：zkCNN、ZEN、VeriML 等重要工作，逐漸系統化</li>
+                <li><strong>2024 年</strong>：爆發式成長，ZKML、zkLLM 等開始挑戰大型語言模型</li>
+            </ul>
+            <p style="margin-top: 10px; color: var(--muted);">趨勢：從「能不能做」到「怎麼做得更好」，從小模型到大模型。</p>
+        </div>
 
         <table>
             <thead>
@@ -511,8 +560,19 @@ R_acc = { (statement, witness) :
 
         <figure class="figure medium">
             <img src="images/zkml-development/zkcnn_fig2_system.png" alt="zkCNN System">
-            <figcaption>zkCNN 系統架構：GKR 協定 + FFT Sumcheck</figcaption>
+            <figcaption>zkCNN 系統架構（CCS 2021）</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>架構說明</h4>
+            <p>這張圖展示 zkCNN 如何處理一個典型的 CNN 網路：</p>
+            <ul>
+                <li><strong>輸入</strong>：X（影像輸入）、W（模型權重）、Bit-decomposition（位元分解輔助值）</li>
+                <li><strong>主要流程</strong>：輸入經過多層「Convolution → ReLU + Max pooling」的堆疊，最後到 Fully connected 層輸出</li>
+                <li><strong>關鍵設計</strong>：右側的 Bit-decomposition 連接到每個 ReLU 和 Max pooling 層——這些非線性操作需要額外的位元分解來做範圍證明</li>
+            </ul>
+            <p style="margin-top: 10px; color: var(--muted);">zkCNN 的突破：用 GKR 協定 + FFT Sumcheck 加速卷積層驗證，讓 VGG-16 等級的模型首次變得實際可行。</p>
+        </div>
     </section>
 
     <!-- 9. 設計空間 -->
@@ -521,8 +581,26 @@ R_acc = { (statement, witness) :
 
         <figure class="figure">
             <img src="images/zkml-development/survey_fig7_categorization.png" alt="ZKML Categorization">
-            <figcaption>ZKML 工作分類</figcaption>
+            <figcaption>ZKML 工作分類（Survey 2025）</figcaption>
         </figure>
+
+        <div class="card">
+            <h4>分類樹解讀</h4>
+            <p>這張圖用樹狀結構把現有 ZKML 論文做分類，從左到右展開：</p>
+            <ul>
+                <li><strong>第一層：改進方向</strong>
+                    <ul>
+                        <li><em>Generalizability</em>：提升通用性，讓系統能處理更多模型架構</li>
+                        <li><em>Efficiency</em>：提升效率，降低證明時間和記憶體使用</li>
+                        <li><em>Others</em>：其他改進方向</li>
+                    </ul>
+                </li>
+                <li><strong>第二層：任務類型</strong>——Verifiable Training（訓練）、Testing（測試/準確度證明）、Inferring（推論）</li>
+                <li><strong>第三層：隱私配置</strong>——Public input / Private output 或 Private input / Private output</li>
+                <li><strong>最右側</strong>：列出屬於該分類的具體論文</li>
+            </ul>
+            <p style="margin-top: 10px; color: var(--muted);">用這張圖可以快速定位任何一篇 ZKML 論文的研究定位。</p>
+        </div>
 
         <h3>三個分析維度</h3>
 
