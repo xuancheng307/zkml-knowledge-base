@@ -43,6 +43,18 @@
             font-family: 'Consolas', monospace;
             white-space: pre-wrap;
         }
+        .figure-note {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .figure-note strong {
+            color: #b45309;
+            display: block;
+            margin-bottom: 8px;
+        }
         footer {
             text-align: center;
             margin-top: 50px;
@@ -96,6 +108,11 @@
 <p>這兩個問題，就是 ZKML 想要解決的。</p>
 
 <p><strong>用一句話來總結 ZKML 的目標：讓你可以驗證 AI 推論的正確性，同時保護敏感資料不被洩漏。</strong></p>
+
+<div class="figure-note">
+<strong>【圖：survey_fig1_framework】ZKML 框架圖</strong>
+大家看這張圖。左邊是 ML Client，就是剛才說的醫院；右邊是 ML Service Provider，就是雲端服務商。流程是這樣：Client 把輸入 x 送過去，Provider 用模型 w 跑推論得到結果 r，然後生成一個零知識證明 π。Client 收到 r 和 π 之後，用 ZKP Verification 驗證。關鍵是：模型權重 w 是 private witness，驗證者看不到 w 的內容，只能確認計算是正確的。
+</div>
 
 <h2>第二部分：什麼是機器學習推論</h2>
 
@@ -184,6 +201,11 @@
 <p>量化則是進一步把數值範圍縮小。比方說 int8 量化：把原本的 float32 權重映射到 -128 到 127 的整數範圍。這大幅減少了數值的位元寬度，讓 ZK 電路更小。</p>
 
 <p>量化是有代價的。你損失了精度，模型的準確度可能會下降。但對於 ZKML 來說，這通常是可以接受的 trade-off。</p>
+
+<div class="figure-note">
+<strong>【圖：quantization_fig1】量化示意圖</strong>
+這張圖有三個部分。左邊 (a) 是量化後的推論流程：輸入和權重都是 8 位元整數，中間用 32 位元累加，全程只有整數運算。中間 (b) 是訓練時怎麼模擬量化效果。右邊 (c) 是重點：紅點是 float 模型，藍方塊是 8-bit 量化模型。可以看到量化雖然準確度稍微降一點，但延遲大幅下降——這就是 trade-off。
+</div>
 
 <p>好，假設我們用量化和定點數解決了數值表示的問題。接下來的挑戰是：怎麼處理非線性操作？</p>
 
@@ -317,6 +339,11 @@
 
 <p>後面介紹每篇論文的時候，我會標明它支援哪種隱私配置。</p>
 
+<div class="figure-note">
+<strong>【圖：zkml_fig1_example】Twitter 推薦系統範例</strong>
+這張圖用另一個例子來說明 ZKML 的應用。上半部是沒有 ZKML 的情況：你問 Twitter「有什麼有趣的推文？」，它回傳結果，但你不知道它用的是公開宣稱的模型 M，還是偷偷換成另一個模型 M'。下半部是有 ZKML 的情況：回傳結果時附帶一個 ZKML Proof，你可以驗證這個結果確實是用模型 M 算出來的。這就是 Type B 的應用場景——驗證服務商有沒有誠實使用宣稱的模型。
+</div>
+
 <h2>第七部分：ZKML 的形式化定義</h2>
 
 <p>現在讓我用更正式的方式定義 ZKML 在做什麼。</p>
@@ -348,7 +375,17 @@
 
 <p>準確度證明很有意思。它讓模型擁有者可以宣稱「我的模型在某測試集上達到 99% 準確度」，而且第三方可以驗證這個宣稱，但不需要看到模型或測試資料的具體內容。</p>
 
+<div class="figure-note">
+<strong>【圖：survey_fig2_workflow】ZKML 典型工作流程</strong>
+這張圖把剛才講的形式化定義變成流程圖。左上角 Prover 有 Model 和 Data，① 先對它們做承諾。② 根據 Task 跑 Setup，產生 proving.key 和 verification.key。③ 執行推論得到結果。④ 用 proving.key 生成證明 π。⑤ Verifier 拿 verification.key 驗證，確認沒問題就 commit。⑥ 如果有多次推論，可以迴圈回去。
+</div>
+
 <h2>第八部分：歷史時間線</h2>
+
+<div class="figure-note">
+<strong>【圖：survey_fig6_timeline】ZKML 研究時間線</strong>
+這張圖是整個領域的發展時間線，從左上角 2017 年開始，沿著箭頭走到 2024 年。大家可以看到 2021 年是一個爆發點，zkCNN、ZEN 這些重要工作都在這一年。2024 年之後論文數量又明顯增加。我接下來會挑幾篇關鍵論文詳細講。
+</div>
 
 <p>好，背景知識講完了。現在我們來看 ZKML 的歷史發展。</p>
 
@@ -420,6 +457,11 @@
 
 <p>有了這個突破，zkCNN 可以在 88 秒內為 VGG-16 產生證明，verifier 只需要 59 毫秒就能驗證。</p>
 
+<div class="figure-note">
+<strong>【圖：zkcnn_fig2_system】zkCNN 系統架構</strong>
+這張圖是 zkCNN 的架構。左邊輸入 X 是影像，W 是模型權重。中間是典型的 CNN 結構：Convolution → ReLU + Max pooling → 再來一層 → 最後 Fully connected。重點看右邊的 Bit-decomposition：它連接到每個 ReLU 和 Max pooling 層。這就是我剛才說的，非線性操作需要額外的位元分解來做範圍證明。zkCNN 的貢獻就是用 FFT Sumcheck 讓卷積層的驗證變得很快。
+</div>
+
 <p><strong>2024 年，ZKML（發表在 EuroSys）。</strong></p>
 
 <p>這篇論文的標題就叫「ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs」。</p>
@@ -435,6 +477,11 @@
 <p>根據論文的實驗，ZKML 的自動配置比手動調參快 3 到 10 倍。當然，實際的提升幅度取決於模型和硬體環境。</p>
 
 <h2>第九部分：設計空間總結</h2>
+
+<div class="figure-note">
+<strong>【圖：survey_fig7_categorization】ZKML 工作分類</strong>
+這張圖把所有 ZKML 論文做了分類，是一棵樹狀結構。從左到右看：第一層是「改進方向」，分成 Generalizability（通用性）、Efficiency（效率）、Others。第二層是「任務類型」，有 Training、Testing、Inferring。第三層是「隱私配置」，就是剛才講的 public/private input/output。最右邊列出屬於每個分類的論文。你想知道一篇論文的定位，就沿著這棵樹走一遍。
+</div>
 
 <p>現在讓我把這些論文的差異總結成一個框架。</p>
 
