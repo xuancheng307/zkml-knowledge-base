@@ -406,14 +406,19 @@
     <ul>
         <li><a href="#starting-point">出發點</a></li>
         <li><a href="#gap">研究缺口</a></li>
+        <li><a href="#research-questions">研究問題</a></li>
         <li><a href="#proposal">核心主張</a></li>
         <li><a href="#config-space">參數空間</a></li>
         <li><a href="#methodology">研究方法</a></li>
+        <li><a href="#applications">應用場景</a></li>
         <li><a href="#zktorch-extension">ZKTorch 延伸</a></li>
         <li><a href="#expected-results">預期結果</a></li>
         <li><a href="#execution">執行路線</a></li>
     </ul>
 </nav>
+<p style="text-align: center; font-size: 0.85rem; color: var(--muted); margin-top: 5px;">
+    <strong>研究方法包含：</strong>形式化定義 · Multi-Fidelity 評估 · 搜尋策略 · Bi-level 架構 · Rule Mining · 密碼學分析
+</p>
 
 <main>
     <!-- Section 1: Starting Point -->
@@ -487,6 +492,49 @@
         <div class="card">
             <p>ZKTorch 走的是「拆成 basic blocks + accumulation」的 proving stack，跟「整個模型編成一張 halo2 大電路」不是同一種抽象。</p>
             <p><strong>所以 ZKML 內層 optimizer 本來就不可能去調 ZKTorch 那一套 stack 的參數</strong>（例如 block 選擇、累積策略、平行度配置等）。</p>
+        </div>
+    </section>
+
+    <!-- Section 2.5: Research Questions -->
+    <section id="research-questions">
+        <h2>2.5 研究問題（Research Questions）</h2>
+
+        <p>基於上述研究缺口，本研究提出以下四個核心研究問題：</p>
+
+        <div class="card highlight">
+            <h4>RQ1：量化–成本關係</h4>
+            <p>不同量化與證明配置如何影響：</p>
+            <ol>
+                <li>模型精度（Top-1 accuracy、calibration metrics 如 ECE/AURC）</li>
+                <li>ZK 成本（約束數、prover time、peak RAM、proof size、on-chain gas）</li>
+            </ol>
+            <p><em>→ 建立 configuration 到 metrics 的定量映射</em></p>
+        </div>
+
+        <div class="card warning">
+            <h4>RQ2：自動調優</h4>
+            <p>能否設計 <strong>Auto-Tuning 演算法</strong>，在給定：</p>
+            <ul>
+                <li>模型 f、資料集 D</li>
+                <li>精度門檻（如 Top-1 drop ≤ 1%）</li>
+                <li>有限試驗預算（如 50-100 次）</li>
+            </ul>
+            <p>條件下，<strong>自動搜尋 Pareto 最佳配置</strong>？</p>
+            <p><em>→ 本研究的核心技術貢獻</em></p>
+        </div>
+
+        <div class="card purple">
+            <h4>RQ3：跨模型泛化</h4>
+            <p>對不同架構（MLP / CNN / Transformer），最佳設定是否呈現一致 pattern？</p>
+            <p>能否總結成<strong>「ZK-friendly 配置準則」</strong>？</p>
+            <p><em>→ 從實驗結果萃取可重用的設計規則</em></p>
+        </div>
+
+        <div class="card danger">
+            <h4>RQ4：安全性與健全性</h4>
+            <p>激進量化下是否仍能保持 ZK 證明的<strong>正確性（correctness）與健全性（soundness）</strong>？</p>
+            <p>是否有 <strong>overflow/wrap-around</strong> 破壞語義正確性的情況？</p>
+            <p><em>→ 確保配置選擇不會違反密碼學安全性</em></p>
         </div>
     </section>
 
@@ -592,15 +640,47 @@
         <p>研究方法不只是「跑很多實驗歸納規則」，而是採用一個比較完整的研究套路：</p>
 
         <h3>5.1 形式化：帶約束的多目標最佳化</h3>
+
         <div class="card highlight">
+            <h4>問題定義</h4>
+            <p>給定模型 <code>f</code>、資料集 <code>D</code>、精度門檻 <code>τ</code>，尋找配置 <code>c ∈ C</code> 使得：</p>
+        </div>
+
+        <div class="formula">
+            <strong>min</strong><sub>c∈C</sub> &nbsp; cost(c) = prover_time(c) + λ₁ · <strong>1</strong>[acc(c) &lt; τ] + λ₂ · gas(c)
+        </div>
+
+        <div class="card">
+            <h4>符號定義</h4>
+            <table>
+                <tr><th>符號</th><th>說明</th></tr>
+                <tr><td><code>c ∈ C</code></td><td>配置向量，包含量化參數、lookup 設定、電路資源等</td></tr>
+                <tr><td><code>prover_time(c)</code></td><td>在配置 c 下生成證明所需時間</td></tr>
+                <tr><td><code>acc(c)</code></td><td>量化後模型在驗證集上的精度</td></tr>
+                <tr><td><code>τ</code></td><td>精度門檻（如 Top-1 accuracy ≥ 原始模型 - 1%）</td></tr>
+                <tr><td><code>gas(c)</code></td><td>鏈上驗證成本（可選目標）</td></tr>
+                <tr><td><code>λ₁, λ₂</code></td><td>懲罰係數，控制約束違反與次要目標權重</td></tr>
+            </table>
+        </div>
+
+        <div class="card purple">
+            <h4>多目標形式</h4>
+            <p>實際上為 <strong>Constrained Multi-Objective Optimization</strong>：</p>
             <ul>
-                <li><strong>目標</strong>：最小化 proving time / peak RAM / proof size（可選 verifier cost）</li>
-                <li><strong>約束</strong>：accuracy ≥ 門檻、且配置必須可行（能編譯、能生成 witness、能通過 constraint check、避免 overflow/wrap-around）</li>
+                <li><strong>主目標</strong>：最小化 proving time、peak RAM、proof size</li>
+                <li><strong>硬約束</strong>：accuracy ≥ τ、配置必須可行（能編譯、能生成 witness、能通過 constraint check）</li>
+                <li><strong>軟約束</strong>：避免 overflow/wrap-around（可透過 penalty 處理）</li>
                 <li><strong>輸出</strong>：Pareto frontier（而不是單一最佳點）</li>
             </ul>
         </div>
 
         <h3>5.2 多保真（Multi-Fidelity）評估</h3>
+
+        <div class="card highlight">
+            <h4>核心概念</h4>
+            <p>Full proving 成本極高（可能需要數分鐘到數小時），無法對每個配置都執行。因此採用<strong>漸進式評估策略</strong>：用便宜的代理指標快速篩選，只對有潛力的配置執行完整證明。</p>
+        </div>
+
         <div class="card">
             <p>每個配置 θ 的評估，分成三個層級：</p>
             <table>
@@ -613,35 +693,85 @@
                 <tr>
                     <td><span class="tag green">F0</span></td>
                     <td>compile + 電路統計量（rows_needed、cols、lookups...）</td>
-                    <td>超便宜</td>
-                    <td>大量探索</td>
+                    <td>~秒級</td>
+                    <td>大量探索，過濾明顯不可行配置</td>
                 </tr>
                 <tr>
                     <td><span class="tag yellow">F1</span></td>
-                    <td>witness + mock/constraint check</td>
-                    <td>中等</td>
-                    <td>確保可行性、抓 overflow</td>
+                    <td>witness generation + mock/constraint check</td>
+                    <td>~分鐘級</td>
+                    <td>確保可行性、抓 overflow、精度評估</td>
                 </tr>
                 <tr>
                     <td><span class="tag red">F2</span></td>
-                    <td>full proving</td>
-                    <td>昂貴</td>
-                    <td>只對少數 Pareto 候選做，校正與報告真實成本</td>
+                    <td>full proving + verification</td>
+                    <td>~分鐘~小時</td>
+                    <td>只對 Pareto 候選做，獲得真實成本</td>
                 </tr>
             </table>
-            <p><strong>好處</strong>：在有限資源下做「大量試驗」，同時保持論文結果可信。</p>
+        </div>
+
+        <div class="card purple">
+            <h4>Multi-Fidelity 評估流程</h4>
+            <ol>
+                <li><strong>F0 快速篩選</strong>：對所有候選配置執行編譯，收集電路統計量</li>
+                <li><strong>啟發式過濾</strong>：根據 rows/cols 估計剔除明顯超出資源限制的配置</li>
+                <li><strong>F1 可行性驗證</strong>：對通過 F0 的配置生成 witness，檢查 constraint satisfaction</li>
+                <li><strong>Pareto 候選選擇</strong>：根據 F0+F1 的代理指標，選出 Pareto frontier 候選</li>
+                <li><strong>F2 精確評估</strong>：僅對候選執行 full proving，獲得真實 prover time 與 proof size</li>
+            </ol>
+            <p><strong>優勢</strong>：在有限 trial budget（如 100 次）下，可探索 1000+ 配置空間，同時保持最終結果的可信度。</p>
         </div>
 
         <h3>5.3 搜尋策略：Sample-Efficient Tuner</h3>
+
+        <div class="card highlight">
+            <h4>為什麼不能暴力搜尋？</h4>
+            <p>配置空間為 <strong>tree-structured</strong>（條件式參數），維度高且混合離散/連續變數。若每次 F2 評估需 10 分鐘，100 次試驗就需 16+ 小時。因此需要 <strong>sample-efficient</strong> 的搜尋策略。</p>
+        </div>
+
         <div class="two-col">
             <div class="card">
                 <h4>工程穩定版</h4>
-                <p>Random warm-up + <strong>TPE</strong>（Tree-structured Parzen Estimator）/ RandomForest-BO</p>
+                <ul>
+                    <li><strong>Random warm-up</strong>：初始 10-20 次隨機採樣建立先驗</li>
+                    <li><strong>TPE</strong>（Tree-structured Parzen Estimator）：處理條件式參數空間</li>
+                    <li><strong>RandomForest-BO</strong>：對離散變數友善</li>
+                </ul>
+                <p class="tag green">適合快速原型驗證</p>
             </div>
             <div class="card purple">
                 <h4>學術加分版</h4>
-                <p>Constrained multi-objective Bayesian optimization（可行性模型 + hypervolume improvement）</p>
+                <ul>
+                    <li><strong>Constrained Multi-Objective BO</strong>：同時處理多目標與約束</li>
+                    <li><strong>Hypervolume Improvement</strong>：最大化 Pareto frontier 覆蓋</li>
+                    <li><strong>Feasibility Model</strong>：學習可行區域，避免浪費預算在不可行配置</li>
+                </ul>
+                <p class="tag purple">適合論文發表</p>
             </div>
+        </div>
+
+        <div class="card">
+            <h4>演算法框架（Pseudo-code）</h4>
+            <pre style="background: #f7fafc; padding: 15px; border-radius: 8px; overflow-x: auto; font-size: 0.9em;">
+<strong>Algorithm:</strong> Multi-Fidelity ZKML Auto-Tuner
+<strong>Input:</strong> Model f, Dataset D, Budget B, Accuracy threshold τ
+<strong>Output:</strong> Pareto frontier P*
+
+1. Initialize surrogate model M, Pareto set P ← ∅
+2. <strong>for</strong> t = 1 to B <strong>do</strong>
+3.   c_t ← AcquisitionFunction(M, P)    // 選擇下一個配置
+4.   stats ← F0_Compile(c_t)            // 快速編譯取得統計量
+5.   <strong>if</strong> stats.feasible <strong>then</strong>
+6.     acc, witness_ok ← F1_Witness(c_t) // 生成 witness 檢查
+7.     <strong>if</strong> witness_ok AND acc ≥ τ <strong>then</strong>
+8.       cost ← EstimateCost(stats)      // 用代理指標估計成本
+9.       UpdateSurrogate(M, c_t, cost)
+10.      <strong>if</strong> IsParetoCandidate(c_t, P) <strong>then</strong>
+11.        real_cost ← F2_FullProving(c_t)  // 完整證明
+12.        P ← UpdatePareto(P, c_t, real_cost)
+13. <strong>return</strong> P
+            </pre>
         </div>
 
         <h3>5.4 內層/外層（Bi-level）的關鍵點</h3>
@@ -660,11 +790,111 @@
             </ul>
             <p>讓結果不只是跑出一條 Pareto，而是真的產生「設計準則」。</p>
         </div>
+
+        <h3>5.6 密碼學正確性分析（Cryptographic Soundness）</h3>
+
+        <div class="card danger">
+            <h4>為什麼需要密碼學分析？</h4>
+            <p>激進的量化配置可能導致 <strong>overflow/wrap-around</strong>，使得 ZK 證明的<strong>語義正確性</strong>被破壞。即使證明驗證通過，實際計算結果可能與預期不符。</p>
+        </div>
+
+        <div class="card highlight">
+            <h4>ZK 關係式定義</h4>
+            <p>對於量化後的 ML 推理，定義 ZK relation <code>R</code>：</p>
+            <div class="formula">
+                R = { (x, y; w, θ) : y = f<sub>quant</sub>(x; w, θ) ∧ NoOverflow(x, w, θ) }
+            </div>
+            <p>其中：</p>
+            <ul>
+                <li><code>x</code>：公開輸入（模型輸入）</li>
+                <li><code>y</code>：公開輸出（推理結果）</li>
+                <li><code>w</code>：私有 witness（量化後權重、中間計算）</li>
+                <li><code>θ</code>：配置參數</li>
+                <li><code>f<sub>quant</sub></code>：量化後的模型函數</li>
+            </ul>
+        </div>
+
+        <div class="card purple">
+            <h4>Soundness 條件</h4>
+            <p>證明系統的 <strong>Soundness</strong> 要求：若 verifier 接受證明，則 statement 為真。在 ZKML 場景下：</p>
+            <ol>
+                <li><strong>計算正確性</strong>：電路約束正確編碼了量化後的計算</li>
+                <li><strong>無溢位</strong>：所有中間值在有限域內不發生 wrap-around</li>
+                <li><strong>語義一致性</strong>：ZK 證明的結果 = 原始量化模型的結果</li>
+            </ol>
+        </div>
+
+        <div class="card warning">
+            <h4>Overflow 檢測策略</h4>
+            <p>本研究在 F1 階段加入 overflow 檢測：</p>
+            <table>
+                <tr><th>檢測方法</th><th>說明</th></tr>
+                <tr><td><strong>Range Check</strong></td><td>驗證所有中間值落在預期範圍 [−2<sup>b−1</sup>, 2<sup>b−1</sup>−1]</td></tr>
+                <tr><td><strong>Constraint Satisfaction</strong></td><td>mock prover 檢查所有約束是否滿足</td></tr>
+                <tr><td><strong>Statistical Sampling</strong></td><td>對多筆測試輸入執行，檢測 edge case overflow</td></tr>
+            </table>
+            <p><strong>若檢測到 overflow，該配置標記為不可行（infeasible），不進入 Pareto 候選。</strong></p>
+        </div>
+
+        <div class="card">
+            <h4>安全配置的必要條件</h4>
+            <p>一個配置 <code>c</code> 被視為「安全」需滿足：</p>
+            <ol>
+                <li>所有 lookup 輸入值落在 table 定義範圍內</li>
+                <li>乘法累加結果不超過有限域模數的安全範圍</li>
+                <li>定點數表示的精度足以區分不同輸出</li>
+                <li>constraint satisfaction rate = 100%（無約束違反）</li>
+            </ol>
+        </div>
     </section>
 
-    <!-- Section 6: ZKTorch Extension -->
+    <!-- Section 6: Applications -->
+    <section id="applications">
+        <h2>6. 應用場景與實務價值</h2>
+
+        <p>本研究的 Auto-Tuning 框架在以下場景具有直接的實務價值：</p>
+
+        <div class="two-col">
+            <div class="card highlight">
+                <h4>🔗 區塊鏈上的可驗證 AI 推論</h4>
+                <ul>
+                    <li><strong>隱私 KYC / 風險評分</strong>：模型計算風險分數，僅公開結果與 ZK 證明，不洩漏敏感資訊</li>
+                    <li><strong>去中心化預言機</strong>：第三方節點用私有模型生成預測，附 ZK 證明供鏈上驗證</li>
+                    <li><strong>ZK Rollup / L2 決策</strong>：Rollup sequencer 用 AI 做排序或風險判斷，透過 ZK 防止作弊</li>
+                </ul>
+                <p class="tag yellow" style="margin-top: 15px;">錯誤的 ZKML 配置（如 bit 過大導致證明時間 10 分鐘）會讓系統不可用</p>
+            </div>
+
+            <div class="card purple">
+                <h4>☁️ 雲端 ML 服務的第三方驗證</h4>
+                <ul>
+                    <li>根據客戶需求（Top-1 drop ≤ 0.5%、latency ≤ 5s）<strong>自動找到適合配置</strong></li>
+                    <li>讓 ZKML 變成<strong>「可參數化的 trade-off」</strong>，而非黑箱開關</li>
+                    <li>支援 SLA-aware 的證明生成</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <h4>📘 ZKML 工程師的設計指南</h4>
+            <p>本研究將提供：</p>
+            <ul>
+                <li>ezkl / ZKTorch 等框架的<strong>調參建議</strong></li>
+                <li>公開實驗報告：不同 bit / scale / logrows 的 <strong>cost 曲線與最佳點</strong></li>
+                <li>可重用的 <strong>ZK-friendly 配置準則</strong></li>
+            </ul>
+        </div>
+
+        <div class="card warning">
+            <h4>為什麼 Auto-Tuning 對這些場景很重要？</h4>
+            <p>現狀是：開發者憑經驗選參數，若 prove 爆 RAM 或時間過久才手動調整，<strong>無自動化與統一評估標準</strong>。</p>
+            <p>本研究要解決的就是：讓配置選擇從「工程試錯」變成「可重現的方法論」。</p>
+        </div>
+    </section>
+
+    <!-- Section 7: ZKTorch Extension -->
     <section id="zktorch-extension">
-        <h2>6. ZKTorch 延伸</h2>
+        <h2>7. ZKTorch 延伸</h2>
 
         <div class="card warning">
             <h4>重要聲明</h4>

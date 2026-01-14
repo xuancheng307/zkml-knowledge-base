@@ -172,6 +172,23 @@
 
     <div class="divider">* * *</div>
 
+    <!-- 區塊二點五：研究問題 -->
+    <div class="section">
+      <h2 class="section-title">二之五、研究問題</h2>
+
+      <p>基於這些缺口，本研究提出四個核心研究問題：</p>
+
+      <p>RQ1 是量化與成本的關係。不同量化與證明配置如何影響模型精度跟 ZK 成本？這裡要建立 configuration 到 metrics 的定量映射。</p>
+
+      <p>RQ2 是自動調優。能否設計一個 Auto-Tuning 演算法，在給定模型、資料集、精度門檻、有限試驗預算的條件下，自動搜尋 Pareto 最佳配置？這是本研究的核心技術貢獻。</p>
+
+      <p>RQ3 是跨模型泛化。對不同架構，像 MLP、CNN、Transformer，最佳設定是否呈現一致的 pattern？能否總結成 ZK-friendly 配置準則？</p>
+
+      <p>RQ4 是安全性與健全性。激進量化下是否仍能保持 ZK 證明的正確性與健全性？是否有 overflow 或 wrap-around 破壞語義正確性的情況？這個問題確保配置選擇不會違反密碼學安全性。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
     <!-- 區塊三：核心主張 -->
     <div class="section">
       <h2 class="section-title">三、想做什麼：外層 Tuner</h2>
@@ -221,6 +238,8 @@
       <p>第四是內層外層的關鍵點。把 layout 找最小可行 k、最小 rows grid、columns 掃描這種工作放在內層，沿用 ZKML 思想或現有 compiler。外層 tuner 只負責決定哪種 configuration 值得用。這樣研究貢獻會非常清楚：做的是 meta 層的 configuration selection，不是把 ZKML 內層 optimizer 重寫一次。</p>
 
       <p>第五是把 tuning 結果變成可解釋規則。把跑出的 trial logs 做 sensitivity analysis，看哪些參數最敏感。還有 decision tree、rule list、SHAP，產生像「如果模型是 softmax-heavy，lookup precision 要怎麼選」這種規則。讓結果不只是跑出一條 Pareto，而是真的產生設計準則。</p>
+
+      <p>第六是密碼學正確性分析。這對應到 RQ4。激進的量化配置可能導致 overflow 或 wrap-around，使得 ZK 證明的語義正確性被破壞。即使證明驗證通過，實際計算結果可能與預期不符。所以研究會在 F1 階段加入 overflow 檢測：包括 range check、constraint satisfaction check、還有 statistical sampling 對多筆測試輸入檢測 edge case。如果檢測到 overflow，該配置標記為不可行，不進入 Pareto 候選。這確保最終輸出的配置都是「安全」的配置。</p>
     </div>
 
     <div class="divider">* * *</div>
