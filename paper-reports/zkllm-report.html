@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zkLLM: 大型語言模型的零知識證明</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --light: #ebf8ff;
+            --text: #2d3748;
+            --muted: #718096;
+            --success: #38a169;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: #f7fafc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        header .meta {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        main {
+            background: white;
+            margin: 30px auto;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        section {
+            padding: 50px 60px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin: 25px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .two-col.reverse {
+            direction: rtl;
+        }
+
+        .two-col.reverse > * {
+            direction: ltr;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: var(--light);
+            border-left: 4px solid var(--accent);
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .info-box.warning {
+            background: #fffaf0;
+            border-left-color: var(--warning);
+        }
+
+        .info-box.success {
+            background: #f0fff4;
+            border-left-color: var(--success);
+        }
+
+        .info-box.danger {
+            background: #fff5f5;
+            border-left-color: var(--danger);
+        }
+
+        .info-box h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        /* Figures */
+        figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        figcaption {
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Code */
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: linear-gradient(120deg, #fef3cd 0%, #fef3cd 100%);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--light) 0%, white 100%);
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: var(--light);
+        }
+
+        /* Math */
+        .math {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            section {
+                padding: 30px 20px;
+            }
+
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="zkllm-ccs24-report">
+
+<header>
+    <h1>zkLLM</h1>
+    <div class="subtitle">Zero Knowledge Proofs for Large Language Models</div>
+    <div class="meta">
+        Haochen Sun, Jason Li, Hongyang Zhang<br>
+        University of Waterloo<br>
+        ACM CCS 2024 | <a href="https://arxiv.org/abs/2404.16109" style="color: white; text-decoration: underline;">arXiv:2404.16109</a>
+    </div>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#motivation">研究動機</a></li>
+        <li><a href="#tlookup">tlookup 技術</a></li>
+        <li><a href="#zkattn">zkAttn 協議</a></li>
+        <li><a href="#architecture">系統架構</a></li>
+        <li><a href="#experiments">實驗結果</a></li>
+        <li><a href="#conclusion">結論</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Section 1: Motivation -->
+    <section id="motivation">
+        <h2>1. 研究動機</h2>
+
+        <h3>LLM 時代的驗證需求</h3>
+        <p>隨著大型語言模型（LLM）在各領域的廣泛應用，一個關鍵問題浮現：<strong>如何驗證 AI 服務商確實使用了聲稱的模型？</strong></p>
+
+        <div class="info-box">
+            <h4>現實場景</h4>
+            <p>用戶付費使用 GPT-4 級別的 API，但無法驗證服務商是否偷偷替換成較弱的模型（如 GPT-3.5）來降低成本。zkLLM 透過零知識證明解決此信任問題。</p>
+        </div>
+
+        <h3>現有方法的瓶頸</h3>
+
+        <div class="two-col">
+            <div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>方法</th>
+                            <th>13B 模型估計時間</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>傳統 SNARK</td>
+                            <td>~100,000 年</td>
+                        </tr>
+                        <tr>
+                            <td>EZKL + Halo2</td>
+                            <td>~1,000 年</td>
+                        </tr>
+                        <tr>
+                            <td>zkVM (RISC Zero)</td>
+                            <td>~10 年</td>
+                        </tr>
+                        <tr style="background: #f0fff4;">
+                            <td><strong>zkLLM</strong></td>
+                            <td><strong>&lt; 15 分鐘</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h4>為何傳統方法失敗？</h4>
+                <ul>
+                    <li><strong>模型規模</strong>：7B-175B 參數，電路太大</li>
+                    <li><strong>計算密度</strong>：每個 token 數萬億 FLOPs</li>
+                    <li><strong>Softmax 問題</strong>：指數運算在 ZK 中成本極高</li>
+                    <li><strong>Attention</strong>：O(n²) 複雜度難以處理</li>
+                </ul>
+            </div>
+        </div>
+
+        <figure>
+            <img src="images/zkllm/page_1.png" alt="zkLLM 論文首頁">
+            <figcaption>圖 1：zkLLM 論文首頁 - 首個支援十億參數級 LLM 的 ZK 證明系統</figcaption>
+        </figure>
+    </section>
+
+    <!-- Section 2: tlookup -->
+    <section id="tlookup">
+        <h2>2. tlookup：張量查表技術</h2>
+
+        <h3>核心創新</h3>
+        <p>tlookup（Tensor Lookup）是 zkLLM 的核心貢獻，將傳統的向量查表擴展到高維張量，實現數量級的效率提升。</p>
+
+        <div class="info-box success">
+            <h4>關鍵洞察</h4>
+            <p>LLM 中的非線性運算（如 exp、GeLU）需要對大量元素逐一處理。tlookup 利用張量的結構特性，將 O(n·m) 的查表成本降低到 O(n + m)。</p>
+        </div>
+
+        <h3>傳統 Plookup vs tlookup</h3>
+
+        <div class="two-col">
+            <div>
+                <h4>傳統 Plookup</h4>
+                <div class="math">
+                    證明 f ⊆ T，其中 f, T 是向量<br>
+                    複雜度：O(|f| + |T|)
+                </div>
+                <p>對於 n×m 矩陣中的每個元素，需要 n·m 次查表操作。</p>
+            </div>
+            <div>
+                <h4>tlookup 擴展</h4>
+                <div class="math">
+                    證明 F ⊆ T，其中 F 是張量<br>
+                    利用張量結構：O(n + m)
+                </div>
+                <p>透過行列分解和隨機線性組合，大幅減少承諾數量。</p>
+            </div>
+        </div>
+
+        <h3>tlookup 協議流程</h3>
+
+        <pre><code>tlookup 協議：
+1. Setup：
+   - 預計算查表 T（函數值域，如 exp 表）
+   - 建立多項式承諾結構
+
+2. Prove：
+   - 對張量 F 進行行列分解
+   - 證明每行/列的查表關係
+   - 使用隨機線性組合壓縮多項式
+
+3. Verify：
+   - 驗證分解一致性
+   - 驗證查表證明
+   - 常數次配對運算</code></pre>
+
+        <figure>
+            <img src="images/zkllm/page_3.png" alt="zkLLM 技術細節">
+            <figcaption>圖 2：tlookup 的形式化定義與協議細節</figcaption>
+        </figure>
+    </section>
+
+    <!-- Section 3: zkAttn -->
+    <section id="zkattn">
+        <h2>3. zkAttn：零知識注意力機制</h2>
+
+        <h3>Attention 的 ZK 挑戰</h3>
+        <p>標準 Attention 機制的數學定義：</p>
+        <div class="math">
+            $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) \cdot V$$
+        </div>
+
+        <p>其中 Softmax 包含指數運算和除法，在傳統 ZK 電路中代價極高。</p>
+
+        <h3>zkAttn 的解決方案</h3>
+
+        <div class="info-box">
+            <h4>三步驟處理策略</h4>
+            <ol>
+                <li><strong>矩陣乘法 QK<sup>T</sup></strong>：使用 tlookup 優化</li>
+                <li><strong>exp 計算</strong>：透過 tlookup 查表取代電路</li>
+                <li><strong>正規化</strong>：利用 Attention 結構簡化 Σ 計算</li>
+            </ol>
+        </div>
+
+        <figure>
+            <img src="images/zkllm/page_4.png" alt="zkAttn 協議總覽">
+            <figcaption>圖 3：zkAttn 協議總覽 - 輸入 Q, K, V 經過矩陣乘法與 Softmax 處理的 ZK 證明流程</figcaption>
+        </figure>
+
+        <h3>zkAttn 協議細節</h3>
+
+        <pre><code>zkAttn 協議：
+
+輸入：Q, K, V ∈ F^{n×d}
+
+步驟 1：計算 S = QK^T
+  使用 tlookup 證明矩陣乘法
+  複雜度：O(n + d) 而非 O(n²·d)
+
+步驟 2：計算 exp(S / √d)
+  使用 tlookup 對每個元素查表
+  預計算：T_exp = {(i, exp(i/√d)) : i ∈ range}
+
+步驟 3：計算 Softmax 分母
+  D_i = Σ_j exp(S_{ij} / √d)
+  使用累加電路，O(n²) 加法
+
+步驟 4：計算輸出
+  O = softmax(S) · V
+  利用線性關係簡化
+
+總複雜度：O(n² + n·d) 而非 O(n²·d)</code></pre>
+    </section>
+
+    <!-- Section 4: Architecture -->
+    <section id="architecture">
+        <h2>4. 系統架構</h2>
+
+        <h3>整體流程</h3>
+        <p>zkLLM 將 LLM 推理分解為可證明的模組，每個 Transformer 層獨立處理。</p>
+
+        <figure>
+            <img src="images/zkllm/page_5.png" alt="LLM 結構與 zkLLM 對應">
+            <figcaption>圖 4：典型 LLM 結構 - Embedding → L 層 Transformer → Linear → Softmax</figcaption>
+        </figure>
+
+        <h3>記憶體管理策略</h3>
+
+        <div class="two-col">
+            <div>
+                <h4>挑戰</h4>
+                <table>
+                    <tr><td>13B 模型權重</td><td>~26 GB (FP16)</td></tr>
+                    <tr><td>電路表示</td><td>數百 GB</td></tr>
+                    <tr><td>證明中間數據</td><td>TB 級</td></tr>
+                </table>
+            </div>
+            <div>
+                <h4>zkLLM 解決方案</h4>
+                <ul>
+                    <li><strong>分層處理</strong>：一次只處理一層</li>
+                    <li><strong>流式證明</strong>：邊計算邊證明</li>
+                    <li><strong>增量承諾</strong>：權重預承諾（離線）</li>
+                </ul>
+                <p>最終記憶體使用：<strong>~50 GB</strong></p>
+            </div>
+        </div>
+
+        <h3>量化策略</h3>
+
+        <div class="info-box warning">
+            <h4>精度考量</h4>
+            <p>zkLLM 使用定點數表示：權重 INT8、激活值 INT16、累積器 INT32。這會導致困惑度（Perplexity）略有上升，但在大多數任務上可接受。</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>模型</th>
+                    <th>FP16 PPL</th>
+                    <th>zkLLM PPL</th>
+                    <th>差異</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>LLaMA-7B</td>
+                    <td>5.68</td>
+                    <td>5.85</td>
+                    <td>+3%</td>
+                </tr>
+                <tr>
+                    <td>LLaMA-13B</td>
+                    <td>5.09</td>
+                    <td>5.23</td>
+                    <td>+2.7%</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Section 5: Experiments -->
+    <section id="experiments">
+        <h2>5. 實驗結果</h2>
+
+        <h3>核心效能數據</h3>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">13B</div>
+                <div class="label">最大支援參數量</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">&lt;15 min</div>
+                <div class="label">13B 模型證明時間</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">&lt;200 KB</div>
+                <div class="label">證明大小</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">~10 ms</div>
+                <div class="label">驗證時間</div>
+            </div>
+        </div>
+
+        <h3>各模型效能比較</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>模型</th>
+                    <th>參數量</th>
+                    <th>證明時間</th>
+                    <th>證明大小</th>
+                    <th>驗證時間</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>LLaMA-7B</td>
+                    <td>7B</td>
+                    <td>~8 min</td>
+                    <td>&lt;200 KB</td>
+                    <td>~10 ms</td>
+                </tr>
+                <tr>
+                    <td>LLaMA-13B</td>
+                    <td>13B</td>
+                    <td>&lt;15 min</td>
+                    <td>&lt;200 KB</td>
+                    <td>~10 ms</td>
+                </tr>
+                <tr>
+                    <td>LLaMA-30B*</td>
+                    <td>30B</td>
+                    <td>~35 min</td>
+                    <td>&lt;200 KB</td>
+                    <td>~10 ms</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><small>*30B 數據為論文估計值</small></p>
+
+        <figure>
+            <img src="images/zkllm/page_7.png" alt="實驗數據頁面">
+            <figcaption>圖 5：zkLLM 詳細實驗數據與效能分析</figcaption>
+        </figure>
+
+        <h3>與先前方法的加速比</h3>
+
+        <div class="info-box success">
+            <h4>關鍵成果</h4>
+            <p>相較於 tlookup 之前的最佳方法，zkLLM 在 13B 模型上實現約 <strong>50 倍</strong> 的加速，並將可驗證的模型規模擴大 <strong>10 倍</strong>。</p>
+        </div>
+    </section>
+
+    <!-- Section 6: Conclusion -->
+    <section id="conclusion">
+        <h2>6. 結論與影響</h2>
+
+        <h3>主要貢獻</h3>
+        <ol>
+            <li><strong>tlookup</strong>：首個高維張量查表協議，將查表複雜度從 O(nm) 降至 O(n+m)</li>
+            <li><strong>zkAttn</strong>：專為 Transformer Attention 設計的高效 ZK 協議</li>
+            <li><strong>實用系統</strong>：首次在消費級硬體上實現 13B 參數 LLM 的可驗證推理</li>
+        </ol>
+
+        <h3>應用場景</h3>
+
+        <div class="two-col">
+            <div>
+                <h4>可驗證 AI 服務</h4>
+                <p>用戶可驗證雲端 AI 服務商是否真正使用聲稱的模型，防止服務降級。</p>
+            </div>
+            <div>
+                <h4>區塊鏈 AI 代理</h4>
+                <p>智能合約可安全呼叫 LLM 進行決策，透過 ZK 證明確保計算正確性。</p>
+            </div>
+        </div>
+
+        <h3>技術限制</h3>
+
+        <div class="info-box warning">
+            <h4>當前限制</h4>
+            <ul>
+                <li><strong>序列長度</strong>：標準支援 2048 tokens，長序列需更多資源</li>
+                <li><strong>精度損失</strong>：量化導致約 3% 的困惑度上升</li>
+                <li><strong>證明時間</strong>：相較即時推理仍有數量級差距</li>
+            </ul>
+        </div>
+
+        <h3>對後續研究的啟發</h3>
+        <p>zkLLM 開創了 LLM 可驗證推理的先河，後續如 <a href="zklora-report.html">ZKLoRA</a> 等工作在此基礎上探索更高效的驗證方案。未來方向包括：</p>
+        <ul>
+            <li>支援更長序列（>4K tokens）</li>
+            <li>擴展到 70B+ 規模模型</li>
+            <li>實現接近即時的證明生成</li>
+            <li>整合硬體加速器</li>
+        </ul>
+    </section>
+</main>
+
+<footer>
+    <p>
+        <a href="papers/zkllm.pdf">下載原始論文 (PDF)</a> |
+        <a href="https://arxiv.org/abs/2404.16109">arXiv 連結</a> |
+        <a href="zkllm-script.html">口頭報告講稿</a>
+    </p>
+    <p style="margin-top: 15px; opacity: 0.8;">
+        ZKML 技術知識庫 - 論文報告系列
+    </p>
+</footer>
+
+</body>
+</html>

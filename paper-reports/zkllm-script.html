@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zkLLM 口頭報告講稿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 2;
+            color: #2d3748;
+            background: #f7fafc;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: #1a365d;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #2c5282;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3182ce;
+        }
+
+        p {
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .note {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-size: 0.95rem;
+            color: #2c5282;
+        }
+
+        .note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .highlight {
+            background: #fef3cd;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .duration {
+            float: right;
+            background: #e2e8f0;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+
+        ul {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+            .note {
+                border: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>zkLLM: 大型語言模型的零知識證明</h1>
+    <div class="subtitle">口頭報告講稿 | 預估時間：12-15 分鐘</div>
+
+    <h2>1. 開場與動機 <span class="duration">~2 分鐘</span></h2>
+
+    <p>大家好，今天我要介紹的論文是 <span class="highlight">zkLLM: Zero Knowledge Proofs for Large Language Models</span>，這是由滑鐵盧大學的 Haochen Sun、Jason Li 和 Hongyang Zhang 在 ACM CCS 2024 發表的工作。</p>
+
+    <p>首先，讓我們思考一個問題：當我們使用 ChatGPT 或其他 AI 服務時，我們如何知道服務商真的用了 GPT-4，而不是偷偷換成較弱的 GPT-3.5 來節省成本？這個信任問題正是 zkLLM 要解決的核心議題。</p>
+
+    <p>zkLLM 的目標是透過零知識證明，讓服務商能夠<span class="highlight">證明他們確實使用了聲稱的模型</span>，同時不洩露模型的具體權重參數。</p>
+
+    <div class="note">
+        <strong>講者提示：</strong>可以用一個具體例子說明，比如「假設你付費使用某個 LLM API，結果發現回答品質很差，你懷疑對方降級了服務，但沒有任何方法驗證」。
+    </div>
+
+    <h2>2. 技術挑戰 <span class="duration">~2 分鐘</span></h2>
+
+    <p>為什麼這個問題這麼難呢？讓我們看看數字：</p>
+
+    <ul>
+        <li>一個 13B 參數的 LLM，如果用傳統的 SNARK 方法來證明，估計需要大約<span class="highlight">十萬年</span></li>
+        <li>即使用當時最先進的 EZKL 框架配合 Halo2 後端，也需要大約<span class="highlight">一千年</span></li>
+        <li>使用通用的 zkVM 如 RISC Zero，估計也需要<span class="highlight">十年</span></li>
+    </ul>
+
+    <p>問題的核心在於 LLM 的兩個特性：第一是<span class="highlight">龐大的參數量</span>，7B 到 175B 參數意味著巨大的電路；第二是 <span class="highlight">Softmax 運算</span>，裡面的指數函數在 ZK 電路中代價極高。</p>
+
+    <h2>3. 核心技術：tlookup <span class="duration">~3 分鐘</span></h2>
+
+    <p>zkLLM 的第一個核心貢獻是 <span class="highlight">tlookup</span>，也就是 Tensor Lookup。傳統的 Plookup 協議只能處理向量查表，而 LLM 中有大量的矩陣和張量運算。</p>
+
+    <p>tlookup 的關鍵洞察是：對於一個 n×m 的矩陣，如果我們要對每個元素做查表驗證（比如驗證 exp 運算），傳統方法需要 O(n·m) 的成本。但 tlookup 利用矩陣的<span class="highlight">行列結構</span>，透過隨機線性組合，將成本降低到 O(n + m)。</p>
+
+    <p>舉個例子：假設有一個 1000×1000 的激活值矩陣需要通過 exp 函數，傳統方法需要一百萬次查表操作，而 tlookup 只需要兩千次。這是<span class="highlight">數量級的改進</span>。</p>
+
+    <div class="note">
+        <strong>講者提示：</strong>這裡可以畫一個簡單的矩陣示意圖，說明如何利用行列分解來減少承諾數量。
+    </div>
+
+    <h2>4. 核心技術：zkAttn <span class="duration">~3 分鐘</span></h2>
+
+    <p>第二個核心貢獻是 <span class="highlight">zkAttn</span>，專門針對 Transformer 的 Attention 機制設計。</p>
+
+    <p>標準的 Attention 公式是：Attention(Q, K, V) = softmax(QK<sup>T</sup>/√d) × V。這裡面有三個困難點：QK 轉置的矩陣乘法、指數運算、以及除法正規化。</p>
+
+    <p>zkAttn 的策略是將這三個步驟分開處理：</p>
+    <ul>
+        <li>矩陣乘法用 tlookup 來優化</li>
+        <li>指數運算用<span class="highlight">預計算查表</span>取代電路</li>
+        <li>正規化利用 Attention 的特殊結構來簡化</li>
+    </ul>
+
+    <p>最終，zkAttn 將 Attention 證明的複雜度從 O(n²·d) 降到 O(n² + n·d)。</p>
+
+    <h2>5. 系統實現與記憶體管理 <span class="duration">~2 分鐘</span></h2>
+
+    <p>在工程層面，zkLLM 解決了一個關鍵問題：13B 模型的權重就要 26GB，完整電路表示可能達到數百 GB。如何在消費級硬體上運行？</p>
+
+    <p>解決方案有三個：</p>
+    <ul>
+        <li><span class="highlight">分層處理</span>：一次只處理一層 Transformer，層間傳遞承諾</li>
+        <li><span class="highlight">流式證明</span>：邊計算邊生成證明，不需要完整電路在記憶體</li>
+        <li><span class="highlight">權重預承諾</span>：離線完成，運行時只處理激活值</li>
+    </ul>
+
+    <p>這使得 zkLLM 可以在約 50GB 記憶體的機器上運行 13B 模型的證明。</p>
+
+    <h2>6. 實驗結果 <span class="duration">~2 分鐘</span></h2>
+
+    <p>讓我們看看實際效能：</p>
+
+    <ul>
+        <li>LLaMA-7B：證明時間約 8 分鐘，證明大小小於 200KB，驗證時間約 10 毫秒</li>
+        <li>LLaMA-13B：證明時間<span class="highlight">不到 15 分鐘</span>，其他指標類似</li>
+    </ul>
+
+    <p>相比之前最好的方法，zkLLM 實現了約 <span class="highlight">50 倍</span>的加速，並且將可驗證的模型規模擴大了 10 倍。</p>
+
+    <p>精度方面，由於使用定點數量化，困惑度約上升 3%，對大多數應用場景是可接受的。</p>
+
+    <div class="note">
+        <strong>講者提示：</strong>強調 200KB 的證明大小和 10ms 的驗證時間非常適合鏈上驗證。
+    </div>
+
+    <h2>7. 總結與展望 <span class="duration">~1 分鐘</span></h2>
+
+    <p>總結一下，zkLLM 的三個主要貢獻：</p>
+    <ul>
+        <li><span class="highlight">tlookup</span>：首個高維張量查表協議</li>
+        <li><span class="highlight">zkAttn</span>：專為 Attention 設計的高效 ZK 協議</li>
+        <li>首次在實際硬體上實現 13B LLM 的可驗證推理</li>
+    </ul>
+
+    <p>這項工作開創了 LLM 可驗證推理的新方向。後續的工作如 ZKLoRA 在此基礎上探索更高效的方案，而最新的 ZK-DeepSeek 更是將支援範圍擴展到 671B 參數的 MoE 模型。</p>
+
+    <p>未來的挑戰包括支援更長序列、擴展到更大模型、以及實現接近即時的證明生成。謝謝大家，歡迎提問。</p>
+
+    <footer>
+        <p>報告完成 | 返回 <a href="zkllm-report.html">詳細報告</a></p>
+    </footer>
+</div>
+
+</body>
+</html>
