@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZKLoRA 口頭報告講稿</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+      line-height: 2;
+      color: #333;
+      background: #f8f9fa;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 60px 50px;
+      border-radius: 12px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #2c3e50;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 0.95rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      color: #3498db;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .section {
+      margin-bottom: 50px;
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      color: #2980b9;
+      margin-bottom: 25px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #3498db;
+    }
+
+    p {
+      margin-bottom: 18px;
+      text-align: justify;
+    }
+
+    .key-point {
+      background: #e8f4f8;
+      padding: 15px 20px;
+      border-left: 4px solid #3498db;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .divider {
+      text-align: center;
+      margin: 40px 0;
+      color: #ccc;
+    }
+
+    footer {
+      margin-top: 50px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+      text-align: center;
+      color: #999;
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="zklora-report.html" class="back-link">&larr; 返回報告頁面</a>
+
+    <h1>ZKLoRA 口頭報告講稿</h1>
+    <p class="subtitle">Efficient Zero-Knowledge Proofs for LoRA Verification</p>
+
+    <!-- 開場 -->
+    <div class="section">
+      <p>各位好，今天我要報告的論文是 ZKLoRA，全名是「Efficient Zero-Knowledge Proofs for LoRA Verification」，是來自 Bagel Research Team 的 Bidhan Roy、Peter Potash 和 Marcos Villagra 在 2025 年 1 月發表的工作。</p>
+
+      <p>這篇論文解決的是一個非常實際的問題：在 LoRA 交易市場中，如何讓買家驗證 LoRA 的有效性，同時保護賣家的權重隱私？</p>
+
+      <p>我今天會按照報告頁面的架構來講：研究動機、技術背景、ZKLoRA 協定、工作流程、實驗結果，最後是結論。</p>
+
+      <p>先給大家一個核心總結：</p>
+
+      <div class="key-point">
+        ZKLoRA 是首個針對 LoRA 微調的零知識驗證協定。它利用 Multi-Party Inference 和遞迴證明技術，讓驗證者能在 1-2 秒內驗證每個 LoRA 模組的正確性，而完全不需要看到 LoRA 的實際權重。即使是 70B 參數的 Llama 模型，80 個 LoRA 模組也能在約 2 分鐘內完成驗證。
+      </div>
+
+      <p>好，接下來我就照區塊開始。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊一：研究動機 -->
+    <div class="section">
+      <h2 class="section-title">區塊一：研究動機</h2>
+
+      <p>首先，我需要解釋一下什麼是 LoRA，以及為什麼需要零知識驗證。</p>
+
+      <p>LoRA，全名 Low-Rank Adaptation，是目前最流行的大型語言模型微調方法。它的核心想法是：不動原始模型的權重，只訓練一個小的「低秩增量」。這個增量通常只有原始參數的 1/250 甚至更少。</p>
+
+      <p>這帶來了一個新的生態系統：LoRA 市場。想像一下，有人訓練了一個很厲害的醫療領域 LoRA，想要賣給醫院使用。但這裡出現了一個信任困境：</p>
+
+      <div class="key-point">
+        買家想在付款前驗證 LoRA 是否真的有效，但賣家不想在收到錢之前就交出權重。這是一個典型的「先付款還是先交貨」問題，在傳統電商中可以用第三方託管解決，但在 AI 領域，我們不想引入中心化的信任方。
+      </div>
+
+      <p>傳統的驗證方法都有問題：</p>
+
+      <p>第一，重跑推論。這需要賣家交出 LoRA 權重，直接違反隱私保護的需求。</p>
+
+      <p>第二，逐參數檢查。對於有數十億參數的模型，這完全不切實際。</p>
+
+      <p>第三，信任第三方。這引入了中心化風險，不適合去中心化的 AI 生態系統。</p>
+
+      <p>ZKLoRA 的解決方案是：使用零知識證明。賣家可以生成一個證明，證明「我的 LoRA 確實能跟這個基座模型正確配合」，而買家可以驗證這個證明，完全不需要看到 LoRA 的實際權重。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊二：技術背景 -->
+    <div class="section">
+      <h2 class="section-title">區塊二：技術背景</h2>
+
+      <p>在講 ZKLoRA 的具體設計之前，我需要先介紹兩個背景知識：LoRA 的數學表示，以及增量可驗證計算 IVC。</p>
+
+      <p>先講 LoRA 的數學。</p>
+
+      <p>假設原始模型有一個權重矩陣 W，維度是 d 乘以 k。傳統微調會直接修改這個矩陣，但 LoRA 不這麼做。它凍結 W，然後訓練兩個小矩陣 B 和 A，其中 B 的維度是 d 乘以 r，A 的維度是 r 乘以 k。</p>
+
+      <p>這裡的 r 就是所謂的「秩」，通常設為 8 到 64。這意味著 LoRA 的參數量只有原始矩陣的 r/min(d,k) 倍。對於 4096 乘 4096 的矩陣，如果 r=8，那就是大約 1/250 的參數量。</p>
+
+      <div class="key-point">
+        LoRA 的前向計算：給定輸入 x，輸出 h = Wx + BAx。其中 Wx 是原始模型的計算，BAx 是 LoRA 的增量。這個增量就是 ZKLoRA 要證明的對象。
+      </div>
+
+      <p>接著講增量可驗證計算，或稱 IVC。</p>
+
+      <p>IVC 的核心想法是：我們可以為一連串的計算產生「遞迴證明」。每個新步驟的證明不只證明這一步是對的，還證明前一步的證明是對的。這樣，最終的證明就代表整個計算序列都是正確的。</p>
+
+      <p>ZKLoRA 使用的是 Nova 和 HyperNova 這兩個先進的 IVC 系統。它們的特點是：prover 的密碼學成本很低，而且可以達成零知識，不依賴傳統的 zkSNARKs。這讓 ZKLoRA 能夠處理大規模神經網路。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊三：ZKLoRA 協定 -->
+    <div class="section">
+      <h2 class="section-title">區塊三：ZKLoRA 協定設計</h2>
+
+      <p>現在進入 ZKLoRA 的核心設計。</p>
+
+      <p>ZKLoRA 的巧妙之處在於：它結合了 LoRA 的參數高效性和零知識證明的隱私保護。LoRA 大幅縮減了需要證明的參數量，而零知識保護了貢獻者的專有權重。</p>
+
+      <p>整個協定分為三個步驟：</p>
+
+      <div class="key-point">
+        步驟一：Multi-Party Inference（多方推論）<br>
+        買家（Base Model User）和賣家（LoRA Contributor）協作進行推論。買家運行基座模型，當遇到需要 LoRA 的層時，發送部分激活值給賣家。賣家計算 LoRA 增量後回傳。整個過程中，LoRA 權重從未離開賣家。
+      </div>
+
+      <p>步驟二是證明生成。</p>
+
+      <p>多方推論完成後，賣家開始生成證明。對於每個 LoRA 模組，需要做四件事：</p>
+
+      <p>一，電路編譯：把 LoRA 的計算轉換成密碼學電路。</p>
+
+      <p>二，金鑰設置：生成 proving key 和 verification key。</p>
+
+      <p>三，見證創建：用實際的激活值運行電路，記錄所有中間值。</p>
+
+      <p>四，構建證明：用見證生成零知識證明。</p>
+
+      <p>步驟三是驗證。</p>
+
+      <p>買家收到證明後，執行快速驗證。關鍵數據是：每個模組的驗證只需要 1-2 秒。如果任何一個證明驗證失敗，買家就拒絕整個 LoRA 提交。</p>
+
+      <p>這裡的重點是：驗證過程完全不需要 LoRA 的實際權重。買家只需要證明檔案和驗證金鑰。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊四：工作流程 -->
+    <div class="section">
+      <h2 class="section-title">區塊四：工作流程與演算法</h2>
+
+      <p>讓我用更具體的方式說明 ZKLoRA 的工作流程。</p>
+
+      <p>假設我們有一個 Llama-3 模型，它有 32 層 transformer。每一層的 attention 有 Q、K、V 三個矩陣，如果每個都套用 LoRA，就有 96 個 LoRA 模組。</p>
+
+      <p>在多方推論階段：</p>
+
+      <p>買家把輸入送進 Llama-3。當運算進入第一個 attention 層時，買家發現這裡有 LoRA。它把激活值 x 發送給賣家。賣家收到 x 後，計算 delta 等於 B 乘 A 乘 x，然後把 delta 發回去。買家把 delta 加到自己計算的 Wx 上，得到這一層的輸出。</p>
+
+      <p>這個過程重複 96 次，一次處理一個 LoRA 模組。</p>
+
+      <div class="key-point">
+        關鍵觀察：在整個推論過程中，B 和 A 這兩個矩陣從未離開賣家的機器。買家只看到輸入 x 和輸出 delta，但無法從這些資訊反推出 B 和 A 的值。這就是「零知識」的體現。
+      </div>
+
+      <p>推論結束後，賣家開始為每個 LoRA 模組生成證明。這是計算密集的部分，但只需要做一次。生成完所有證明後，賣家把證明檔案發送給買家。</p>
+
+      <p>買家驗證證明。如果 96 個證明都通過，買家就確信：這個 LoRA 確實能跟 Llama-3 正確配合。然後付款，賣家交付真正的 LoRA 權重。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊五：實驗結果 -->
+    <div class="section">
+      <h2 class="section-title">區塊五：實驗結果</h2>
+
+      <p>現在來看實驗數據。</p>
+
+      <p>論文測試了六個模型，從小的 distilgpt2 到超大的 Llama-3.3-70B。每個模型的 LoRA 模組數量不同，從 24 到 80 個。</p>
+
+      <div class="key-point">
+        關鍵結果：<br>
+        - 單模組驗證時間：約 1-2 秒，不管基座模型多大<br>
+        - Llama-3.3-70B（80 個 LoRA）：總驗證時間約 120 秒，也就是 2 分鐘<br>
+        - 驗證時間隨 LoRA 數量線性增長，斜率很平緩
+      </div>
+
+      <p>讓我分析一下這些數據的意義。</p>
+
+      <p>首先，驗證時間幾乎不受基座模型大小影響。distilgpt2 和 Llama-3.3-70B 的單模組驗證時間差不多。這是因為 ZKLoRA 只驗證 LoRA 模組本身，而 LoRA 的大小相對於基座模型是很小的。</p>
+
+      <p>其次，總驗證時間是可接受的。即使是最極端的情況，80 個模組 2 分鐘，對於一個重要的商業交易來說完全是合理的。</p>
+
+      <p>第三，證明生成時間較長，但這是一次性成本。賣家生成一次證明，可以賣給多個買家。</p>
+
+      <p>從實用角度看，ZKLoRA 已經達到了生產可用的水準。</p>
+    </div>
+
+    <div class="divider">* * *</div>
+
+    <!-- 區塊六：結論 -->
+    <div class="section">
+      <h2 class="section-title">區塊六：結論與未來工作</h2>
+
+      <p>總結 ZKLoRA 的主要貢獻：</p>
+
+      <div class="key-point">
+        1. 協定創新：首個針對 LoRA 微調的零知識驗證協定，設計了 Multi-Party Inference 流程<br><br>
+        2. 效能突破：單模組驗證只需 1-2 秒，支援 70B 以上的超大模型<br><br>
+        3. 實用價值：開源實現，可直接應用於 LoRA 交易市場、合約訓練、去中心化 AI 等場景
+      </div>
+
+      <p>論文也提出了幾個未來工作方向：</p>
+
+      <p>第一，對基座模型激活值添加多項式承諾。目前 ZKLoRA 只驗證 LoRA 計算的正確性，但不驗證基座模型的計算。如果加入這個功能，就能實現端到端的可驗證推論。</p>
+
+      <p>第二，支援多貢獻者的 LoRA 組合。現實中，一個模型可能同時使用多個來自不同貢獻者的 LoRA。如何在這種情況下維持驗證？</p>
+
+      <p>第三，保護使用者的輸入資料。目前 ZKLoRA 保護的是 LoRA 權重，但輸入資料是公開的。未來可以擴展到同時保護輸入。</p>
+
+      <p>從歷史角度看，ZKLoRA 填補了 ZKML 領域的一個重要空白。之前的工作如 zkCNN 和 zkLLM 專注於「可驗證推論」，而 ZKLoRA 開創了「可驗證微調」這個新方向。這對於 AI 的去中心化和民主化有重要意義。</p>
+
+      <p>報告完畢，謝謝大家。</p>
+    </div>
+
+    <footer>
+      <p>ZKLoRA 口頭報告講稿</p>
+      <p>基於 <a href="zklora-report.html">ZKLoRA 論文報告</a> 整理</p>
+    </footer>
+  </div>
+</body>
+</html>

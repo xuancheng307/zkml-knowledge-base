@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKLoRA: 高效的 LoRA 零知識驗證協定</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --light: #ebf8ff;
+            --text: #2d3748;
+            --muted: #718096;
+            --success: #38a169;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: #f7fafc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        header .meta {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        main {
+            background: white;
+            margin: 30px auto;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        section {
+            padding: 50px 60px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin: 25px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .two-col.reverse {
+            direction: rtl;
+        }
+
+        .two-col.reverse > * {
+            direction: ltr;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .card.highlight {
+            background: linear-gradient(135deg, #ebf8ff 0%, #e6fffa 100%);
+            border-left: 4px solid var(--accent);
+        }
+
+        .card.warning {
+            background: #fffaf0;
+            border-left: 4px solid var(--warning);
+        }
+
+        .card.danger {
+            background: #fff5f5;
+            border-left: 4px solid var(--danger);
+        }
+
+        .card h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        /* Code / Technical */
+        code {
+            background: #edf2f7;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .formula {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1rem;
+            margin: 20px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .highlight-box h3 {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .highlight-box p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: var(--light);
+            color: var(--secondary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin: 3px;
+        }
+
+        .tag.green {
+            background: #c6f6d5;
+            color: #276749;
+        }
+
+        .tag.yellow {
+            background: #fefcbf;
+            color: #975a16;
+        }
+
+        .tag.red {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        /* Figures */
+        .figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .figure figcaption {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .figure.large img {
+            width: 100%;
+        }
+
+        .figure.medium img {
+            max-width: 85%;
+        }
+
+        .figure.small img {
+            max-width: 60%;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Print Styles */
+        @media print {
+            nav { display: none; }
+            header { padding: 30px 20px; }
+            section { padding: 30px 40px; }
+        }
+
+        @media (max-width: 768px) {
+            .two-col { grid-template-columns: 1fr; }
+            section { padding: 30px 25px; }
+            header h1 { font-size: 1.8rem; }
+        }
+
+        /* MathJax */
+        .math {
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+    </style>
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body data-page-id="zklora-report">
+
+<header>
+    <div class="container">
+        <h1>ZKLoRA</h1>
+        <p class="subtitle">Efficient Zero-Knowledge Proofs for LoRA Verification</p>
+        <p class="subtitle">高效的 LoRA 零知識驗證協定</p>
+        <p class="meta">arXiv 2501.13965 | January 2025 | Bidhan Roy, Peter Potash, Marcos Villagra (Bagel Research)</p>
+        <p style="margin-top: 15px;">
+            <a href="zklora-script.html" style="color: white; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; text-decoration: none; font-size: 0.95rem;">講稿</a>
+            <a href="https://github.com/bagel-org/ZKLoRA" target="_blank" style="color: white; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 20px; text-decoration: none; font-size: 0.95rem; margin-left: 10px;">GitHub</a>
+        </p>
+    </div>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#motivation">研究動機</a></li>
+        <li><a href="#background">技術背景</a></li>
+        <li><a href="#protocol">ZKLoRA 協定</a></li>
+        <li><a href="#workflow">工作流程</a></li>
+        <li><a href="#results">實驗結果</a></li>
+        <li><a href="#conclusion">結論</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Section 1: Motivation -->
+    <section id="motivation">
+        <h2>研究動機</h2>
+
+        <h3>問題背景：LoRA 交易的信任困境</h3>
+        <p>大型語言模型 (LLM) 的微調成本極高，而 Low-Rank Adaptation (LoRA) 提供了一種參數高效的解決方案。然而，在分散式、不可信的環境中，LoRA 的交易面臨信任困境：</p>
+
+        <div class="two-col">
+            <div class="card warning">
+                <h4>買家（Base Model User）的需求</h4>
+                <p>想要驗證 LoRA 是否真的能與基座模型配合運作，但不想在付款前就拿到 LoRA 權重（怕賣家不給錢就跑）。</p>
+            </div>
+            <div class="card warning">
+                <h4>賣家（LoRA Contributor）的需求</h4>
+                <p>想要保護 LoRA 權重的隱私，直到收到付款。但買家不信任未驗證的產品。</p>
+            </div>
+        </div>
+
+        <h3>傳統驗證方法的問題</h3>
+        <div class="card danger">
+            <h4>為什麼不能直接驗證？</h4>
+            <ul>
+                <li><strong>重跑推論：</strong>需要賣家交出 LoRA 權重，違反隱私保護</li>
+                <li><strong>逐參數檢查：</strong>對於數十億參數的模型不切實際</li>
+                <li><strong>信任第三方：</strong>引入中心化風險，不適合去中心化場景</li>
+            </ul>
+        </div>
+
+        <div class="highlight-box">
+            <h3>ZKLoRA 的解決方案</h3>
+            <p>使用零知識證明，讓 LoRA 貢獻者能夠證明其 LoRA 模組的正確性，<br>
+            而無需透露實際的權重。每個 LoRA 模組的驗證只需 <strong>1-2 秒</strong>。</p>
+        </div>
+
+        <h3>應用場景</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">LoRA 市場</div>
+                <div class="label">買賣雙方的安全交易</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">合約訓練</div>
+                <div class="label">外包微調的品質保證</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">去中心化 AI</div>
+                <div class="label">分散式團隊的信任協作</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.2rem;">多 LoRA 管線</div>
+                <div class="label">多適配器場景的驗證</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Background -->
+    <section id="background">
+        <h2>技術背景</h2>
+
+        <h3>什麼是 LoRA？</h3>
+        <div class="two-col">
+            <div>
+                <p><strong>Low-Rank Adaptation (LoRA)</strong><sup><a href="#ref-4">[4]</a></sup> 是一種參數高效的微調技術，透過注入小型低秩適配器矩陣來調整預訓練模型。</p>
+                <p>核心想法：凍結原始權重 $W$，只訓練低秩分解的增量：</p>
+                <div class="formula">
+                    $W' = W + \Delta W = W + BA$
+                </div>
+                <p>其中：</p>
+                <ul>
+                    <li>$W \in \mathbb{R}^{d \times k}$：原始凍結權重</li>
+                    <li>$B \in \mathbb{R}^{d \times r}$：低秩矩陣</li>
+                    <li>$A \in \mathbb{R}^{r \times k}$：低秩矩陣</li>
+                    <li>$r \ll \min(d, k)$：秩，通常為 8-64</li>
+                </ul>
+            </div>
+            <div>
+                <div class="card highlight">
+                    <h4>LoRA 的優勢</h4>
+                    <table>
+                        <tr>
+                            <td>參數減少</td>
+                            <td>250× 以上</td>
+                        </tr>
+                        <tr>
+                            <td>記憶體節省</td>
+                            <td>顯著降低</td>
+                        </tr>
+                        <tr>
+                            <td>可交換性</td>
+                            <td>多個 LoRA 共用基座</td>
+                        </tr>
+                        <tr>
+                            <td>專業化</td>
+                            <td>醫療、法律等領域</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <h3>增量可驗證計算 (IVC)</h3>
+        <div class="card">
+            <p><strong>Incrementally Verifiable Computation (IVC)</strong><sup><a href="#ref-7">[7]</a></sup> 是 ZKLoRA 的理論基礎。核心概念：</p>
+            <ul>
+                <li><strong>遞迴證明：</strong>證明可以「證明其他證明的正確性」</li>
+                <li><strong>可更新性：</strong>每個新步驟都能在前一步驟的保證上驗證</li>
+                <li><strong>低驗證開銷：</strong>大幅減少長計算的驗證負擔</li>
+            </ul>
+        </div>
+
+        <h3>Nova 與 HyperNova</h3>
+        <div class="two-col">
+            <div class="card">
+                <h4>Nova<sup><a href="#ref-6">[6]</a></sup></h4>
+                <p>Kothapalli 等人 (2022) 提出的遞迴證明系統，引入 <strong>folding scheme</strong>：</p>
+                <ul>
+                    <li>遞迴證明組合</li>
+                    <li>適用於 IVC 場景</li>
+                    <li>每個證明同時驗證當前步驟和前一個證明</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>HyperNova<sup><a href="#ref-5">[5]</a></sup></h4>
+                <p>Nova 的改進版本，針對 CCS (Customizable Constraint Systems) 優化：</p>
+                <ul>
+                    <li>Prover 密碼學成本最小化</li>
+                    <li>不依賴 zkSNARKs 即可達成零知識</li>
+                    <li>適合大規模神經網路</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: Protocol -->
+    <section id="protocol">
+        <h2>ZKLoRA 協定設計</h2>
+
+        <h3>核心設計理念</h3>
+        <div class="card highlight">
+            <h4>LoRA + ZK 的協同效應</h4>
+            <p>ZKLoRA 巧妙結合了兩個技術的優勢：</p>
+            <ul>
+                <li><strong>LoRA 的參數高效性：</strong>大幅縮減需要證明的參數量</li>
+                <li><strong>零知識的隱私保護：</strong>保護貢獻者的專有權重</li>
+            </ul>
+            <p>這種組合使得在去中心化基礎設施上的信任驅動協作成為可能。</p>
+        </div>
+
+        <h3>三步驟協定流程</h3>
+        <div class="figure medium">
+            <img src="images/zklora/page_4.png" alt="ZKLoRA 三步驟流程圖">
+            <figcaption>Figure 1: ZKLoRA 三步驟流程 - (1) 多方推論 (2) 證明生成 (3) 驗證</figcaption>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">1</div>
+                <div class="label">Multi-Party Inference<br>多方推論</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">2</div>
+                <div class="label">Proof Generation<br>證明生成</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">3</div>
+                <div class="label">Verification<br>驗證</div>
+            </div>
+        </div>
+
+        <h3>步驟一：多方推論 (Multi-Party Inference)</h3>
+        <div class="two-col">
+            <div>
+                <p>Base Model User 和 LoRA Contributor 協作進行推論：</p>
+                <ol>
+                    <li>Base Model User 將輸入資料送入基座模型</li>
+                    <li>當遇到需要 LoRA 的模組時，發送 <strong>Base Acts</strong>（部分激活值）給 LoRA Contributor</li>
+                    <li>LoRA Contributor 計算 $\Delta = BAx$ 並回傳 <strong>LoRA Acts</strong></li>
+                    <li>Base Model User 合併結果：$h = Wx + \Delta$</li>
+                </ol>
+            </div>
+            <div>
+                <div class="figure small">
+                    <img src="images/zklora/page_5.png" alt="多方推論流程">
+                    <figcaption>Figure 2: 單一模組的多方推論流程</figcaption>
+                </div>
+            </div>
+        </div>
+
+        <h3>步驟二：證明生成 (Proof Generation)</h3>
+        <div class="card">
+            <h4>LoRA Contributor 的工作</h4>
+            <ol>
+                <li><strong>電路編譯 (Circuit Compilation)：</strong>將 LoRA 轉換解析為密碼學電路</li>
+                <li><strong>金鑰設置 (Key Setup)：</strong>生成 proving key、verification key、SRS（如需要）</li>
+                <li><strong>見證創建 (Witness Creation)：</strong>執行部分激活值通過電路，記錄所有線路值</li>
+                <li><strong>證明構建 (Proof)：</strong>為每個 LoRA 模組構建零知識證明 $\mathcal{P}_m$</li>
+            </ol>
+        </div>
+
+        <h3>步驟三：驗證 (Verification)</h3>
+        <div class="card highlight">
+            <h4>Base Model User 的工作</h4>
+            <p>對每個收到的證明 $\mathcal{P}_m$ 執行快速驗證：</p>
+            <ul>
+                <li><strong>驗證時間：</strong>約 1-2 秒 / 模組</li>
+                <li><strong>不需要 LoRA 權重：</strong>只需證明和驗證金鑰</li>
+                <li><strong>任一失敗即拒絕：</strong>若任何證明驗證失敗，拒絕整個 LoRA 提交</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Section 4: Workflow -->
+    <section id="workflow">
+        <h2>演算法與工作流程</h2>
+
+        <h3>ZKLoRA 演算法虛擬碼</h3>
+        <div class="card" style="background: #1a202c; color: #e2e8f0; font-family: 'Consolas', monospace; font-size: 0.9rem; line-height: 1.6;">
+<pre>
+<strong style="color: #68d391;">Algorithm 1:</strong> ZKLoRA Pseudocode
+
+<strong style="color: #63b3ed;">Require:</strong> BaseModel (public), LoRAModel (private), Data
+<strong style="color: #63b3ed;">Ensure:</strong> Verified outputs or Reject
+
+<strong style="color: #f6ad55;">Step 1: Multi-Party Inference</strong>
+for each submodule s in BaseModel do
+    if s contains LoRA layers then
+        (a) run multi-party inference with LoRA Contributor for submodule s
+    else
+        (b) run local inference on submodule s (no remote calls)
+    end if
+end for
+
+<strong style="color: #f6ad55;">Step 2: Proof Generation</strong>
+for each LoRA module m in LoRAModel do
+    (1) Circuit Compilation: parse LoRA-augmented layers, produce circuit
+    (2) Key Setup: generate settings, proving key, verification key, SRS
+    (3) Witness Creation: run partial activations through circuit
+    (4) Proof: construct zero-knowledge proof P_m for module m
+end for
+
+<strong style="color: #f6ad55;">Step 3: Verification</strong>
+for each proof P_m do
+    if Verify(P_m) fails then
+        return <strong style="color: #fc8181;">Reject</strong>
+    end if
+end for
+return <strong style="color: #68d391;">Verified outputs</strong>
+</pre>
+        </div>
+
+        <h3>LoRA 運算的數學表示</h3>
+        <div class="formula">
+            <strong>單一 LoRA 模組的運算：</strong><br><br>
+            輸入：$x \in \mathbb{R}^k$<br>
+            基座輸出：$\text{base\_out} = Wx$<br>
+            LoRA 增量：$\Delta = BAx$<br>
+            最終輸出：$h = \text{base\_out} + \Delta = Wx + BAx$
+        </div>
+
+        <h3>關鍵特性</h3>
+        <div class="two-col">
+            <div class="card">
+                <h4>隱私保護</h4>
+                <ul>
+                    <li>LoRA 權重 $(B, A)$ 永不離開 Contributor</li>
+                    <li>只傳輸激活值和證明</li>
+                    <li>證明不洩露任何關於權重的資訊</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h4>確定性保證</h4>
+                <ul>
+                    <li>密碼學正確性保證</li>
+                    <li>任何偏差都會被檢測</li>
+                    <li>不依賴統計抽樣</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: Results -->
+    <section id="results">
+        <h2>實驗結果</h2>
+
+        <h3>實驗設置</h3>
+        <div class="card">
+            <ul>
+                <li><strong>輸入：</strong>batch size = 3, sequence length = 5</li>
+                <li><strong>測試模型：</strong>distilgpt2, GPT-2, Llama-3.2-1B, Llama-3.1-8B, Llama-3.3-70B, Mixtral-8x7B</li>
+                <li><strong>LoRA 目標：</strong>Attention 層的 Q, K, V 矩陣</li>
+            </ul>
+        </div>
+
+        <h3>驗證時間 vs LoRA 模組數量</h3>
+        <div class="figure large">
+            <img src="images/zklora/page_2.png" alt="驗證時間與 LoRA 模組數量關係圖">
+            <figcaption>Figure 3: 總驗證時間（秒）vs LoRA 模組數量。點的大小反映平均 LoRA 大小。</figcaption>
+        </div>
+
+        <h3>基準測試結果</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>基座模型</th>
+                    <th>LoRA 數量</th>
+                    <th>平均 LoRA 大小</th>
+                    <th>平均 Settings (秒)</th>
+                    <th>平均 Proof (秒)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>distilgpt2</td>
+                    <td>24</td>
+                    <td>24,576</td>
+                    <td>38.0</td>
+                    <td>31.6</td>
+                </tr>
+                <tr>
+                    <td>openai-community/gpt2</td>
+                    <td>48</td>
+                    <td>49,152</td>
+                    <td>43.6</td>
+                    <td>34.9</td>
+                </tr>
+                <tr>
+                    <td>meta-llama/Llama-3.2-1B</td>
+                    <td>32</td>
+                    <td>26,624</td>
+                    <td>37.2</td>
+                    <td>31.0</td>
+                </tr>
+                <tr>
+                    <td>meta-llama/Llama-3.3-70B-Instruct</td>
+                    <td>80</td>
+                    <td>147,456</td>
+                    <td>54.9</td>
+                    <td>46.9</td>
+                </tr>
+                <tr>
+                    <td>meta-llama/Llama-3.1-8B-Instruct</td>
+                    <td>32</td>
+                    <td>163,840</td>
+                    <td>57.4</td>
+                    <td>47.7</td>
+                </tr>
+                <tr>
+                    <td>mistralai/Mixtral-8x7B-Instruct-v0.1</td>
+                    <td>32</td>
+                    <td>327,680</td>
+                    <td>86.1</td>
+                    <td>73.7</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>關鍵發現</h3>
+        <div class="highlight-box">
+            <div class="stats-grid" style="color: var(--text);">
+                <div class="stat-card">
+                    <div class="number">1-2s</div>
+                    <div class="label">單模組驗證時間</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">70B</div>
+                    <div class="label">支援的最大模型</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">80</div>
+                    <div class="label">測試的最多 LoRA 數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number">~2 min</div>
+                    <div class="label">80 模組總驗證時間</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card highlight">
+            <h4>結果分析</h4>
+            <ul>
+                <li><strong>線性擴展：</strong>驗證時間隨 LoRA 數量線性增長，斜率平緩</li>
+                <li><strong>大模型可行：</strong>即使 Llama-3.3-70B 的 80 個 LoRA，也能在約 2 分鐘內完成驗證</li>
+                <li><strong>LoRA 大小影響：</strong>Settings 和 Proof 時間隨 LoRA 參數量增加</li>
+                <li><strong>實用性：</strong>對於即時驗證場景完全可行</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Section 6: Conclusion -->
+    <section id="conclusion">
+        <h2>結論與未來工作</h2>
+
+        <h3>主要貢獻總結</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">MPI</div>
+                <div class="label">Multi-Party Inference<br>多方推論協定</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">1-2s</div>
+                <div class="label">單模組驗證<br>即時可行</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">70B+</div>
+                <div class="label">支援超大模型<br>工業級規模</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" style="font-size: 1.3rem;">ZK</div>
+                <div class="label">完全零知識<br>權重永不洩露</div>
+            </div>
+        </div>
+
+        <h3>技術創新</h3>
+        <div class="two-col">
+            <div class="card highlight">
+                <h4>協定創新</h4>
+                <ul>
+                    <li>首個針對 LoRA 的零知識驗證協定</li>
+                    <li>Multi-Party Inference 設計</li>
+                    <li>基於 Nova/HyperNova 的遞迴證明</li>
+                </ul>
+            </div>
+            <div class="card highlight">
+                <h4>實用性創新</h4>
+                <ul>
+                    <li>支援現代最大規模 LLM (70B+)</li>
+                    <li>即時驗證 (1-2 秒/模組)</li>
+                    <li>開源實現，可直接使用</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>未來工作</h3>
+        <div class="card warning">
+            <h4>論文提出的延伸方向</h4>
+            <ol>
+                <li><strong>Polynomial Commitments for Base Acts：</strong>對基座模型激活值添加多項式承諾，實現端到端可驗證推論</li>
+                <li><strong>Multi-Contributor LoRAs：</strong>支援多個貢獻者的 LoRA 組合</li>
+                <li><strong>進階 ZK 證明：</strong>採用更先進的零知識證明系統以提升效能</li>
+                <li><strong>部分資料隱私：</strong>保護使用者輸入資料以及 LoRA 參數</li>
+            </ol>
+        </div>
+
+        <h3>與其他 ZKML 工作的比較</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>系統</th>
+                    <th>目標</th>
+                    <th>支援規模</th>
+                    <th>驗證時間</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>zkCNN (2021)</td>
+                    <td>CNN 推論</td>
+                    <td>VGG-16 (15M)</td>
+                    <td>59.3 ms</td>
+                </tr>
+                <tr>
+                    <td>zkLLM (2024)</td>
+                    <td>LLM 推論</td>
+                    <td>13B 參數</td>
+                    <td>1-3 秒</td>
+                </tr>
+                <tr>
+                    <td><strong>ZKLoRA (2025)</strong></td>
+                    <td><strong>LoRA 驗證</strong></td>
+                    <td><strong>70B+ 參數</strong></td>
+                    <td><strong>1-2 秒/模組</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="highlight-box">
+            <h3>歷史地位</h3>
+            <p>ZKLoRA 是首個針對 LoRA 微調的零知識驗證協定，<br>
+            填補了 ZKML 領域中「可驗證微調」的空白。<br>
+            其 Multi-Party Inference 設計為去中心化 AI 生態系統提供了重要基礎。</p>
+        </div>
+    </section>
+
+    <!-- References -->
+    <section id="references">
+        <h2>參考文獻</h2>
+        <ol>
+            <li id="ref-1">
+                <cite>Tom B. Brown, et al. "Language Models are Few-Shot Learners." NeurIPS 2020.</cite>
+            </li>
+            <li id="ref-2">
+                <cite>Jacob Devlin, et al. "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding." NAACL 2019.</cite>
+            </li>
+            <li id="ref-3">
+                <cite>Ning Ding, et al. "Delta Tuning: A Comprehensive Study of Parameter Efficient Methods for Pre-trained Language Models." 2022.</cite>
+            </li>
+            <li id="ref-4">
+                <cite>Edward Hu, et al. "LoRA: Low-Rank Adaptation of Large Language Models." ICLR 2022.</cite>
+                <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">arXiv</a>
+            </li>
+            <li id="ref-5">
+                <cite>Abhiram Kothapalli, Srinath Setty. "HyperNova: Recursive Arguments for Customizable Constraint Systems." CRYPTO 2024.</cite>
+            </li>
+            <li id="ref-6">
+                <cite>Abhiram Kothapalli, Srinath Setty, Ioanna Tzialla. "Nova: Recursive Zero-Knowledge Arguments from Folding Schemes." CRYPTO 2022.</cite>
+            </li>
+            <li id="ref-7">
+                <cite>Leslie G. Valiant. "Incrementally Verifiable Computation or IVC." Harvard University Technical Report, 2008.</cite>
+                <a href="https://dash.harvard.edu/handle/1/5026950" target="_blank" rel="noopener">Link</a>
+            </li>
+            <li id="ref-8">
+                <cite>Bidhan Roy, Peter Potash, Marcos Villagra. "ZKLoRA: Efficient Zero-Knowledge Proofs for LoRA Verification." arXiv:2501.13965, January 2025.</cite>
+                <a href="https://arxiv.org/abs/2501.13965" target="_blank" rel="noopener">arXiv</a> |
+                <a href="https://github.com/bagel-org/ZKLoRA" target="_blank" rel="noopener">GitHub</a>
+            </li>
+        </ol>
+    </section>
+</main>
+
+<footer>
+    <p>ZKML 知識庫 | ZKLoRA 論文報告</p>
+    <p>基於 arXiv:2501.13965 論文整理</p>
+</footer>
+
+</body>
+</html>
