@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK-DeepSeek: 671B 參數模型的零知識驗證框架</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1a365d;
+            --secondary: #2c5282;
+            --accent: #3182ce;
+            --light: #ebf8ff;
+            --text: #2d3748;
+            --muted: #718096;
+            --success: #38a169;
+            --warning: #d69e2e;
+            --danger: #e53e3e;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.8;
+            color: var(--text);
+            background: #f7fafc;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        header .subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        header .meta {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            color: var(--secondary);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        nav a:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        /* Main Content */
+        main {
+            background: white;
+            margin: 30px auto;
+            max-width: 1100px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        section {
+            padding: 50px 60px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        section:last-child {
+            border-bottom: none;
+        }
+
+        h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 1.3rem;
+            margin: 25px 0 15px 0;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: var(--light);
+            border-left: 4px solid var(--accent);
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .info-box.warning {
+            background: #fffaf0;
+            border-left-color: var(--warning);
+        }
+
+        .info-box.success {
+            background: #f0fff4;
+            border-left-color: var(--success);
+        }
+
+        .info-box.danger {
+            background: #fff5f5;
+            border-left-color: var(--danger);
+        }
+
+        .info-box h4 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        /* Figures */
+        figure {
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        figcaption {
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Code */
+        code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 15px 0 15px 25px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: linear-gradient(120deg, #fef3cd 0%, #fef3cd 100%);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--light) 0%, white 100%);
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: var(--light);
+        }
+
+        /* Math */
+        .math {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            section {
+                padding: 30px 20px;
+            }
+
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+</head>
+<body data-page-id="zkdeepseek-arxiv25-report">
+
+<header>
+    <h1>ZK-DeepSeek</h1>
+    <div class="subtitle">Zero-Knowledge Proof Based Verifiable Inference of Models</div>
+    <div class="meta">
+        Yuenan Wang<br>
+        Zhejiang University<br>
+        arXiv:2511.19902 | <a href="https://arxiv.org/abs/2511.19902" style="color: white; text-decoration: underline;">論文連結</a>
+    </div>
+</header>
+
+<nav>
+    <ul>
+        <li><a href="#motivation">研究動機</a></li>
+        <li><a href="#crpc">CRPC 技術</a></li>
+        <li><a href="#gemm">GeMM 矩陣乘法</a></li>
+        <li><a href="#deepseek">DeepSeek 支援</a></li>
+        <li><a href="#experiments">實驗結果</a></li>
+        <li><a href="#conclusion">結論</a></li>
+    </ul>
+</nav>
+
+<main>
+    <!-- Section 1: Motivation -->
+    <section id="motivation">
+        <h2>1. 研究動機</h2>
+
+        <h3>超大規模 LLM 的驗證需求</h3>
+        <p>隨著 DeepSeek-V3 等 <span class="highlight">671B 參數</span>模型的出現，如何驗證這些超大規模模型的推理正確性成為新挑戰。ZK-DeepSeek 是首個支援此規模模型的零知識驗證框架。</p>
+
+        <div class="info-box">
+            <h4>核心問題</h4>
+            <p>現有 ZKML 框架（如 zkLLM）最大支援 13B 參數。DeepSeek 的 MoE（混合專家）架構和 MLA（多頭潛在注意力）機制帶來全新的技術挑戰。</p>
+        </div>
+
+        <h3>DeepSeek 架構的特殊性</h3>
+
+        <div class="two-col">
+            <div>
+                <h4>MLA (Multi-head Latent Attention)</h4>
+                <p>DeepSeek 引入 MLA 大幅降低 KV Cache 的記憶體佔用。與標準 Attention 不同，MLA 將 Key/Value 投影到低維潛在空間，再重建特徵。</p>
+            </div>
+            <div>
+                <h4>MoE (Mixture of Experts)</h4>
+                <p>採用稀疏 MoE 架構，671B 參數中只有小部分「專家」被激活。這需要驗證路由機制（gating）和專家選擇的正確性。</p>
+            </div>
+        </div>
+
+        <figure>
+            <img src="images/zkdeepseek/page_1.png" alt="ZK-DeepSeek 論文首頁">
+            <figcaption>圖 1：ZK-DeepSeek 論文首頁 - 首個支援 671B 參數 MoE 模型的 ZK 驗證框架</figcaption>
+        </figure>
+    </section>
+
+    <!-- Section 2: CRPC -->
+    <section id="crpc">
+        <h2>2. CRPC：通用降維多項式電路</h2>
+
+        <h3>核心創新</h3>
+        <p><strong>CRPC (Common Reduced Polynomial Circuits)</strong> 是 ZK-DeepSeek 的核心技術創新，專門針對神經網路中的矩陣乘法設計。</p>
+
+        <div class="info-box success">
+            <h4>關鍵洞察</h4>
+            <p>神經網路中的矩陣乘法可以轉換為單一多項式恆等式，將約束複雜度從 O(anb) 降低到 O(an + nb)，實現數量級的效率提升。</p>
+        </div>
+
+        <h3>CRPC 的數學基礎</h3>
+
+        <p>矩陣乘法 \(Y^{a \times b} = X^{a \times n} \times W^{n \times b}\) 的 ZK 驗證傳統上需要 \(O(anb)\) 個約束。CRPC 透過定義輔助函數：</p>
+
+        <div class="math">
+            $$ZMul(X) = \sum_{i=0}^{a-1} \sum_{j=0}^{b-1} z^{(b \cdot i + j)} \cdot X_{i,j}$$
+        </div>
+
+        <p>並利用 Schwartz-Zippel 引理，將整個矩陣乘法壓縮為單一多項式驗證。</p>
+
+        <figure>
+            <img src="images/zkdeepseek/page_3.png" alt="CRPC 技術細節">
+            <figcaption>圖 2：CRPC 將矩陣乘法轉換為多項式恆等式的方法</figcaption>
+        </figure>
+
+        <h3>與 zkLLM tlookup 的比較</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>特性</th>
+                    <th>zkLLM (tlookup)</th>
+                    <th>ZK-DeepSeek (CRPC)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>複雜度</td>
+                    <td>O(n + m)</td>
+                    <td>O(an + nb)</td>
+                </tr>
+                <tr>
+                    <td>主要優化目標</td>
+                    <td>查表操作</td>
+                    <td>矩陣乘法</td>
+                </tr>
+                <tr>
+                    <td>MoE 支援</td>
+                    <td>無</td>
+                    <td>原生支援</td>
+                </tr>
+                <tr>
+                    <td>最大模型</td>
+                    <td>13B</td>
+                    <td>671B</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Section 3: GeMM -->
+    <section id="gemm">
+        <h2>3. GeMM：通用矩陣乘法驗證</h2>
+
+        <h3>三大正確性條件</h3>
+        <p>對於矩陣乘法 \(X^{a \times n} \times W^{n \times b} = Y^{a \times b}\)，GeMM 驗證三個條件：</p>
+
+        <ol>
+            <li><strong>輸入一致性</strong>：輸入矩陣 X 必須與前一計算階段的輸出完全一致</li>
+            <li><strong>乘法正確性</strong>：X、W、Y 之間的關係必須滿足矩陣乘法的多項式恆等式</li>
+            <li><strong>模型完整性</strong>：權重矩陣 W 必須與承諾的模型參數匹配</li>
+        </ol>
+
+        <div class="info-box">
+            <h4>承諾機制</h4>
+            <p>使用 ZMul 函數對 X 與 ZMul(Y') 進行承諾比對，其中 Y' 是前一階段的輸出。若 z 隨機選取，則不匹配的機率可忽略。</p>
+        </div>
+
+        <h3>遞迴證明組合</h3>
+
+        <p>ZK-DeepSeek 採用<span class="highlight">遞迴證明組合</span>策略：</p>
+        <ul>
+            <li>將神經網路按層分解為子矩陣</li>
+            <li>每個子矩陣獨立證明</li>
+            <li>證明結果遞迴合併，最終產生單一證明</li>
+        </ul>
+
+        <p>這使框架能夠優雅地擴展到任意大小的神經網路。</p>
+    </section>
+
+    <!-- Section 4: DeepSeek Support -->
+    <section id="deepseek">
+        <h2>4. DeepSeek 架構支援</h2>
+
+        <h3>MLA (Multi-head Latent Attention)</h3>
+
+        <p>DeepSeek 的 MLA 機制將傳統 Attention 的 KV Cache 壓縮到低維潛在空間：</p>
+
+        <div class="two-col">
+            <div>
+                <h4>標準 Attention</h4>
+                <p>每個 head 儲存完整的 K, V 張量，記憶體隨序列長度線性增長。</p>
+            </div>
+            <div>
+                <h4>MLA</h4>
+                <p>將 K, V 投影到共享的低維空間，推理時透過輕量投影層重建，大幅降低記憶體需求。</p>
+            </div>
+        </div>
+
+        <p>ZK-DeepSeek 針對 MLA 設計專用驗證電路，支援：</p>
+        <ul>
+            <li><code>proj(K)</code>：Key 投影驗證</li>
+            <li><code>proj(V)</code>：Value 投影驗證</li>
+            <li><code>recon(K)</code>：Key 重建驗證</li>
+            <li><code>recon(V)</code>：Value 重建驗證</li>
+        </ul>
+
+        <h3>MoE (Mixture of Experts)</h3>
+
+        <figure>
+            <img src="images/zkdeepseek/page_8.png" alt="DeepSeek 架構圖">
+            <figcaption>圖 3：ZK-DeepSeek 驗證流程，包含 MLA 與 MoE 的專用電路</figcaption>
+        </figure>
+
+        <p>MoE 架構的驗證挑戰：</p>
+        <ul>
+            <li><strong>路由機制</strong>：驗證 Top-K 專家選擇的正確性</li>
+            <li><strong>專家計算</strong>：只驗證被激活的專家（稀疏性利用）</li>
+            <li><strong>組合輸出</strong>：驗證專家輸出的加權組合</li>
+        </ul>
+
+        <h3>Softmax 與 RoPE 支援</h3>
+
+        <div class="two-col">
+            <div>
+                <h4>Softmax</h4>
+                <p>使用定點數近似和查表技術處理指數運算，將輸入範圍分段，透過預計算表格實現高效驗證。</p>
+            </div>
+            <div>
+                <h4>RoPE (Rotary Positional Embedding)</h4>
+                <p>預計算 sin/cos 值並儲存為權重矩陣，證明者只需執行算術運算並驗證與哈希的一致性。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: Experiments -->
+    <section id="experiments">
+        <h2>5. 實驗結果</h2>
+
+        <h3>支援模型規模</h3>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="number">671B</div>
+                <div class="label">最大支援參數量</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">MoE</div>
+                <div class="label">原生架構支援</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">MLA</div>
+                <div class="label">注意力機制支援</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">50x</div>
+                <div class="label">相較先前工作擴展</div>
+            </div>
+        </div>
+
+        <h3>框架比較</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>框架</th>
+                    <th>最大模型</th>
+                    <th>MoE 支援</th>
+                    <th>MLA 支援</th>
+                    <th>核心技術</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>EZKL</td>
+                    <td>~100M</td>
+                    <td>否</td>
+                    <td>否</td>
+                    <td>Halo2 電路</td>
+                </tr>
+                <tr>
+                    <td>zkLLM</td>
+                    <td>13B</td>
+                    <td>否</td>
+                    <td>否</td>
+                    <td>tlookup + zkAttn</td>
+                </tr>
+                <tr style="background: #f0fff4;">
+                    <td><strong>ZK-DeepSeek</strong></td>
+                    <td><strong>671B</strong></td>
+                    <td><strong>是</strong></td>
+                    <td><strong>是</strong></td>
+                    <td><strong>CRPC + GeMM</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>關鍵技術貢獻</h3>
+
+        <div class="info-box success">
+            <h4>規模突破</h4>
+            <p>ZK-DeepSeek 將可驗證 LLM 的規模從 13B 提升到 671B，實現約 <strong>50 倍</strong>的擴展，首次使超大規模 MoE 模型的零知識驗證成為可能。</p>
+        </div>
+    </section>
+
+    <!-- Section 6: Conclusion -->
+    <section id="conclusion">
+        <h2>6. 結論與影響</h2>
+
+        <h3>主要貢獻</h3>
+        <ol>
+            <li><strong>CRPC</strong>：通用降維多項式電路，將矩陣乘法約束從 O(anb) 降至 O(an+nb)</li>
+            <li><strong>GeMM 驗證</strong>：通用矩陣乘法的三階段正確性驗證協議</li>
+            <li><strong>DeepSeek 原生支援</strong>：首個支援 MLA 和 MoE 架構的 ZKML 框架</li>
+            <li><strong>規模突破</strong>：將可驗證 LLM 規模擴展到 671B 參數</li>
+        </ol>
+
+        <h3>應用場景</h3>
+
+        <div class="two-col">
+            <div>
+                <h4>企業級 AI 驗證</h4>
+                <p>企業可驗證雲端 AI 服務商是否真正使用聲稱的超大規模模型，保障服務品質。</p>
+            </div>
+            <div>
+                <h4>可審計 AI 決策</h4>
+                <p>在金融、醫療等高風險領域，提供 AI 決策的可驗證性，滿足監管要求。</p>
+            </div>
+        </div>
+
+        <h3>技術限制</h3>
+
+        <div class="info-box warning">
+            <h4>當前限制</h4>
+            <ul>
+                <li><strong>證明時間</strong>：超大規模模型的證明生成仍需較長時間</li>
+                <li><strong>硬體需求</strong>：完整驗證需要高端硬體配置</li>
+                <li><strong>精度權衡</strong>：量化可能影響某些任務的精度</li>
+            </ul>
+        </div>
+
+        <h3>ZKML 發展脈絡</h3>
+        <p>ZK-DeepSeek 代表 ZKML 領域的最新進展：</p>
+        <ul>
+            <li><strong>2021 - zkCNN</strong>：首個 CNN 驗證系統</li>
+            <li><strong>2024 - ZKML (EuroSys)</strong>：系統化配置優化</li>
+            <li><strong>2024 - zkLLM (CCS)</strong>：首次支援 13B LLM</li>
+            <li><strong>2025 - ZKLoRA</strong>：高效 LoRA 驗證</li>
+            <li><strong>2025 - ZK-DeepSeek</strong>：突破至 671B MoE 模型</li>
+        </ul>
+    </section>
+</main>
+
+<footer>
+    <p>
+        <a href="papers/zkdeepseek.pdf">下載原始論文 (PDF)</a> |
+        <a href="https://arxiv.org/abs/2511.19902">arXiv 連結</a> |
+        <a href="zkdeepseek-script.html">口頭報告講稿</a>
+    </p>
+    <p style="margin-top: 15px; opacity: 0.8;">
+        ZKML 技術知識庫 - 論文報告系列
+    </p>
+</footer>
+
+</body>
+</html>

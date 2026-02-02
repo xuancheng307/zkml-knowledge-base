@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK-DeepSeek 口頭報告講稿</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            line-height: 2;
+            color: #2d3748;
+            background: #f7fafc;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 60px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: #1a365d;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            color: #2c5282;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3182ce;
+        }
+
+        p {
+            margin-bottom: 20px;
+            text-align: justify;
+        }
+
+        .note {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-size: 0.95rem;
+            color: #2c5282;
+        }
+
+        .note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .highlight {
+            background: #fef3cd;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .duration {
+            float: right;
+            background: #e2e8f0;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+
+        ul {
+            margin: 15px 0 15px 30px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+            .note {
+                border: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ZK-DeepSeek: 671B 參數模型的零知識驗證</h1>
+    <div class="subtitle">口頭報告講稿 | 預估時間：12-15 分鐘</div>
+
+    <h2>1. 開場與背景 <span class="duration">~2 分鐘</span></h2>
+
+    <p>大家好，今天我要介紹的是 <span class="highlight">ZK-DeepSeek</span>，這是浙江大學的 Yuenan Wang 在 2025 年發表的工作，首次實現了對 <span class="highlight">671B 參數</span>超大規模模型的零知識驗證。</p>
+
+    <p>我們知道 zkLLM 已經能驗證 13B 參數的 LLM，但 DeepSeek-V3 這樣的模型有 671B 參數，而且採用了全新的架構：MoE（混合專家）和 MLA（多頭潛在注意力）。這些架構帶來了全新的驗證挑戰。</p>
+
+    <p>ZK-DeepSeek 的目標就是解決這個問題：<span class="highlight">如何高效驗證這些超大規模、新架構的模型？</span></p>
+
+    <div class="note">
+        <strong>講者提示：</strong>可以先介紹 DeepSeek 在開源 AI 社群的影響力，以及為什麼驗證這類模型很重要。
+    </div>
+
+    <h2>2. DeepSeek 架構簡介 <span class="duration">~2 分鐘</span></h2>
+
+    <p>在介紹技術方案之前，讓我們先了解 DeepSeek 的兩個關鍵創新：</p>
+
+    <p>第一個是 <span class="highlight">MLA（Multi-head Latent Attention）</span>。傳統 Transformer 的 KV Cache 隨序列長度線性增長，非常消耗記憶體。MLA 的做法是將 Key 和 Value 投影到一個共享的低維潛在空間，推理時再透過輕量投影層重建。這大幅降低了記憶體需求。</p>
+
+    <p>第二個是 <span class="highlight">MoE（Mixture of Experts）</span>。671B 參數中，每次推理只激活一小部分「專家」。這透過一個 gating 網路來決定哪些專家處理當前 token。</p>
+
+    <p>這兩個架構特性都需要專門的 ZK 驗證方案。</p>
+
+    <h2>3. 核心技術：CRPC <span class="duration">~3 分鐘</span></h2>
+
+    <p>ZK-DeepSeek 的第一個核心貢獻是 <span class="highlight">CRPC（Common Reduced Polynomial Circuits）</span>，也就是通用降維多項式電路。</p>
+
+    <p>神經網路的核心運算是矩陣乘法。假設我們有 X 乘以 W 等於 Y，傳統的 SNARK 驗證需要 O(a×n×b) 個約束，對於超大矩陣來說這是不可接受的。</p>
+
+    <p>CRPC 的關鍵洞察是：我們可以定義一個 ZMul 函數，把整個矩陣乘法<span class="highlight">壓縮成單一多項式恆等式</span>。透過 Schwartz-Zippel 引理，只要選取隨機的 z 值，如果恆等式成立，我們就有極高的信心矩陣乘法是正確的。</p>
+
+    <p>複雜度從 O(anb) 降低到 <span class="highlight">O(an + nb)</span>，這是數量級的改進。</p>
+
+    <div class="note">
+        <strong>講者提示：</strong>可以用一個簡單的 3×3 矩陣乘法作為例子，說明傳統方法需要 27 個約束，而 CRPC 只需要 6+6=12 個。
+    </div>
+
+    <h2>4. GeMM 驗證協議 <span class="duration">~2 分鐘</span></h2>
+
+    <p>基於 CRPC，ZK-DeepSeek 設計了 <span class="highlight">GeMM（General-purpose Matrix Multiplication）</span>驗證協議，需要確保三個正確性條件：</p>
+
+    <ul>
+        <li><strong>輸入一致性</strong>：這一層的輸入必須等於上一層的輸出</li>
+        <li><strong>乘法正確性</strong>：矩陣乘法本身是正確的</li>
+        <li><strong>模型完整性</strong>：使用的權重確實是承諾的模型參數</li>
+    </ul>
+
+    <p>這三個條件都透過承諾比對來驗證，使用相同的隨機 z 值確保一致性。</p>
+
+    <h2>5. MLA 與 MoE 支援 <span class="duration">~3 分鐘</span></h2>
+
+    <p>對於 <span class="highlight">MLA</span>，ZK-DeepSeek 需要驗證四個額外操作：</p>
+    <ul>
+        <li>Key 投影到潛在空間</li>
+        <li>Value 投影到潛在空間</li>
+        <li>Key 從潛在空間重建</li>
+        <li>Value 從潛在空間重建</li>
+    </ul>
+
+    <p>這些都是矩陣乘法，可以用 CRPC 高效處理。</p>
+
+    <p>對於 <span class="highlight">MoE</span>，驗證更複雜。需要驗證：</p>
+    <ul>
+        <li>路由機制（gating）正確選擇了 Top-K 專家</li>
+        <li>被激活的專家計算正確</li>
+        <li>專家輸出的加權組合正確</li>
+    </ul>
+
+    <p>好消息是，因為 MoE 是稀疏的，我們只需要驗證被激活的專家，這反而降低了驗證成本。</p>
+
+    <h2>6. 其他組件支援 <span class="duration">~2 分鐘</span></h2>
+
+    <p>除了矩陣乘法，神經網路還有其他組件需要驗證：</p>
+
+    <p><span class="highlight">Softmax</span>：使用定點數近似，將指數運算分段並透過預計算查表實現。這和 zkLLM 的方法類似。</p>
+
+    <p><span class="highlight">RoPE（旋轉位置編碼）</span>：預計算所有 sin 和 cos 值，儲存為權重矩陣。證明者只需驗證與預計算值的一致性。</p>
+
+    <p><span class="highlight">LayerNorm</span>：透過近似和查表處理平方根等非線性操作。</p>
+
+    <h2>7. 總結與影響 <span class="duration">~1 分鐘</span></h2>
+
+    <p>讓我們總結 ZK-DeepSeek 的主要貢獻：</p>
+
+    <ul>
+        <li><span class="highlight">CRPC</span>：將矩陣乘法約束從 O(anb) 降至 O(an+nb)</li>
+        <li><span class="highlight">首個 MoE/MLA 支援</span>：原生支援 DeepSeek 架構</li>
+        <li><span class="highlight">671B 規模突破</span>：相較 zkLLM 的 13B 擴展約 50 倍</li>
+    </ul>
+
+    <p>這項工作代表 ZKML 領域的最新進展。從 2021 年的 zkCNN 到今天的 ZK-DeepSeek，我們看到可驗證模型的規模不斷擴大。未來的挑戰包括進一步降低證明時間、支援更長序列、以及實現更高的精度保持。</p>
+
+    <p>謝謝大家，歡迎提問。</p>
+
+    <footer>
+        <p>報告完成 | 返回 <a href="zkdeepseek-report.html">詳細報告</a></p>
+    </footer>
+</div>
+
+</body>
+</html>
