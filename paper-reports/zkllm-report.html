@@ -494,11 +494,13 @@
         <h3>zkAttn 的解決方案</h3>
 
         <div class="info-box">
-            <h4>三步驟處理策略</h4>
+            <h4>五步驟處理策略</h4>
             <ol>
-                <li><strong>矩陣乘法 QK<sup>T</sup></strong>：使用 tlookup 優化</li>
+                <li><strong>矩陣乘法 QK<sup>T</sup></strong>：使用 sumcheck 協議驗證</li>
+                <li><strong>Softmax 偏移</strong>：利用 shift-invariance 特性調整每行</li>
+                <li><strong>數值轉換</strong>：將結果轉為 K-digit base-b 負數表示</li>
                 <li><strong>exp 計算</strong>：透過 tlookup 查表取代電路</li>
-                <li><strong>正規化</strong>：利用 Attention 結構簡化 Σ 計算</li>
+                <li><strong>輸出乘法</strong>：驗證 Softmax 輸出與 V 的矩陣乘法</li>
             </ol>
         </div>
 
@@ -513,23 +515,24 @@
 
 輸入：Q, K, V ∈ F^{n×d}
 
-步驟 1：計算 S = QK^T
-  使用 tlookup 證明矩陣乘法
-  複雜度：O(n + d) 而非 O(n²·d)
+步驟 1：矩陣乘法 Z = QK^T
+  使用 sumcheck 協議驗證矩陣乘法
 
-步驟 2：計算 exp(S / √d)
-  使用 tlookup 對每個元素查表
-  預計算：T_exp = {(i, exp(i/√d)) : i ∈ range}
+步驟 2：Softmax shift-invariance
+  利用 exp(x-c)/Σexp(x-c) = exp(x)/Σexp(x)
+  對每行減去最大值，避免溢位
 
-步驟 3：計算 Softmax 分母
-  D_i = Σ_j exp(S_{ij} / √d)
-  使用累加電路，O(n²) 加法
+步驟 3：數值表示轉換
+  將 Z' 轉為 K-digit base-b 負數表示
+  使每個元素可用 tlookup 查表
 
-步驟 4：計算輸出
-  O = softmax(S) · V
-  利用線性關係簡化
+步驟 4：exp 查表
+  使用 tlookup 對每個元素查表計算 exp
+  驗證 Softmax 分子正確性
 
-總複雜度：O(n² + n·d) 而非 O(n²·d)</code></pre>
+步驟 5：輸出矩陣乘法
+  驗證 Y = softmax(Z) · V
+  使用 sumcheck 協議</code></pre>
     </section>
 
     <!-- Section 4: Architecture -->
