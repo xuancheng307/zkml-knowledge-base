@@ -755,6 +755,44 @@ return <strong style="color: #68d391;">Verified outputs</strong>
             </tbody>
         </table>
 
+        <h3>密碼學細節與 Proof 大小</h3>
+        <div class="card">
+            <h4>多項式承諾 (Polynomial Commitments)</h4>
+            <p>ZKLoRA 採用 <strong>Hyrax</strong> 多項式承諾方案，這是一種基於離散對數的承諾機制：</p>
+            <ul>
+                <li><strong>承諾生成時間：</strong>LLaMA-3.2-3B 約 156 秒，OPT-13B 約 554 秒</li>
+                <li><strong>承諾大小：</strong>135.59 MB ~ 232.67 MB（隨矩陣和查表維度增長）</li>
+                <li><strong>端到端驗證時間：</strong>LLaMA-3.2-3B 為 1.87 秒，OPT-13B 為 3.73 秒</li>
+            </ul>
+            <p>這些承諾確保神經網路激活值的隱私性，同時允許高效驗證計算的正確性。</p>
+        </div>
+
+        <h3>與 EZKL 的比較</h3>
+        <div class="two-col">
+            <div class="card">
+                <h4>EZKL 方法</h4>
+                <ul>
+                    <li>將 ONNX 模型轉換為 Halo2 電路</li>
+                    <li>nanoGPT (1M params) 需要 <strong>966 秒</strong>證明</li>
+                    <li>通用性強但效率較低</li>
+                </ul>
+            </div>
+            <div class="card highlight">
+                <h4>ZKLoRA 方法</h4>
+                <ul>
+                    <li>專為 LoRA 結構設計</li>
+                    <li>GPT-2 (117M params) 只需 <strong>159 秒/token</strong></li>
+                    <li>驗證時間穩定在 1-4 秒內</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>記憶體使用</h3>
+        <div class="card warning">
+            <h4>記憶體需求</h4>
+            <p>雖然理論上總記憶體需求可達 2573 GB (LLaMA-3.2-3B) 到 3920 GB (LLaMA-2-11B)，但實際執行時的 <strong>峰值記憶體低於 80 GB</strong>。這是因為 ZKLoRA 採用串流處理和遞迴合併策略。</p>
+        </div>
+
         <h3>關鍵發現</h3>
         <div class="highlight-box">
             <div class="stats-grid" style="color: var(--text);">
