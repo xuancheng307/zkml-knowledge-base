@@ -187,7 +187,8 @@
       "icon": "📊",
       "items": [
         { "id": "benchmarks", "title": "效能比較", "path": "/research/benchmarks.html", "status": "done" },
-        { "id": "open-problems", "title": "開放問題", "path": "/research/open-problems.html", "status": "done" }
+        { "id": "open-problems", "title": "開放問題", "path": "/research/open-problems.html", "status": "done" },
+        { "id": "zklora-experiments", "title": "ZKLoRA 實驗結果", "path": "/research/zklora-experiments.html", "status": "done" }
       ]
     },
 

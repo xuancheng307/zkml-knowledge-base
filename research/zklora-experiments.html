@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKLoRA 實驗結果 - ZKML Knowledge Base</title>
+
+    <!-- Theme detection -->
+    <script>
+        (function() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/layout.css">
+    <link rel="stylesheet" href="../assets/css/content.css">
+
+    <style>
+        /* ZKLoRA Dashboard Specific Styles */
+        .dashboard-hero {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: white;
+            padding: var(--space-12) var(--space-8);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-8);
+            text-align: center;
+        }
+
+        .dashboard-hero h1 {
+            color: white;
+            margin-bottom: var(--space-4);
+            border: none;
+        }
+
+        .dashboard-hero .subtitle {
+            font-size: var(--font-size-lg);
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Key Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-4);
+            margin: var(--space-8) 0;
+        }
+
+        .metric-card {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-6);
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .metric-card.highlight {
+            background: var(--color-success);
+            color: white;
+            border-color: var(--color-success);
+        }
+
+        .metric-card.warning {
+            background: var(--color-danger);
+            color: white;
+            border-color: var(--color-danger);
+        }
+
+        .metric-value {
+            font-size: var(--font-size-4xl);
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .metric-label {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            margin-top: var(--space-2);
+        }
+
+        .metric-card.highlight .metric-label,
+        .metric-card.warning .metric-label {
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Finding Cards */
+        .finding-card {
+            background: var(--color-bg);
+            border: 2px solid var(--color-accent);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            margin: var(--space-6) 0;
+        }
+
+        .finding-card h3 {
+            color: var(--color-accent);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .finding-number {
+            background: var(--color-accent);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: var(--font-size-sm);
+        }
+
+        /* Collapsible Sections */
+        .collapsible {
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            margin: var(--space-4) 0;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            background: var(--color-bg-secondary);
+            padding: var(--space-4) var(--space-5);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: var(--color-bg-tertiary);
+        }
+
+        .collapsible-header::after {
+            content: '▼';
+            font-size: var(--font-size-xs);
+            transition: transform 0.3s;
+        }
+
+        .collapsible.open .collapsible-header::after {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .collapsible.open .collapsible-content {
+            max-height: 3000px;
+        }
+
+        .collapsible-body {
+            padding: var(--space-5);
+        }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-sm);
+            margin: var(--space-4) 0;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: var(--space-3) var(--space-4);
+            border: 1px solid var(--color-border);
+            text-align: left;
+        }
+
+        .data-table th {
+            background: var(--color-bg-secondary);
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background: var(--color-bg-secondary);
+        }
+
+        .data-table .num {
+            text-align: right;
+            font-family: var(--font-mono);
+        }
+
+        .data-table .success {
+            color: var(--color-success);
+            font-weight: 600;
+        }
+
+        .data-table .fail {
+            color: var(--color-danger);
+            font-weight: 600;
+        }
+
+        /* Comparison Box */
+        .comparison-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            margin: var(--space-6) 0;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .comparison-item {
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+            padding: var(--space-5);
+        }
+
+        .comparison-item h4 {
+            margin-top: 0;
+            padding-bottom: var(--space-3);
+            border-bottom: 2px solid var(--color-accent);
+        }
+
+        /* Feasibility Matrix */
+        .feasibility-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-3);
+            margin: var(--space-4) 0;
+        }
+
+        .feasibility-item {
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .feasibility-item.green {
+            background: rgba(40, 167, 69, 0.15);
+            border: 1px solid var(--color-success);
+        }
+
+        .feasibility-item.yellow {
+            background: rgba(255, 193, 7, 0.15);
+            border: 1px solid var(--color-warning);
+        }
+
+        .feasibility-item.red {
+            background: rgba(220, 53, 69, 0.15);
+            border: 1px solid var(--color-danger);
+        }
+
+        .feasibility-item .size {
+            font-weight: 700;
+            font-size: var(--font-size-lg);
+        }
+
+        .feasibility-item .time {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        }
+
+        /* TOC */
+        .toc {
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+            padding: var(--space-5);
+            margin: var(--space-6) 0;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc li {
+            margin: var(--space-2) 0;
+        }
+
+        .toc a {
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* Inline badge */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+        }
+
+        .badge-success { background: var(--color-success); color: white; }
+        .badge-danger { background: var(--color-danger); color: white; }
+        .badge-info { background: var(--color-info); color: white; }
+
+        /* Meta info */
+        .meta-info {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            margin: var(--space-4) 0;
+            padding: var(--space-4);
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-md);
+        }
+    </style>
+</head>
+
+<body data-page-id="zklora-experiments">
+    <button id="mobile-menu-btn" aria-label="開啟選單">☰</button>
+    <div id="sidebar-overlay"></div>
+    <nav id="sidebar"></nav>
+
+    <main>
+        <nav id="breadcrumb"></nav>
+
+        <article>
+            <!-- Hero Section -->
+            <div class="dashboard-hero">
+                <h1>ZKLoRA 實驗結果報告</h1>
+                <p class="subtitle">
+                    零知識證明驗證 LoRA 模組的可行性研究<br>
+                    8 項實驗 · 50+ 數據點 · 完整分析
+                </p>
+            </div>
+
+            <!-- Key Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card highlight">
+                    <div class="metric-value">100%</div>
+                    <div class="metric-label">ZKLoRA 驗證成功率</div>
+                </div>
+                <div class="metric-card warning">
+                    <div class="metric-value">0%</div>
+                    <div class="metric-label">Direct ezkl 成功率</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">~130s</div>
+                    <div class="metric-label">每層證明時間</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">1.8MB</div>
+                    <div class="metric-label">單層證明大小</div>
+                </div>
+            </div>
+
+            <!-- Meta Info -->
+            <div class="meta-info">
+                <strong>實驗環境：</strong>Windows 11, Python 3.12, PyTorch 2.5, ezkl 23.0.3, PEFT 0.13.2<br>
+                <strong>實驗日期：</strong>2026-02-03 ~ 2026-02-04<br>
+                <strong>硬體配置：</strong>Intel CPU, 32GB RAM (無 GPU，ezkl 僅支援 CPU)
+            </div>
+
+            <!-- TOC -->
+            <div class="toc">
+                <h3>目錄</h3>
+                <ul>
+                    <li><a href="#findings">核心發現</a></li>
+                    <li><a href="#experiments">實驗詳情</a></li>
+                    <li><a href="#feasibility">可行性評估</a></li>
+                    <li><a href="#comparison">系統比較</a></li>
+                    <li><a href="#references">參考資料</a></li>
+                </ul>
+            </div>
+
+            <!-- ==================== 核心發現 ==================== -->
+            <h2 id="findings">核心發現</h2>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">最重要發現</div>
+                <p><strong>ZKLoRA 的校準機制是驗證成功的必要條件。</strong>直接使用 ezkl 會導致 100% 驗證失敗，錯誤訊息為「constraint system not satisfied」。這證明 ZKLoRA 不僅是便利工具，更是技術上的必要條件。</p>
+            </div>
+
+            <div class="finding-card">
+                <h3><span class="finding-number">1</span>ZKLoRA 校準是必要的</h3>
+                <p>實驗四證明，直接使用 ezkl 進行 LoRA 驗證會 100% 失敗。ZKLoRA 的校準機制負責：</p>
+                <ul>
+                    <li>調整量化參數確保數值精度</li>
+                    <li>設定適當的 scale 值避免溢位</li>
+                    <li>確保電路約束可被滿足</li>
+                </ul>
+                <p><strong>結論：</strong>ZKLoRA 框架是成功驗證的<em>技術必要條件</em>，而非單純的便利工具。</p>
+            </div>
+
+            <div class="finding-card">
+                <h3><span class="finding-number">2</span>Rank 參數不影響證明時間</h3>
+                <p>實驗一發現，當 LoRA rank 從 8 增加到 64（參數量增加 8 倍）時，證明時間僅增加 1.7%。</p>
+                <ul>
+                    <li>Rank 8 (147K 參數): 541 秒</li>
+                    <li>Rank 64 (1.18M 參數): 550 秒</li>
+                </ul>
+                <p><strong>結論：</strong>電路 setup 時間主導證明時間，可自由選擇高 rank 以獲得更好的模型品質。</p>
+            </div>
+
+            <div class="finding-card">
+                <h3><span class="finding-number">3</span>線性擴展支援並行化</h3>
+                <p>實驗二、三證明，證明時間與層數呈線性關係：</p>
+                <p style="text-align: center; font-size: var(--font-size-lg);">
+                    <strong>T<sub>total</sub> ≈ 130 × L + C</strong>（L = 層數）
+                </p>
+                <ul>
+                    <li>每層的證明可獨立生成</li>
+                    <li>使用 N 個 CPU 核心可將時間降至約 1/N</li>
+                    <li>Setup 階段可預計算並快取（節省 48% 時間）</li>
+                </ul>
+            </div>
+
+            <div class="finding-card">
+                <h3><span class="finding-number">4</span>記憶體是主要瓶頸</h3>
+                <p>實驗八發現，Proving Key (PK) 大小是主要的記憶體限制：</p>
+                <ul>
+                    <li>hidden=768, rank=8: PK ≈ 5.4GB</li>
+                    <li>hidden=2048, rank=128: PK ≈ 12.8GB</li>
+                </ul>
+                <p><strong>結論：</strong>大規模模型需要分散式證明架構，而非單純增加計算時間。</p>
+            </div>
+
+            <!-- ==================== 實驗詳情 ==================== -->
+            <h2 id="experiments">實驗詳情</h2>
+
+            <!-- Exp1 -->
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    Exp1: LoRA Rank 對證明時間的影響
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <p><strong>目的：</strong>探討 LoRA rank 參數如何影響 ZK 證明生成時間</p>
+                        <p><strong>配置：</strong>distilgpt2 (82M), rank = 4, 8, 16, 32, 64，每組 3 次試驗</p>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Rank</th><th>LoRA 參數數</th><th>Trial 1</th><th>Trial 2</th><th>Trial 3</th><th>平均 (秒)</th><th>標準差</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>4</td><td class="num">73,728</td><td class="num">815</td><td class="num">738</td><td class="num">707</td><td class="num"><strong>753</strong></td><td class="num">±62</td></tr>
+                                <tr><td>8</td><td class="num">147,456</td><td class="num">546</td><td class="num">541</td><td class="num">536</td><td class="num"><strong>541</strong></td><td class="num">±5</td></tr>
+                                <tr><td>16</td><td class="num">294,912</td><td class="num">544</td><td class="num">540</td><td class="num">543</td><td class="num"><strong>542</strong></td><td class="num">±2</td></tr>
+                                <tr><td>32</td><td class="num">589,824</td><td class="num">545</td><td class="num">543</td><td class="num">544</td><td class="num"><strong>544</strong></td><td class="num">±1</td></tr>
+                                <tr><td>64</td><td class="num">1,179,648</td><td class="num">555</td><td class="num">550</td><td class="num">545</td><td class="num"><strong>550</strong></td><td class="num">±5</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="callout callout-info">
+                            <div class="callout-title">分析</div>
+                            <p>參數量增加 16 倍，證明時間僅增加 1.7%。rank=4 時間較長可能是由於較小矩陣的優化效率較差。</p>
+                        </div>
+
+                        <p><strong>原始數據：</strong><code>exp1_rank_20260203_132335.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exp2 -->
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    Exp2: 模型規模對證明時間的影響
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <p><strong>目的：</strong>評估不同規模基底模型對 LoRA ZK 證明時間的影響</p>
+                        <p><strong>配置：</strong>rank=8, alpha=16，每組 3 次試驗</p>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>模型</th><th>參數量</th><th>層數</th><th>Trial 1</th><th>Trial 2</th><th>Trial 3</th><th>平均</th><th>每層</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>distilgpt2</td><td>82M</td><td class="num">6</td><td class="num">993</td><td class="num">795</td><td class="num">736</td><td class="num"><strong>841s</strong></td><td class="num">140s</td></tr>
+                                <tr><td>gpt2-medium</td><td>345M</td><td class="num">24</td><td class="num">4,174</td><td class="num">3,923</td><td class="num">3,843</td><td class="num"><strong>3,980s</strong></td><td class="num">166s</td></tr>
+                                <tr><td>gpt2-large</td><td>762M</td><td class="num">36</td><td class="num">4,964</td><td class="num">4,769</td><td class="num">4,736</td><td class="num"><strong>4,823s</strong></td><td class="num">134s</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="callout callout-info">
+                            <div class="callout-title">分析</div>
+                            <p>證明時間與層數呈線性關係。gpt2-large (36層) 約需 80 分鐘，但每層可獨立並行處理。</p>
+                        </div>
+
+                        <p><strong>原始數據：</strong><code>exp2_model_scale_20260203_160322.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exp3 -->
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    Exp3: 層數擴展性分析（Setup Amortization）
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <p><strong>目的：</strong>觀察多層共享電路設置時的攤銷效應</p>
+                        <p><strong>配置：</strong>distilgpt2, 1-6 層，每組 3 次試驗</p>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>層數</th><th>平均總時間</th><th>每層時間</th><th>證明大小</th><th>效率提升</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="num">1</td><td class="num">182s</td><td class="num"><strong>182s</strong></td><td class="num">1.8MB</td><td>-</td></tr>
+                                <tr><td class="num">2</td><td class="num">309s</td><td class="num"><strong>154s</strong></td><td class="num">3.6MB</td><td>-15%</td></tr>
+                                <tr><td class="num">3</td><td class="num">380s</td><td class="num"><strong>127s</strong></td><td class="num">5.4MB</td><td>-30%</td></tr>
+                                <tr><td class="num">4</td><td class="num">475s</td><td class="num"><strong>119s</strong></td><td class="num">7.2MB</td><td>-35%</td></tr>
+                                <tr><td class="num">5</td><td class="num">579s</td><td class="num"><strong>116s</strong></td><td class="num">9.0MB</td><td>-36%</td></tr>
+                                <tr><td class="num">6</td><td class="num">714s</td><td class="num"><strong>119s</strong></td><td class="num">10.8MB</td><td>-35%</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="callout callout-info">
+                            <div class="callout-title">Setup Amortization Effect</div>
+                            <p>每層平均時間從 182s (1層) 降至 119s (6層)，下降 35%。多層共享部分電路設置開銷。</p>
+                        </div>
+
+                        <p><strong>原始數據：</strong><code>exp3_layer_count_20260203_160322.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exp4 -->
+            <div class="collapsible open">
+                <div class="collapsible-header">
+                    Exp4: ZKLoRA 框架必要性驗證 ⚠️ 關鍵實驗
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <div class="callout callout-danger">
+                            <div class="callout-title">這是本研究最重要的發現</div>
+                            <p>直接使用 ezkl 會導致 100% 驗證失敗。ZKLoRA 的校準機制是必要條件。</p>
+                        </div>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>方法</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>成功率</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>ZKLoRA</strong></td>
+                                    <td class="success">✓ 175s</td>
+                                    <td class="success">✓ 180s</td>
+                                    <td class="success">✓ 178s</td>
+                                    <td class="success">✓ 182s</td>
+                                    <td class="success">✓ 176s</td>
+                                    <td><span class="badge badge-success">100%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Direct ezkl</strong></td>
+                                    <td class="fail">✗ FAIL</td>
+                                    <td class="fail">✗ FAIL</td>
+                                    <td class="fail">✗ FAIL</td>
+                                    <td class="fail">✗ FAIL</td>
+                                    <td class="fail">✗ FAIL</td>
+                                    <td><span class="badge badge-danger">0%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <p><strong>Direct ezkl 錯誤訊息：</strong><code>constraint system not satisfied</code></p>
+
+                        <p><strong>原始數據：</strong><code>exp4_framework_compare_20260203_160322.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exp5 -->
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    Exp5: 瓶頸分析
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <p><strong>目的：</strong>識別 ZK 證明生成過程中的主要時間瓶頸</p>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>階段</th><th>時間 (秒)</th><th>佔比</th><th>說明</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Setup (電路設置)</td><td class="num"><strong>37.11</strong></td><td class="num">48.4%</td><td>生成 Proving Key，可預計算</td></tr>
+                                <tr><td>Prove (證明生成)</td><td class="num"><strong>37.57</strong></td><td class="num">49.0%</td><td>實際生成 ZK 證明</td></tr>
+                                <tr><td>Witness (見證生成)</td><td class="num">0.81</td><td class="num">1.1%</td><td>準備私密輸入</td></tr>
+                                <tr><td>Compile (編譯)</td><td class="num">1.10</td><td class="num">1.4%</td><td>電路編譯</td></tr>
+                                <tr><td>Other</td><td class="num">0.04</td><td class="num">0.1%</td><td>其他開銷</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="callout callout-info">
+                            <div class="callout-title">優化策略</div>
+                            <ul>
+                                <li><strong>Setup 預計算：</strong>可在部署前完成，節省 48% 運行時間</li>
+                                <li><strong>Prove 並行化：</strong>多層可同時證明</li>
+                            </ul>
+                        </div>
+
+                        <p><strong>原始數據：</strong><code>exp5_bottleneck_20260203_111532.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exp6 -->
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    Exp6: 真實 LoRA 權重測試
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <p><strong>目的：</strong>驗證不同權重分布的 LoRA 是否都能正確通過驗證</p>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>類型</th><th>權重特性</th><th>證明時間</th><th>驗證時間</th><th>結果</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Random Init</td>
+                                    <td>Kaiming 初始化</td>
+                                    <td class="num">840s</td>
+                                    <td class="num">5.35s</td>
+                                    <td class="success">✓ 成功</td>
+                                </tr>
+                                <tr>
+                                    <td>Simulated Fine-tuned</td>
+                                    <td>模擬訓練後分布</td>
+                                    <td class="num">792s</td>
+                                    <td class="num">4.83s</td>
+                                    <td class="success">✓ 成功</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <p><strong>結論：</strong>權重值的分布不影響驗證結果，證明 ZKLoRA 框架的穩健性。</p>
+
+                        <p><strong>原始數據：</strong><code>exp6_real_lora_20260203_132335.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exp8 -->
+            <div class="collapsible">
+                <div class="collapsible-header">
+                    Exp8: 可行性邊界研究
+                </div>
+                <div class="collapsible-content">
+                    <div class="collapsible-body">
+                        <p><strong>目的：</strong>探索 ZKLoRA 系統可處理的最大 LoRA 規模</p>
+
+                        <table class="data-table">
+                            <thead>
+                                <tr><th>Hidden Size</th><th>Rank</th><th>LoRA 參數</th><th>PK 大小</th><th>總時間</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="num">768</td><td class="num">8</td><td class="num">12,288</td><td class="num">5.4GB</td><td class="num">75s</td></tr>
+                                <tr><td class="num">768</td><td class="num">64</td><td class="num">98,304</td><td class="num">5.4GB</td><td class="num">77s</td></tr>
+                                <tr><td class="num">1024</td><td class="num">16</td><td class="num">32,768</td><td class="num">8.1GB</td><td class="num">142s</td></tr>
+                                <tr><td class="num">2048</td><td class="num">64</td><td class="num">262,144</td><td class="num">12.8GB</td><td class="num">380s</td></tr>
+                                <tr><td class="num">2048</td><td class="num">128</td><td class="num">524,288</td><td class="num">12.8GB</td><td class="num">420s</td></tr>
+                            </tbody>
+                        </table>
+
+                        <div class="callout callout-warning">
+                            <div class="callout-title">瓶頸</div>
+                            <p>Proving Key (PK) 大小是主要記憶體限制。hidden=2048 時 PK 達 12.8GB，更大模型需要分散式架構。</p>
+                        </div>
+
+                        <p><strong>原始數據：</strong><code>exp8_feasibility_20260203_132335.json</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== 系統比較 ==================== -->
+            <h2 id="comparison">系統比較：ezkl vs RISC Zero</h2>
+
+            <div class="callout callout-warning">
+                <div class="callout-title">重要說明</div>
+                <p>ezkl 與 RISC Zero 產生<strong>不同大小的證明</strong>（1.76MB vs 0.19MB），因此<strong>不能單純比較速度</strong>。以下比較著重於各系統的特性與適用場景。</p>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr><th>系統</th><th>類型</th><th>證明時間</th><th>證明大小</th><th>硬體需求</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><strong>ezkl (Halo2)</strong></td><td>ML 專用電路</td><td class="num">75.5s</td><td class="num">1.76MB</td><td>CPU</td></tr>
+                    <tr><td>RISC Zero (GPU)</td><td>通用 zkVM</td><td class="num">59.0s</td><td class="num">0.19MB</td><td>CUDA GPU</td></tr>
+                    <tr><td>RISC Zero (CPU)</td><td>通用 zkVM</td><td class="num">589.8s</td><td class="num">0.19MB</td><td>CPU</td></tr>
+                </tbody>
+            </table>
+
+            <div class="comparison-box">
+                <div class="comparison-item">
+                    <h4>ezkl (Halo2)</h4>
+                    <ul>
+                        <li>ML 專用電路，針對矩陣運算優化</li>
+                        <li>證明較大（1.76MB）</li>
+                        <li>純 CPU 即可高效運行</li>
+                        <li>無需可信設置（transparent setup）</li>
+                    </ul>
+                    <p><strong>適用：</strong>純 CPU 環境、ML 專用任務、離線驗證</p>
+                </div>
+                <div class="comparison-item">
+                    <h4>RISC Zero (STARK)</h4>
+                    <ul>
+                        <li>通用 zkVM，可執行任意程式</li>
+                        <li>證明較小（0.19MB），約為 ezkl 的 1/9</li>
+                        <li>需要 GPU 才能達到合理效能</li>
+                        <li>支援遞迴證明組合</li>
+                    </ul>
+                    <p><strong>適用：</strong>有 GPU、需要小證明（如上鏈）、通用計算</p>
+                </div>
+            </div>
+
+            <!-- ==================== 可行性評估 ==================== -->
+            <h2 id="feasibility">可行性評估</h2>
+
+            <div class="feasibility-grid">
+                <div class="feasibility-item green">
+                    <div class="size">&lt;50M</div>
+                    <div class="time">&lt;15 分鐘</div>
+                    <p>完全可行</p>
+                </div>
+                <div class="feasibility-item green">
+                    <div class="size">50-200M</div>
+                    <div class="time">15-30 分鐘</div>
+                    <p>完全可行</p>
+                </div>
+                <div class="feasibility-item yellow">
+                    <div class="size">200-500M</div>
+                    <div class="time">30-90 分鐘</div>
+                    <p>需優化</p>
+                </div>
+                <div class="feasibility-item yellow">
+                    <div class="size">500M-1B</div>
+                    <div class="time">1.5-3 小時</div>
+                    <p>需並行化</p>
+                </div>
+                <div class="feasibility-item red">
+                    <div class="size">&gt;1B</div>
+                    <div class="time">&gt;3 小時</div>
+                    <p>需分散式</p>
+                </div>
+            </div>
+
+            <h3>應用場景評估</h3>
+
+            <table class="data-table">
+                <thead>
+                    <tr><th>場景</th><th>可行性</th><th>說明</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>LoRA 市場信任驗證</td>
+                        <td><span class="badge badge-success">高度可行</span></td>
+                        <td>證明可離線生成，驗證快速（5-20秒）</td>
+                    </tr>
+                    <tr>
+                        <td>模型審計與合規</td>
+                        <td><span class="badge badge-success">高度可行</span></td>
+                        <td>定期批次處理，時間充裕</td>
+                    </tr>
+                    <tr>
+                        <td>聯邦學習貢獻驗證</td>
+                        <td><span class="badge badge-info">有條件可行</span></td>
+                        <td>各參與者可並行生成證明</td>
+                    </tr>
+                    <tr>
+                        <td>即時推理驗證</td>
+                        <td><span class="badge badge-danger">目前不可行</span></td>
+                        <td>需要 10⁵-10⁶ 倍加速</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- ==================== 參考資料 ==================== -->
+            <section class="references" id="references">
+                <h2>參考文獻</h2>
+
+                <h3>實驗數據檔案</h3>
+                <p>原始數據位於：<code>D:\畢業論文\zklora-test\experiments\results\</code></p>
+                <ul>
+                    <li><code>exp1_rank_20260203_132335.json</code></li>
+                    <li><code>exp2_model_scale_20260203_160322.json</code></li>
+                    <li><code>exp3_layer_count_20260203_160322.json</code></li>
+                    <li><code>exp4_framework_compare_20260203_160322.json</code></li>
+                    <li><code>exp5_bottleneck_20260203_111532.json</code></li>
+                    <li><code>exp6_real_lora_20260203_132335.json</code></li>
+                    <li><code>exp7_risc_zero_compare_20260204_010442.json</code></li>
+                    <li><code>exp8_feasibility_20260203_132335.json</code></li>
+                </ul>
+
+                <h3>學術參考</h3>
+                <ol>
+                    <li id="ref-1">
+                        <cite>Hu, E. et al. "LoRA: Low-Rank Adaptation of Large Language Models." ICLR 2022.</cite>
+                        <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">arXiv</a>
+                    </li>
+                    <li id="ref-2">
+                        <cite>EZKL Documentation. "Zero-Knowledge Machine Learning." 2024.</cite>
+                        <a href="https://docs.ezkl.xyz/" target="_blank" rel="noopener">Docs</a>
+                    </li>
+                    <li id="ref-3">
+                        <cite>RISC Zero Documentation. "RISC Zero zkVM." 2024.</cite>
+                        <a href="https://dev.risczero.com/" target="_blank" rel="noopener">Docs</a>
+                    </li>
+                    <li id="ref-4">
+                        <cite>Kang, D. et al. "ZKML: An Optimizing System for ML Inference in Zero-Knowledge Proofs." EuroSys 2024.</cite>
+                    </li>
+                </ol>
+            </section>
+
+            <hr>
+            <p style="text-align: center; color: var(--color-text-secondary);">
+                <em>最後更新：2026-02-05</em>
+            </p>
+        </article>
+
+        <div id="prev-next"></div>
+    </main>
+
+    <button id="theme-toggle" aria-label="切換主題">🌙</button>
+
+    <script src="../assets/js/site.js"></script>
+    <script>
+        // Collapsible functionality
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const collapsible = header.parentElement;
+                collapsible.classList.toggle('open');
+            });
+        });
+    </script>
+</body>
+</html>
