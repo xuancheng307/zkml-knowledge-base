@@ -79,7 +79,7 @@
       <p>好，在講我們的方法之前，先把幾個背景技術介紹清楚，因為我們的方法就是在這些背景的基礎上做改進的。</p>
       <h3 class="subsection-title">2.1 算術電路</h3>
       <p class="stage-cue">【滾動到 §2.1】</p>
-      <p>ZK 證明系統——像 PLONK、Halo2——把計算表達成算術電路。你可以想像它是一個由加法門和乘法門組成的有向無環圖。電路的每條 wire 帶的是一個有限域裡的元素。</p>
+      <p>ZK 證明系統——像 PLONK、Halo2——把計算表達成算術電路。在 Halo2 裡，電路被組織成一張二維表格：每一列（row）是一步運算，每一欄（column）存一個有限域裡的元素。系統透過自訂的 gate 約束來規定欄位之間的關係。</p>
       <p>電路有兩種輸入。Public input 是驗證者也知道的值，例如函數的輸出。Private input，也叫 witness，是只有證明者知道的，例如計算的中間步驟。</p>
       <p>還有一個重要功能叫 Lookup argument，查表論證。它讓電路可以宣稱「某個值存在於某張預定義的表格中」。這很有用，例如你要驗證一個值在 0 到 255 的範圍內，用一次 lookup 比用 8 個 bit 約束高效得多。</p>
       <p>我們用的具體系統是 Halo2 PSE v0.3.0，基於 PLONKish 結構，支援 custom gate 和 lookup argument，很適合我們的 Horner 電路設計。Proof system 用 KZG，proof size 固定不隨電路大小增長。PLONKish 的具體結構如果老師有興趣，Q&A 再展開。</p>
