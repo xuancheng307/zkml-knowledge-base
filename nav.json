@@ -217,7 +217,7 @@
         { "id": "zklora-arxiv25-report", "title": "ZKLoRA (arXiv'25)", "path": "/paper-reports/zklora-report.html", "status": "done" },
         { "id": "zkllm-ccs24-report", "title": "zkLLM (CCS'24)", "path": "/paper-reports/zkllm-report.html", "status": "done" },
         { "id": "zkdeepseek-arxiv25-report", "title": "ZK-DeepSeek (arXiv'25)", "path": "/paper-reports/zkdeepseek-report.html", "status": "done" },
-        { "id": "thesis-proposal", "title": "論文方向說明書", "path": "/paper-reports/thesis-proposal.html", "status": "done" }
+        { "id": "thesis-proposal", "title": "碩論提案報告", "path": "/paper-reports/thesis-proposal.html", "status": "done" }
       ]
     }
   ]

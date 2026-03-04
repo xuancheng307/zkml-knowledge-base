@@ -3,313 +3,691 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>論文方向想法說明書 - 口頭講稿</title>
+  <title>碩論提案報告 口頭講稿</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
-      line-height: 2;
-      color: #333;
-      background: #f8f9fa;
-      padding: 40px 20px;
-    }
-
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      padding: 60px 50px;
-      border-radius: 12px;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      color: #2c3e50;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .subtitle {
-      text-align: center;
-      color: #666;
-      margin-bottom: 40px;
-      font-size: 0.95rem;
-    }
-
-    .back-link {
-      display: inline-block;
-      margin-bottom: 30px;
-      color: #805ad5;
-      text-decoration: none;
-      font-size: 0.9rem;
-    }
-
-    .back-link:hover {
-      text-decoration: underline;
-    }
-
-    .section {
-      margin-bottom: 50px;
-    }
-
-    .section-title {
-      font-size: 1.3rem;
-      color: #805ad5;
-      margin-bottom: 25px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #805ad5;
-    }
-
-    p {
-      margin-bottom: 18px;
-      text-align: justify;
-    }
-
-    .key-point {
-      background: #faf5ff;
-      padding: 15px 20px;
-      border-left: 4px solid #805ad5;
-      margin: 20px 0;
-      border-radius: 0 8px 8px 0;
-    }
-
-    .divider {
-      text-align: center;
-      margin: 40px 0;
-      color: #ccc;
-    }
-
-    footer {
-      margin-top: 50px;
-      padding-top: 20px;
-      border-top: 1px solid #eee;
-      text-align: center;
-      color: #999;
-      font-size: 0.85rem;
-    }
-
-    footer a {
-      color: #805ad5;
-      text-decoration: none;
-    }
-
-    @media (max-width: 768px) {
-      .container {
-        padding: 30px 25px;
-      }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; line-height: 2; color: #333; background: #f8f9fa; padding: 40px 20px; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 60px 50px; border-radius: 12px; box-shadow: 0 2px 20px rgba(0,0,0,0.08); }
+    h1 { font-size: 1.8rem; color: #2c3e50; margin-bottom: 10px; text-align: center; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 40px; font-size: 0.95rem; }
+    .back-link { display: inline-block; margin-bottom: 30px; color: #3498db; text-decoration: none; font-size: 0.9rem; }
+    .back-link:hover { text-decoration: underline; }
+    .section { margin-bottom: 50px; }
+    .section-title { font-size: 1.3rem; color: #2980b9; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 2px solid #3498db; }
+    p { margin-bottom: 18px; text-align: justify; }
+    .key-point { background: #e8f4f8; padding: 15px 20px; border-left: 4px solid #3498db; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .divider { text-align: center; margin: 40px 0; color: #ccc; }
+    .stage-cue { color: #e67e22; font-style: italic; font-size: 0.9rem; margin-bottom: 12px; }
+    .subsection-title { font-size: 1.1rem; color: #34495e; margin: 25px 0 15px; font-weight: 600; }
+    .qa-item { margin-bottom: 30px; }
+    .qa-question { font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 1.05rem; }
+    .qa-answer { padding-left: 20px; border-left: 3px solid #ddd; }
+    footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; color: #999; font-size: 0.85rem; }
+    footer a { color: #3498db; text-decoration: none; }
+    @media (max-width: 768px) { .container { padding: 30px 25px; } }
   </style>
 </head>
 <body>
   <div class="container">
-    <a href="thesis-proposal.html" class="back-link">&larr; 返回說明書頁面</a>
-
-    <h1>論文方向想法說明書 - 口頭講稿</h1>
-    <p class="subtitle">ZKML 端到端配置自動調參：外層 Tuner / Meta-optimizer</p>
-
-    <!-- 開場 -->
+    <a href="thesis-proposal.html" class="back-link">&larr; 返回報告頁面</a>
+    <h1>碩論提案報告 口頭講稿</h1>
+    <p class="subtitle">ZK 電路中超越函數的多項式近似設計方法論</p>
     <div class="section">
-      <p>教授好，我想跟您討論一下我論文方向的想法。</p>
-
-      <p>出發點是 EuroSys 2024 的 ZKML 這篇論文。想做的事情，簡單講就是：</p>
-
-      <div class="key-point">
-        這個研究不是要重做 ZKML 的 optimizer，而是把它當作內層，往上做一個「端到端 configuration 的 Auto-Tuner」。
-      </div>
-
-      <p>先花幾分鐘講清楚從哪裡出發、看到什麼缺口、打算怎麼做、然後預期達到什麼結果。</p>
+      <h2 class="section-title">開場（封面）</h2>
+      <p>大家好，今天要跟大家報告我碩論的題目。</p>
+      <p>我的題目是「ZK 電路中超越函數的多項式近似設計方法論」。聽起來有點長，簡單來說就是：在零知識證明的電路裡面，怎麼有效率地算 exp、ln、erf 這些數學函數。</p>
+      <p>這個報告大概分六個部分：先講問題是什麼，然後介紹背景技術，接著講我們的方法，再看實驗結果，最後講一下範圍界定跟結論。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊一：出發點 -->
     <div class="section">
-      <h2 class="section-title">一、出發點：ZKML 做了什麼</h2>
-
-      <p>ZKML 這篇把 zkML 的核心問題講得很清楚：同一個 ML 模型要變成 ZK proof，不能暴力試所有電路排法，因為太貴了，所以需要 compiler 加 optimizer。</p>
-
-      <p>ZKML 的 optimizer，可以叫它「內層 optimizer」，它做的事情是：</p>
-
-      <p>把模型轉成 logical plans，每層可能有不同 gadget 或實作選項。再轉成 physical plans，決定電路的 layout，也就是 columns 跟 rows 怎麼分配。然後用 cost estimation，主要看 FFT、MSM、lookup 這些成本，去挑最省的 plan。</p>
-
-      <p>它會掃 columns 的不同配置，然後找最適合的 k，因為 rows 必須是 2 的 k 次方，k 的選擇影響非常大。為了避免組合爆炸，它會用 heuristic 把搜尋空間砍小。</p>
-
-      <p>所以 ZKML 的 optimizer 本質是：在固定電路表達、固定框架的前提下，做 layout 跟 gadget 層級的 cost-guided search。</p>
-
-      <div class="key-point">
-        重要的是：logrows，也就是 k，其實在 ZKML 內層就已經是核心要處理的變數之一。所以如果論文只說「要調 logrows」，這會非常弱，也很像重做。
-      </div>
+      <h2 class="section-title">第一章：問題定義（~5 分鐘）</h2>
+      <p class="stage-cue">【滾動到 §1.1】</p>
+      <h3 class="subsection-title">1.1 什麼是零知識證明</h3>
+      <p>好，首先我們來看問題定義。</p>
+      <p>零知識證明，簡單講就是：我可以向你證明「我知道一個計算的結果是正確的」，但是不告訴你計算過程中的任何秘密。</p>
+      <p>這個技術有越來越多的應用場景，而這些場景有一個共通需求：在 ZK 電路裡計算非線性數學函數。</p>
+      <p>比如 DeFi 去中心化金融——複利計算需要 exp，對數收益率需要 ln，選擇權定價的 Black-Scholes 模型需要 erf。這些都是鏈上金融合約可能用到的運算，而且精度直接影響資金安全。</p>
+      <p>隱私機器學習推論也需要這些函數——Softmax 用 exp，GELU 啟動函數的核心是 erf。</p>
+      <p>還有可驗證計算——雲端算完之後附一個 proof，客戶端驗證就知道結果對不對，不用重算。只要計算裡有非線性函數，ZK 電路就得處理它。</p>
+      <p class="stage-cue">【指向函數表格】</p>
+      <p>大家看這張表。不同的應用場景需要不同的函數：exp、ln、erf。而且往往一個場景就需要多個函數——Black-Scholes 同時用到 exp、ln、erf，GELU 用到 erf 和乘法。</p>
+      <p>所以問題不只是「能不能在 ZK 電路裡算某一個函數」，而是「能不能用一個通用的方法，同時處理多個函數」。</p>
+      <h3 class="subsection-title">1.2 核心困難</h3>
+      <p class="stage-cue">【滾動到 §1.2】</p>
+      <p>好，問題來了。</p>
+      <p>ZK 電路是在有限域上面運算的。我們用的是 BN254 這條曲線，所有計算都在一個大約 254 位元的質數域裡面進行。</p>
+      <p>這個域的特性是什麼？它只支援整數的加法和乘法。沒有浮點數，沒有除法——嚴格來說有乘法逆元，但沒有一般意義上的除法——當然也沒有什麼 <code>math.exp()</code> 可以呼叫。</p>
+      <p>所以核心困難就是：我們要在一個只有整數加法和乘法的環境裡面，把 exp、ln、erf 這些超越函數「翻譯」出來。</p>
+      <h3 class="subsection-title">1.3 現有做法</h3>
+      <p class="stage-cue">【滾動到 §1.3】</p>
+      <p>目前主要有兩種做法。</p>
+      <p>第一種是查表法——把所有輸入輸出配對存成一張大表。精度完美，但 16-bit 精度就需要六萬五千多筆，而且每個函數各需要一張表。ULP 是什麼等一下會解釋。</p>
+      <p>第二種是 Taylor 多項式——用級數展開取有限項來近似。表格很小，只需要 256 筆，但精度很差：exp 的 ULP 是 12，ln 是 762，erf 是 1,467。原因是 Taylor 在展開點附近很準，但遠離展開點後誤差快速增長。</p>
+      <p>這兩種方法的技術細節等一下在背景技術會詳細介紹。</p>
+      <h3 class="subsection-title">1.4 我們的目標</h3>
+      <p class="stage-cue">【滾動到 §1.4 藍色框】</p>
+      <p>所以我們的研究問題是：能不能設計一個通用的方法，用一個 256 筆的小表就能計算 exp、ln、erf 等多個函數，同時維持接近查表法的精度？</p>
+      <p>答案是可以的。</p>
+      <p class="stage-cue">【指向結果表】</p>
+      <p>大家看這張表。我們的方法在 256 筆的表格下，exp 的 ULP 從 Taylor 的 12 降到 1，改善 12 倍。ln 從 762 降到 1，改善 762 倍。erf 從 1,467 降到 3，改善 489 倍。</p>
+      <p>怎麼做到的？接下來的背景技術和方法會一步一步解釋。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊二：研究缺口 -->
     <div class="section">
-      <h2 class="section-title">二、看到的缺口</h2>
-
-      <p>ZKML 解得很好的是「電路內部怎麼排比較便宜」。但值得往上做的缺口有三個：</p>
-
-      <p>第一個缺口是：端到端的 configuration 仍然是黑箱。</p>
-
-      <p>在真實使用場景裡，大家最常卡住的不是電路怎麼排，而是：量化跟定點表示到底怎麼設？bit-width、scale factor、rounding 要怎麼選？lookup table 的精度跟範圍怎麼設？精度高表就大，表大又會逼 k 跳階。非線性，像 exp、softmax、div，要用哪種近似或 gadget 方案？電路資源，columns budget、lookup strategy 怎麼配？甚至 PCS 不同，KZG 或 IPA，最佳配置的形狀可能完全不同。</p>
-
-      <p>這些不是單純靠 ZKML 的 layout optimizer 就能解完的，因為它的主要搜尋維度在電路排版跟 gadget 組合，而不是把「量化加近似加 lookup 設計」當成全局的主搜尋維度。</p>
-
-      <p>第二個缺口是：現在選參數常常是工程試錯。</p>
-
-      <p>就算某些工具會給建議值，也不代表是最省 proving cost 的。而且不同模型、不同硬體、不同 PCS 或 stack 下，建議值可能完全不適用。所以這個領域真正需要的是：一個更上層的 Auto-Tuning 方法論，把配置空間系統化，把結果變成 Pareto frontier 跟可解釋規則。</p>
-
-      <p>第三個缺口是：ZKTorch 的參數跟架構不同。</p>
-
-      <p>ZKTorch 走的是「拆成 basic blocks 加 accumulation」的 proving stack，跟「整個模型編成一張 halo2 大電路」不是同一種抽象。所以 ZKML 內層 optimizer 本來就不可能去調 ZKTorch 那一套 stack 的參數，像 block 選擇、累積策略、平行度配置這些。</p>
+      <h2 class="section-title">第二章：背景技術（~10 分鐘）</h2>
+      <p class="stage-cue">【滾動到 §2】</p>
+      <p>好，在講我們的方法之前，先把幾個背景技術介紹清楚，因為我們的方法就是在這些背景的基礎上做改進的。</p>
+      <h3 class="subsection-title">2.1 算術電路</h3>
+      <p class="stage-cue">【滾動到 §2.1】</p>
+      <p>ZK 證明系統——像 PLONK、Halo2——把計算表達成算術電路。你可以想像它是一個由加法門和乘法門組成的有向無環圖。電路的每條 wire 帶的是一個有限域裡的元素。</p>
+      <p>電路有兩種輸入。Public input 是驗證者也知道的值，例如函數的輸出。Private input，也叫 witness，是只有證明者知道的，例如計算的中間步驟。</p>
+      <p>還有一個重要功能叫 Lookup argument，查表論證。它讓電路可以宣稱「某個值存在於某張預定義的表格中」。這很有用，例如你要驗證一個值在 0 到 255 的範圍內，用一次 lookup 比用 8 個 bit 約束高效得多。</p>
+      <p>我們用的具體系統是 Halo2 PSE v0.3.0，基於 PLONKish 結構，支援 custom gate 和 lookup argument，很適合我們的 Horner 電路設計。Proof system 用 KZG，proof size 固定不隨電路大小增長。PLONKish 的具體結構如果老師有興趣，Q&A 再展開。</p>
+      <h3 class="subsection-title">2.2 固定點算術</h3>
+      <p class="stage-cue">【滾動到 §2.2】</p>
+      <p>接下來講固定點算術。有限域只有整數，但我們需要表達小數，例如 ln(1.5) 等於 0.405...。怎麼辦？</p>
+      <p>我們用固定點表示法。選一個縮放因子 S 等於 2 的 pp 次方。pp 是精度參數，我們用 pp 等於 16，所以 S 等於 65,536。</p>
+      <p class="stage-cue">【指向表格】</p>
+      <p>大家看這張表。真實值 0.5，乘上 65,536 就變成 32,768，這就是它的固定點表示。ln2 大約是 0.693，乘上去取整是 45,426。erf(1) 大約是 0.843，取整是 55,227。1.0 乘上去就是 65,536，剛好等於 S，已經超出 16-bit 的範圍了。</p>
+      <p>所以固定點就是把小數乘上一個大的 scale factor 變成整數，這樣就能在有限域裡面運算了。</p>
+      <p>那精度怎麼衡量？我們用 ULP，Unit in the Last Place。</p>
+      <p class="stage-cue">【指向 ULP 定義框】</p>
+      <p>ULP 的定義很簡單：電路算出來的結果 w_circuit，跟理想結果 w_reference 的差的絕對值。理想結果就是把真實函數值乘上 S 再四捨五入。</p>
+      <p>ULP 等於 0 就是完美精度。ULP 等於 1 就是差了最小刻度的一格。在 pp 等於 16 的時候，ULP 等於 1 大概等於 15 bits 的有效精度，已經很好了。</p>
+      <p>接下來講一個很重要的問題：截斷。</p>
+      <p class="stage-cue">【滾動到截斷部分】</p>
+      <p>固定點乘法會產生多餘的精度。兩個 pp=16 的數相乘，結果的 scale 會變成 S 的平方。你必須除以 S 才能回到正確的 scale。在有限域裡面，這個「除以 S」的操作叫做截斷。</p>
+      <p>問題是截斷會丟掉餘數，這就是精度損失的來源之一。等一下講我們的方法時，會看到我們怎麼處理這個問題。</p>
+      <p>順帶一提，在有限域裡面「截斷」不能真的做除法——有限域的除法是乘以逆元，不會有餘數。所以截斷在電路裡面是用一個約束來表達的：證明者提供 w 和 remainder 兩個 witness 值，然後電路驗證 w 乘以 S 加上 remainder 等於原始的乘積。同時 remainder 必須小於 S（用 byte decomposition 檢查）。這樣就等價於做了一次整數除法取商。</p>
+      <h3 class="subsection-title">2.3 多項式近似</h3>
+      <p class="stage-cue">【滾動到 §2.3】</p>
+      <p>好，接下來是多項式近似，這是今天最關鍵的背景。</p>
+      <p>Taylor 級數大家都知道，就是在 x=0 展開。以 exp(x)-1 為例，就是 x 加上 x 平方除以 2 階乘加上 x 三次方除以 3 階乘，這樣加下去。</p>
+      <p>Taylor 的特性是在展開點附近非常精確，但隨著 x 遠離展開點，誤差快速增長。更精確地說，Taylor 最小化的是局部的誤差，它在意的是高階導數，不是整個區間上的最大誤差。</p>
+      <p>那有沒有一種多項式，是直接最小化整個區間上的最大誤差的？有，就是 Minimax 近似。</p>
+      <p>Minimax 找的是：在整個區間 [a, b] 上，最大誤差最小的多項式。</p>
+      <p class="stage-cue">【指向 Taylor vs Minimax 對比框】</p>
+      <p>大家看這個比較。Taylor 是局部最優：在 x=0 附近完美，但在區間邊緣誤差很大。你可以想像誤差的分佈是小、小、小、中、大、大、大。</p>
+      <p>Minimax 是全域最優：它讓誤差在整個區間上均勻分佈。誤差分佈像是中、中、中、中、中、中、中。這個性質叫等振盪，equioscillation。</p>
+      <p class="stage-cue">【指向圖 1】</p>
+      <p>大家看圖 1，這是 exp(x)-1 在 [0, ln2) 這個區間上的 ULP 誤差比較。紅色是 Taylor，可以看到在區間右邊，也就是靠近 ln2 的地方，誤差暴增到 12。藍色是 Minimax，始終小於等於 1。</p>
+      <p>而且這裡有一個關鍵的洞見——</p>
+      <p class="stage-cue">【指向藍色框】</p>
+      <p>ZK 電路的精度指標是什麼？是 max ULP，也就是最壞情況。這正好就是 L-infinity norm。Taylor 最小化的是局部誤差，但 ZK 需要的是全域的最壞情況保證。Minimax 直接最小化我們關心的指標。它天然就適合 ZK。</p>
+      <p>那 Minimax 的係數怎麼算？用 Remez 演算法。這是 1934 年提出的成熟數值方法。</p>
+      <p>Remez 的運作原理是這樣的。有一個數學定理叫 Chebyshev equioscillation theorem，它說：如果一個 degree-d 的多項式是 Minimax 最優的，那麼它跟真實函數之間的誤差必須在至少 d+2 個點上達到最大值，而且正負交替。也就是說，誤差會像波浪一樣，在這些點上等幅振盪。</p>
+      <p>Remez 就是利用這個定理。它從一組初始的參考點開始，疊代地解方程組、更新參考點，直到收斂到滿足 equioscillation 條件的最優多項式。每一輪疊代都在改善近似品質。通常幾十輪就會收斂。</p>
+      <p>我們用 Python 的 mpmath 函式庫來跑 Remez，用高精度浮點數（50 位有效數字）確保係數正確。算出來之後再量化成整數係數，用在 ZK 電路裡面。</p>
+      <p>這個方法在 FHE，也就是全同態加密領域已經廣泛使用了——因為 FHE 也需要在整數環境下做函數近似。但據我們的文獻回顧，在 ZK 領域目前還沒有人系統性地採用過。</p>
+      <h3 class="subsection-title">2.4 Horner 求值法</h3>
+      <p class="stage-cue">【滾動到 §2.4】</p>
+      <p>有了多項式之後，怎麼在電路裡面算？用 Horner's method。</p>
+      <p>Horner 是多項式求值最高效的方式。一個 5 次多項式原本要做很多次乘法和加法，但 Horner 把它改寫成巢狀的形式。</p>
+      <p>大家看這個式子。每一步只需要一次乘法加一次加法。5 次多項式只要 5 步。在 ZK 電路裡面，每一步就是一個 Horner gate，就是一個算術約束：acc_next 等於 acc_current 乘以 R 加上 D_i。R 是輸入，D_i 是預先算好的係數常數。</p>
+      <p>有一個細節值得注意。我們處理的函數——exp(x)-1、ln(1+x)、erf(x)——在 x=0 的時候函數值都是 0。所以多項式沒有常數項，是 c_1·x + c_2·x² + ... + c_5·x⁵ 的形式。Horner 展開的最外層就是乘以 x，不用加常數。這意味著 Horner 的最後一步是一個純乘法：P(R) = acc × R，沒有加法。</p>
+      <p>另外，為什麼用 D_i 不用 c_i？因為在 Deferred Truncation 裡面，我們不是用原始的浮點係數 c_i，而是用「預縮放」過的整數係數 D_i。這個等一下 §3.3 會詳細講。</p>
+      <h3 class="subsection-title">2.5 現有查表方法</h3>
+      <p class="stage-cue">【滾動到 §2.5】</p>
+      <p>最後介紹兩個現有的查表方法，因為這些是我們的比較基準。</p>
+      <p>Method A，直接查表。就是把完整的輸入輸出表格預計算好，65,536 筆。一次 lookup 搞定。精度完美，ULP 等於 0。但表格太大，prove time 大約 1,200 毫秒。</p>
+      <p>Method B，分塊查表。它利用 exp 的代數性質——e 的 a 加 b 次方等於 e 的 a 次方乘以 e 的 b 次方——把輸入拆成高低位元組，查兩張小表再乘起來。總共 768 筆，只需要 1 行電路，batch 場景非常快。</p>
+      <p>但是，Method B 有一個根本性的限制。</p>
+      <p class="stage-cue">【指向橘色警告框】</p>
+      <p>它只適用於 exp。ln 的對應性質是 ln(a 乘 b) 等於 ln(a) 加 ln(b)，但輸入是加法的，不是乘法的，所以沒辦法用。erf 更不用說了，完全沒有類似的分解性質。</p>
+      <p>所以對 ln 和 erf 來說，多項式近似是唯一的小表方案。這就是我們方法的核心價值所在。</p>
+      <h3 class="subsection-title">2.6 多項式逼近法的標準 Pipeline</h3>
+      <p class="stage-cue">【滾動到 §2.6】</p>
+      <p>好，在進入第三章之前，我先把前面介紹的這些背景技術串起來。如果你今天要在 ZK 電路裡面用多項式逼近來算一個函數，標準的流程長什麼樣？</p>
+      <p class="stage-cue">【指向圖 7 流程圖】</p>
+      <p>大家看這張圖。整個流程分成 6 個步驟，上面一排是「離線設計階段」——只做一次，不進電路的；下面一排是「電路內」——每次 prove 都要跑的。</p>
+      <p>離線的部分有三步。Step 1，選定近似區間。你要決定多項式要覆蓋哪一段。比如 exp 我們選 [0, ln2)，ln 也選 [0, ln2)，erf 選 [0, 1]。區間的寬窄會直接影響精度——等一下第三章會看到具體的數據。</p>
+      <p>Step 2，用 Remez 演算法求 Minimax 係數。輸入你要逼近的函數和區間，它會算出在整個區間上「最大誤差最小」的多項式係數。算出來的是高精度浮點數。</p>
+      <p>Step 3，量化。把浮點係數乘以 S 的某次方，取整成很大的整數。比如 exp 的第一個係數 c₁ ≈ 0.999983，乘以 S⁵ ≈ 1.2 × 10²⁴ 之後取整，得到一個 80 幾 bits 的整數 D₁。這些整數才是寫進電路的東西。</p>
+      <p>電路內的部分也有三步。Step 4，Horner 求值。剛才講的，用 acc = acc × R + D_i 逐步算出 P(R)。每一步就是一個 Horner gate。</p>
+      <p>Step 5，截斷。因為 Step 3 預乘了 S 的高次方，所以 P(R) 是一個很大的數。你要做一次「除以 S⁵」的操作，才能拿到最終結果 w。在電路裡面的表達方式是：prover 提供 w 和 remainder，電路驗證 w × S⁵ + rem = P(R)，而且 rem < S⁵。</p>
+      <p>Step 6，範圍驗證。這一步非常重要。</p>
+      <p class="stage-cue">【指向藍色說明框】</p>
+      <p>在一般的程式裡面，你用 uint16 宣告一個變數，它不可能超過 65535——這是硬體和型別系統幫你保證的。但在 ZK 電路裡面，所有值都是有限域 Fp 的元素，範圍是 0 到 p-1，大約 254 bits。Prover 填 witness 的時候，沒有任何東西阻止他填一個不合理的值。</p>
+      <p>舉個例子。假設電路有一個 constraint 是 r_lo + r_hi × 256 = R，用來把 R 拆成兩個 bytes。如果我們不檢查 r_lo 和 r_hi 的範圍，prover 可以填 r_lo = 100000、r_hi = 0，constraint 的等式是滿足的——100000 + 0 × 256 = 100000。但 r_lo = 100000 根本不是一個 byte，R = 100000 也超出了我們要的 [0, 65535] 範圍。</p>
+      <p>所以每一個 byte 都要用 lookup 去查 ByteTable，確認它真的在 [0, 255] 之間。這就是 byte range check 的意義——它是 ZK 電路裡面唯一的「型別檢查」手段。</p>
+      <p>好，這 6 個步驟就是多項式逼近法的完整 pipeline。大家把這個框架記住，因為第三章的改進就是針對其中三個步驟做最佳化。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊二點五：研究問題 -->
     <div class="section">
-      <h2 class="section-title">二之五、研究問題</h2>
-
-      <p>基於這些缺口，本研究提出四個核心研究問題：</p>
-
-      <p>RQ1 是量化與成本的關係。不同量化與證明配置如何影響模型精度跟 ZK 成本？這裡要建立 configuration 到 metrics 的定量映射。</p>
-
-      <p>RQ2 是自動調優。能否設計一個 Auto-Tuning 演算法，在給定模型、資料集、精度門檻、有限試驗預算的條件下，自動搜尋 Pareto 最佳配置？這是本研究的核心技術貢獻。</p>
-
-      <p>RQ3 是跨模型泛化。對不同架構，像 MLP、CNN、Transformer，最佳設定是否呈現一致的 pattern？能否總結成 ZK-friendly 配置準則？</p>
-
-      <p>RQ4 是安全性與健全性。激進量化下是否仍能保持 ZK 證明的正確性與健全性？是否有 overflow 或 wrap-around 破壞語義正確性的情況？這個問題確保配置選擇不會違反密碼學安全性。</p>
+      <h2 class="section-title">第三章：我們的方法（~15 分鐘）</h2>
+      <p class="stage-cue">【滾動到 §3】</p>
+      <p>好，現在正式進入我們的方法。</p>
+      <p>剛才說了，我們的改進針對 pipeline 的三個步驟。但在報告裡面我把它組織成四步，因為最後還多一個「整合」的步驟——把三個改進合在一起，變成一個通用的 Horner Kernel。</p>
+      <p class="stage-cue">【指向四步表格】</p>
+      <p>大家看這張表。Step 1 是區間選擇加 ORV，對應 pipeline 的 Step 6 範圍驗證。Step 2 是用 Minimax 係數取代 Taylor，對應 pipeline 的 Step 2。Step 3 是 Deferred Truncation，對應 pipeline 的 Step 5。Step 4 是把這些整合成一個通用的 Horner Kernel。</p>
+      <p>一個一個來。</p>
+      <h3 class="subsection-title">3.1 區間選擇 + ORV</h3>
+      <p class="stage-cue">【滾動到 §3.1】</p>
+      <p>先講區間選擇。</p>
+      <p>多項式近似有一個基本的 trade-off：區間越窄，精度越好，但覆蓋的輸入範圍越小。</p>
+      <p class="stage-cue">【指向 trade-off 表格】</p>
+      <p>大家看數據。ln(1+x) 在窄區間 [0, ln2) 上 ULP 是 1，但如果把區間放寬到 [0, e-1)，ULP 就變成 9，差了 9 倍。erf 也是一樣，窄區間 [0, 1] 的 ULP 是 3，放寬到 [0, 2) 就變成 20，差 6.7 倍。</p>
+      <p>所以我們選擇用窄區間，優先保證精度。</p>
+      <p>那你可能會問：區間那麼窄，如果輸入超出範圍怎麼辦？傳統做法是在電路裡面加一個約束，檢查 R 小於等於 R_MAX，確保輸入在合法範圍內。但這需要額外的 gate。</p>
+      <p>我們發現了一個更聰明的做法，叫 ORV，Output Range Verification。</p>
+      <p class="stage-cue">【指向 ORV 定理框】</p>
+      <p>核心想法是這樣的。我們逼近的 exp、ln、erf 在各自的區間上都是單調遞增的。如果近似多項式也是單調遞增的——而且對於低誤差的近似多項式來說，這是自然成立的——那麼：只要輸出 w 小於 S，輸入 R 就一定在合法範圍內。</p>
+      <p>直覺上怎麼理解呢？如果有人想作弊，丟一個超出範圍的 R 進來，那這個 R 超過 R_MAX 之後，多項式在有限域裡面算出來的值就會是一個約 254 bits 的隨機大數。而我們要求 w 小於 S，S 只有 16 bits。一個 254 bits 的隨機數剛好落在 16 bits 的小範圍內的機率有多大？大約是 2 的負 143 次方。基本上不可能。</p>
+      <p>所以結論是：我們只需要檢查輸出 w 小於 S，就同時驗證了輸入範圍和輸出有效性。只需要一次 byte decomposition。省掉一個 explicit range check gate。</p>
+      <p class="stage-cue">【指向圖 2 和流程圖】</p>
+      <p>大家看圖 2 和下面的流程圖。輸入 R 進來，做 Horner 求值得到 P(R)，然後 ORV 檢查 w 小於 S，如果通過就輸出 w。綠色區域是合法輸入，紅點是非法輸入在有限域裡面散佈的隨機結果。</p>
+      <p class="stage-cue">【指向窮舉驗證表】</p>
+      <p>我們對三個函數做了窮舉驗證。exp 有 45,427 個合法 R 值，ORV 失敗數是 0。ln 也是 45,427 個，失敗數也是 0。erf 有 65,536 個，失敗數也是 0。</p>
+      <p>安全性方面，exp 和 ln 都是 2 的負 143 次方，遠超過 128-bit 的安全標準。erf 更特別，因為它的 R_MAX 剛好等於 65,535，就是 2-byte 能表示的最大值，所以根本不存在超出範圍的 R，安全性是 perfect。</p>
+      <p>補充一下 ORV 安全性的細節。對 exp 來說，它的 Minimax 係數全部是正數，所以多項式 P(R) 在整數上就是嚴格遞增的——這可以用代數方法直接證明，不需要窮舉。對 ln 和 erf 就不一樣了，它們的係數有正有負，沒辦法用代數方法保證單調性，所以我們是把所有合法的 R 值全部跑一遍，確認 P(R) 確實是遞增的。這就是表格裡寫的 Algebraic proof 和 Exhaustive proof 的差別。</p>
+      <h3 class="subsection-title">3.2 Minimax 係數取代 Taylor</h3>
+      <p class="stage-cue">【滾動到 §3.2】</p>
+      <p>第二步，把 Taylor 的係數換成 Minimax 的。</p>
+      <p>這是對剛才 §2.3 背景裡面 Taylor 的直接改進。電路結構完全不變，都是 Horner 求值，唯一的差異就是換了 5 個係數的值。</p>
+      <p>為什麼改善這麼大？以 ln(1+x) 為例。</p>
+      <p>Taylor 5 次展開的係數是 1, -1/2, 1/3, -1/4, 1/5。這些是 ln 在 x=0 的導數決定的，是數學上固定的。它們完全沒有考慮到我們實際要用的區間 [0, ln2) 有什麼特性。</p>
+      <p>Minimax 的係數不一樣。它是用 Remez 演算法，針對區間 [0, ln2) 最佳化出來的。它允許在 x=0 附近稍微犧牲精度，換取區間邊緣的大幅改善。</p>
+      <p>這邊有一個很重要的 subtlety：Remez 算出來的是高精度的浮點數係數，但電路裡面只有整數。所以我們需要把浮點數係數「量化」成整數。量化會引入誤差，而且量化的方式會影響最終精度。我們的做法是配合 Deferred Truncation，把係數預乘上 S 的某次方，變成很大的整數。具體來說，第 i 個係數 D_i 等於 round(c_i × S^(d+1-i))。d 等於 5，所以 D_5 的 scale 是 S^1，D_1 的 scale 是 S^5。這樣在 Horner 求值過程中，每一步的乘以 R 自然消耗一層 S，到最後結果的 scale 就是 S^5，做一次除以 S^5 的截斷就好了。</p>
+      <p class="stage-cue">【指向結果表】</p>
+      <p>大家看結果表。同一個電路結構，只換 5 個係數值，三個函數的精度就大幅改善——跟前面展示的數據一致。重點是：電路完全不變，改善純粹來自更好的係數選擇。</p>
+      <p>不過這邊要誠實說明一下。exp 的 12 倍是公平比較，因為 Taylor 和 Minimax 都用 5 個非零係數。但 erf 的 Taylor 只有 3 個非零係數——因為 erf 是奇函數，偶數次項的係數是零——所以 489 倍的改善包含了我們「多用 2 個參數」的優勢，不完全是 Minimax 方法本身的功勞。</p>
+      <h3 class="subsection-title">3.3 Deferred Truncation</h3>
+      <p class="stage-cue">【滾動到 §3.3】</p>
+      <p>第三步，Deferred Truncation。這是對 §2.2 截斷問題的改進。</p>
+      <p>先看傳統的做法，叫 Per-step Truncation。</p>
+      <p class="stage-cue">【指向 per-step 虛擬碼】</p>
+      <p>在 Horner 求值的每一步，都做一次截斷。Step 1 截斷一次，step 2 截斷一次，一直到 step 5 又截斷一次。總共 5 次截斷。每次截斷都會丟失精度，5 次截斷的誤差就累積起來了。</p>
+      <p class="stage-cue">【指向圖 3】</p>
+      <p>大家看圖 3 的對比。左邊是 Per-step，每一步都有截斷，精度逐步損失。</p>
+      <p>右邊是我們的做法，Deferred Truncation。</p>
+      <p class="stage-cue">【指向 deferred 虛擬碼】</p>
+      <p>我們的做法是利用 BN254 有限域有 254 bits 的容量。5 次 Horner 的中間值最多需要多少 bits？我們算過，D_1 大概 80 bits，R_MAX 大概 16 bits。Horner 每一步做一次乘法加一次加法，最壞情況下位元數大約是 max(acc) 加上 16（乘 R）再加上 D_i 的 bits。跑完 5 步之後，最大的中間值大概 96 bits。遠遠小於 254。</p>
+      <p>所以我們可以在整個 Horner chain 裡面完全不截斷。讓中間值的精度一直保持著，到最後才做一次截斷。你看 step 1 到 step 5 全部標示「不截斷」，只有最後的 final 步驟才做唯一一次截斷：w 等於 P(R) 除以 S 的 5 次方。</p>
+      <p class="stage-cue">【指向關鍵洞見框】</p>
+      <p>關鍵洞見就是：BN254 的域足夠大，能夠容納整個 Horner chain 的中間值而不 overflow。這讓我們可以把 5 次截斷合併為 1 次。</p>
+      <p class="stage-cue">【指向精度改善表】</p>
+      <p>效果怎麼樣？三個函數都一致地獲得 2.0 倍的改善。exp 從 2 降到 1，ln 也是從 2 降到 1，erf 從 6 降到 3。而且這些數字是窮舉驗證過的，不是抽樣。</p>
+      <p>代價呢？最後那一次截斷需要 10 個 byte lookup 來驗證餘數的範圍。為什麼是 10 個？因為截斷的等式是 w × S^5 + remainder = P(R)。S^5 等於 65536 的 5 次方，大約是 2^80，所以 remainder 可以到 80 bits。要驗證一個 80-bit 的值在合法範圍內，我們把它拆成 10 個 bytes（10 × 8 = 80），每個 byte 做一次 lookup 到 ByteTable 確認在 [0, 255] 範圍內。</p>
+      <p>相比之下，Per-step 每步的截斷餘數只有 16 bits，2 個 bytes 就夠了。所以 Deferred 的 lookup 數量（12 個）比 Per-step（2 個）多，但換來的是精度改善 2 倍。這是一個 complexity vs precision 的 trade-off。</p>
+      <h3 class="subsection-title">3.4 通用 Horner Kernel</h3>
+      <p class="stage-cue">【滾動到 §3.4】</p>
+      <p>最後，第四步。把前三個改進組合起來，得到一個通用的 Horner 求值電路。</p>
+      <p class="stage-cue">【指向電路組件表】</p>
+      <p>大家看這張表。整個電路由 5 種 gate 組成。Horner gate 5 個，做 5 步 Horner 求值。Truncation gate 1 個，做最後的截斷。R byte decomp gate 1 個，驗證輸入的位元組分解。w byte decomp 加 ORV gate 1 個，同時做輸出驗證和 ORV。rem byte decomp gate 1 個，驗證餘數的範圍。</p>
+      <p>總共：5 個 gate definitions，12 個 lookup arguments，9 行。查表用的 ByteTable 只需要 256 筆。</p>
+      <p>簡單來說，5 行做 Horner 求值，剩下 4 行做截斷和各種 byte 驗證。具體每一行做什麼、12 個 lookup 怎麼分配，投影片上有完整的表格，如果老師有興趣 Q&A 再展開。</p>
+      <p class="stage-cue">【指向綠色通用性框】</p>
+      <p>重點來了。這個電路對所有函數——exp、ln、erf、GELU——結構完全相同。要切換函數，唯一要換的就是 5 個係數常數 D1 到 D5，以及 R_MAX 的值。Gate definitions、lookup arguments、table size、proof size 全部不變。</p>
+      <p class="stage-cue">【指向實測數據表】</p>
+      <p>這不是理論上說說的。大家看實測數據。這是在 Halo2 PSE v0.3.0，KZG/SHPLONK，BN254 curve 上面跑的 real proof。</p>
+      <p>exp：max ULP 等於 1，prove time 137.8 毫秒，verify 1.62 毫秒，proof size 4,960 bytes。</p>
+      <p>ln：max ULP 等於 1，135.9 毫秒。</p>
+      <p>erf：max ULP 等於 3，137.0 毫秒。</p>
+      <p>GELU：max ULP 等於 1，137.5 毫秒。</p>
+      <p>四個函數的 prove time 幾乎一樣，因為電路結構完全相同。Proof size 也全部一樣，4,960 bytes。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊三：核心主張 -->
     <div class="section">
-      <h2 class="section-title">三、想做什麼：外層 Tuner</h2>
-
-      <p>論文的核心主張可以是這樣：</p>
-
-      <p>沿用 ZKML 的基本精神：用成本模型跟統計量引導搜尋，而不是暴力 profiling。但把最佳化層級往上拉：做一個外層 tuner，或者叫 meta-optimizer，去搜尋「端到端 configuration」，把內層的 ZKML optimizer 或現有 layout 編譯器當作 subroutine。</p>
-
-      <div class="key-point">
-        換句話說：內層，也就是 ZKML optimizer，負責「給定某種表達跟設計，把電路排到最好」。外層，也就是本研究的 tuner，負責「決定到底用哪種量化、lookup、近似策略才值得」，並且在有限試驗預算下快速逼近最優。
-      </div>
-
-      <p>最終輸出不是一個「感覺不錯的參數」，而是在 accuracy 門檻下的 Pareto 最佳配置集合，以及可解釋的調參規則。</p>
+      <h2 class="section-title">第四章：實驗結果（~8 分鐘）</h2>
+      <p class="stage-cue">【滾動到 §4】</p>
+      <p>好，方法講完了，現在來看實驗結果。</p>
+      <h3 class="subsection-title">4.1 Ablation Study</h3>
+      <p class="stage-cue">【滾動到 §4.1】</p>
+      <p>首先是 Ablation Study。我們要證明剛才講的每個步驟都有獨立的價值，不是混在一起才有效果。做法是控制其他變因，每次只改變一個。</p>
+      <p class="stage-cue">【指向 Ablation 1 表格】</p>
+      <p>Ablation 1：Minimax vs Taylor。只換係數，電路完全不動。</p>
+      <p>三個函數都在同一個 Halo2 電路裡面跑，table 都是 256，KZG proof 都驗證通過。唯一的差異就是係數。結果 exp 改善 12 倍，ln 改善 762 倍，erf 改善 489 倍。</p>
+      <p class="stage-cue">【指向圖 4】</p>
+      <p>圖 4 是三個函數的 ULP 分佈直方圖。可以看到 exp 和 ln 的 Minimax ULP 集中在 0 到 1，大約一半的輸入 ULP 就是 0，也就是完美精度。erf 分佈在 0 到 3 之間。</p>
+      <p class="stage-cue">【指向 Ablation 2 表格】</p>
+      <p>Ablation 2：Deferred vs Per-step Truncation。只改截斷策略，其他不動。</p>
+      <p>三個函數一致地獲得 2.0 倍改善。exp 從 2 降到 1，ln 從 2 降到 1，erf 從 6 降到 3。</p>
+      <p class="stage-cue">【指向 Ablation 3 表格】</p>
+      <p>Ablation 3：ORV vs Explicit Range Check。</p>
+      <p>我們比較三種配置。第一個是我們的方法，用 ORV，5 個 gates，9 行，安全。第二個是加上 explicit range check，6 個 gates，10 行，也安全，但多了一個 gate 和一行。第三個是完全不檢查，4 個 gates，8 行——但不安全，因為輸入可以被偽造。</p>
+      <p>所以 ORV 省了一個 gate、一行，同時維持安全性。而且 ORV 有一個理論上的好處：它不需要在電路裡面 hardcode R_MAX 的值。explicit range check 要寫一個 R ≤ 45426 的約束，這個 45426 是 function-specific 的常數。但 ORV 只檢查 w < S，S 是所有函數共用的，所以電路真的可以完全不改就切換函數。</p>
+      <h3 class="subsection-title">4.2 與查表法的比較</h3>
+      <p class="stage-cue">【滾動到 §4.2】</p>
+      <p>接著看跟查表法的比較。</p>
+      <p class="stage-cue">【指向比較表】</p>
+      <p>Method A，直接查表，65,536 筆，prove time 1,244 毫秒，proof 736 bytes，ULP 0，適用任意函數。</p>
+      <p>Method B，分塊查表，768 筆，prove time 61 毫秒，proof 2,048 bytes，ULP 2，但只適用於 exp。</p>
+      <p>我們的 Method G，256 筆，prove time 138 毫秒，proof 4,960 bytes，ULP 1 到 3，適用任意單調函數。</p>
+      <p>有人可能會注意到 proof size：Method A 只有 736 bytes，B 是 2,048，我們是 4,960，好像我們最大。這是因為 KZG proof 的大小取決於 committed 的 polynomial 數量，也就是電路裡面有多少個 column。我們的電路有更多的 advice columns（中間值比較多），所以 proof 稍大。但 4,960 bytes 在實務上完全可以接受——一個 UDP packet 就裝得下。</p>
+      <p class="stage-cue">【指向藍色結論框】</p>
+      <p>關鍵結論有兩個。</p>
+      <p>第一，對 exp 來說，Method B 確實更快。我們不迴避這個事實。但 Method B 只能做 exp。我們的優勢在精度——ULP 1 vs 2——和表格大小，256 vs 768。</p>
+      <p>第二，更重要的是，對 ln 和 erf，Method B 不適用。如果不用我們的方法，唯一的選擇是 Method A 的 65K 大表。我們的方法是唯一的小表方案。這才是核心價值。</p>
+      <h3 class="subsection-title">4.3 文獻定位</h3>
+      <p class="stage-cue">【滾動到 §4.3】</p>
+      <p>最後看一下我們在文獻中的定位。</p>
+      <p class="stage-cue">【指向文獻比較表】</p>
+      <p>zkTaylor，2024 年 AAIA 的論文，只做了 exp，用 Taylor 加 Circom。</p>
+      <p>ZKFixedPointChip，GitHub 上的開源專案，有 exp2 和 log2，但用的是 degree-14 的 Remez 多項式，電路很大。</p>
+      <p>Lagrange Labs，2025 年的 ePrint paper，有 exp 和 erf，但注意看 ln 這欄——他們沒有 benchmark。他們的論文 Table 2 就是沒有 ln 的結果。</p>
+      <p>ZIP，2025 年 CCS 的論文，有 exp，erf 是包在 GeLU 裡面的，但 ln 完全沒有覆蓋。</p>
+      <p>我們呢？exp、ln、erf 全部都有。而且表格大小只有 256 筆。</p>
+      <p class="stage-cue">【指向綠色文獻空白框】</p>
+      <p>所以我們預計填補兩個文獻空白。</p>
+      <p>第一，ln(1+x)。Lagrange Labs 沒有 benchmark，ZIP 沒有覆蓋。據我們的文獻回顧，目前還沒有小表 ZK 電路搭配形式精度分析的 ln 研究。</p>
+      <p>第二，erf(x)。據我們的文獻回顧，目前沒有任何先前工作用多項式近似做過 ZK erf 電路。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊四：參數空間 -->
     <div class="section">
-      <h2 class="section-title">四、要調的參數不只四個</h2>
-
-      <p>本研究不會把論文綁死在 bit、scale、k、lookup 這四個。更完整、更像研究的做法是把參數分層，並且允許條件式參數，也就是 tree-structured search space。</p>
-
-      <p>第一層是量化跟算術化。這些會直接影響精度跟溢位風險，也會影響 lookup domain 跟電路成本。包括 bit-width，可以做 per-layer 或 mixed precision；scale factor 策略，per-tensor、per-channel、per-layer；rounding mode，nearest 或 floor，甚至可以研究 stochastic rounding；clipping 跟 saturation，要不要截斷、截斷界怎麼設；還有 calibration 設定，用多少校準資料估 range。</p>
-
-      <p>第二層是非線性跟 lookup 近似策略。這是 zkML 成本炸裂的核心區。包括 lookup precision，也就是粒度跟精度；lookup input range，像 exp 的 clip range、softmax 的穩定化策略；table sharing，多算子共用表還是分開；piecewise table，分段近似還是單表；還有某些算子選 lookup 還是 bit-decomposition gadget，像 max 或 ReLU。</p>
-
-      <p>第三層是電路資源跟佈局。這層會避免把所有 layout 細節都變成搜尋維度，太爆了。但會保留能影響整體成本結構的 knob，像 columns budget、lookup 策略、表大小上限、表數量這些。至於 logrows，更傾向當成內層推導出的最小可行 k，而不是外層主參數，因為它在 ZKML 本來就會被 FindOptimalK 處理。</p>
-
-      <p>第四層是 PCS 跟 proving backend。這裡會明確區分：PCS backend 是 KZG 或 IPA，同一種電路前端下承諾方案不同，成本結構不同。Proving stack 是 Halo2-style compile-to-circuit 或 ZKTorch-style block+accumulation，這不是 PCS backend，是整條管線不同。</p>
+      <h2 class="section-title">第五章：範圍界定與限制（~3 分鐘）</h2>
+      <p class="stage-cue">【滾動到 §5】</p>
+      <p>接下來很重要：我們的範圍界定跟已知限制。</p>
+      <h3 class="subsection-title">5.1 論文範圍</h3>
+      <p class="stage-cue">【指向圖 5 pipeline】</p>
+      <p>大家看這張 pipeline 圖。一般來說，要算一個超越函數，完整的流程是：先做 Range Reduction，把任意輸入映射到多項式的區間內；然後做 Horner 求值，也就是我們的 kernel；最後做 Reconstruction，把結果組合回去。</p>
+      <p>我們的論文聚焦於綠色方框的部分：Horner evaluation kernel 加上 ORV。Range reduction 和 reconstruction 是灰色虛框，這些是 function-specific 的應用層電路。每個函數的 range reduction 方法都不一樣——exp 用的是指數法則，ln 用的是乘法分解——所以它們不屬於我們的通用方法論。</p>
+      <p>但 ORV 讓我們的 kernel 本身是自洽的。合法的輸入會得到正確的輸出，非法的輸入會被 ORV 拒絕。不需要在 kernel 內部做任何 explicit range check。</p>
+      <h3 class="subsection-title">5.2 已知限制</h3>
+      <p class="stage-cue">【指向限制表格】</p>
+      <p>我們也誠實地列出已知的限制。</p>
+      <p>第一，我們的 ULP 結果只涵蓋 Horner kernel。End-to-end 的精度取決於 range reduction 怎麼實作。</p>
+      <p>第二，GELU 目前只覆蓋 [0, 1] 的區間。x 大於 1 的部分需要 piecewise extension。</p>
+      <p>第三，在 batch 的場景下，我們的方法不如 Method B。</p>
+      <p class="stage-cue">【指向圖 6】</p>
+      <p>大家看圖 6。當 N 等於 1000，也就是一個 proof 裡面要算 1000 次函數的時候，我們的 Method G 需要 k 等於 14 的電路——k 是電路容量參數，電路有 2 的 k 次方行——prove time 是 1,011 毫秒。而 Method B 只需要 k 等於 11，prove time 135 毫秒。差 7.5 倍。</p>
+      <p>原因是我們每次函數呼叫需要 9 行，Method B 只需要 1 行。在大量 batch 的時候，行數累積起來就很吃虧。</p>
+      <p>最後一個限制是線性深度。Horner 求值天然是 sequential 的，沒辦法平行化。但 degree 5 已經夠短了，不會是瓶頸。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊五：研究方法 -->
     <div class="section">
-      <h2 class="section-title">五、用什麼方法讓 tuning 不是瞎調</h2>
-
-      <p>研究方法不會只是「跑很多實驗歸納規則」，而是用一個比較完整的研究套路。</p>
-
-      <p>首先是形式化。把問題定義成帶約束的多目標最佳化。目標是最小化 proving time、peak RAM、proof size，可選 verifier cost。約束是 accuracy 必須大於等於門檻，而且配置必須可行，能編譯、能生成 witness、能通過 constraint check、避免 overflow 跟 wrap-around。輸出是 Pareto frontier，而不是單一最佳點。</p>
-
-      <p>第二是多保真評估，這讓研究在筆電也能做。每個配置 θ 的評估，分成三層：F0 是 compile 加電路統計量，像 rows_needed、cols、lookups 這些，超便宜，用來大量探索。F1 是 witness 加 mock 或 constraint check，確保可行性跟抓 overflow。F2 是 full proving，只對少數 Pareto 候選做，用來校正跟報告真實成本。這樣能在有限資源下做大量試驗，同時保持論文結果可信。</p>
-
-      <p>第三是搜尋策略，不是 brute-force，而是 sample-efficient 的 tuner。工程穩定版會用 Random warm-up 加 TPE，也就是 Tree-structured Parzen Estimator，或 RandomForest-BO。學術加分版可以用 constrained multi-objective Bayesian optimization，加可行性模型跟 hypervolume improvement。</p>
-
-      <p>第四是內層外層的關鍵點。把 layout 找最小可行 k、最小 rows grid、columns 掃描這種工作放在內層，沿用 ZKML 思想或現有 compiler。外層 tuner 只負責決定哪種 configuration 值得用。這樣研究貢獻會非常清楚：做的是 meta 層的 configuration selection，不是把 ZKML 內層 optimizer 重寫一次。</p>
-
-      <p>第五是把 tuning 結果變成可解釋規則。把跑出的 trial logs 做 sensitivity analysis，看哪些參數最敏感。還有 decision tree、rule list、SHAP，產生像「如果模型是 softmax-heavy，lookup precision 要怎麼選」這種規則。讓結果不只是跑出一條 Pareto，而是真的產生設計準則。</p>
-
-      <p>第六是密碼學正確性分析。這對應到 RQ4。激進的量化配置可能導致 overflow 或 wrap-around，使得 ZK 證明的語義正確性被破壞。即使證明驗證通過，實際計算結果可能與預期不符。所以研究會在 F1 階段加入 overflow 檢測：包括 range check、constraint satisfaction check、還有 statistical sampling 對多筆測試輸入檢測 edge case。如果檢測到 overflow，該配置標記為不可行，不進入 Pareto 候選。這確保最終輸出的配置都是「安全」的配置。</p>
+      <h2 class="section-title">第六章：結論（~3 分鐘）</h2>
+      <p class="stage-cue">【滾動到 §6】</p>
+      <p>好，最後做個總結。</p>
+      <h3 class="subsection-title">三個預期學術貢獻</h3>
+      <p class="stage-cue">【指向三個貢獻】</p>
+      <p>我們預計有三個學術貢獻。</p>
+      <p>第一，Minimax 係數選擇。據我們的文獻回顧，目前還沒有在 ZK 的 Horner 電路中系統性地使用 Remez 最優多項式的研究。我們的初步實驗顯示精度改善 12 倍，這是用 exp 的公平比較算的。</p>
+      <p>第二，Output Range Verification，ORV。這是我們提出的一個新技術，利用多項式的單調性做 implicit input validation，不需要 lookup table，也不需要 explicit range check。</p>
+      <p>第三，Deferred Truncation。利用 BN254 有限域的大容量，把多次截斷合併成一次，初步實驗顯示精度改善 2 倍。</p>
+      <h3 class="subsection-title">驗證強度</h3>
+      <p>而且我們的驗證強度很高。</p>
+      <p>所有的 ULP 結果都是窮舉驗證的。三個函數加起來 156,390 個 R 值，每一個都測過了，沒有抽樣偏差。</p>
+      <p>所有的電路都跑過 real KZG proof，不只是 MockProver。</p>
+      <p>Python 跟 Rust 各自獨立實作，兩邊的結果做過交叉驗證。</p>
+      <p>而且我們做了完整的 ablation study，把每個貢獻的獨立效果隔離出來。</p>
+      <h3 class="subsection-title">預期論文結構</h3>
+      <p class="stage-cue">【指向論文結構表】</p>
+      <p>最後講一下預期的論文結構。</p>
+      <p>Chapter 1 Introduction，問題定義跟動機，大概 2 頁。</p>
+      <p>Chapter 2 Background，ZKP、固定點、多項式近似、Horner，大概 3 頁。</p>
+      <p>Chapter 3 Methodology，就是今天講的四步設計方法論，大概 5 頁。</p>
+      <p>Chapter 4 是 exp 的完整 case study 加上 ablation，大概 4 頁。</p>
+      <p>Chapter 5 是 ln 和 erf 的推廣加上新發現，大概 3 頁。</p>
+      <p>Chapter 6 Related Work 文獻比較，大概 2 頁。</p>
+      <p>Chapter 7 結論、限制跟未來工作，大概 1 頁。</p>
+      <p>總共大概 20 頁。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊六：ZKTorch 延伸 -->
     <div class="section">
-      <h2 class="section-title">六、怎麼把這套方法延伸到 ZKTorch</h2>
-
-      <p>這裡不會說「同一組參數直接套用到 ZKTorch」，而是更嚴謹地說：</p>
-
-      <p>將 ZKTorch 視為另一個 proving stack。外層 tuner 會先在 Halo2-style stack 上完成方法跟評估；接著做延伸實驗：同一套 tuning 方法論，也就是 budgeted search、multi-fidelity、Pareto、feasibility constraints，是否能遷移到 ZKTorch-style stack。</p>
-
-      <p>延伸的最小可行做法是這樣：定義統一的 metrics schema，包括 accuracy、time、RAM、proof size。在 ZKTorch 內部挑一小組它的可調參數，像 block 選擇、某些精度設定、平行度等，形成 θ_ZKTorch。讓 tuner 把 stack 當成 categorical 選項，在某些需求下，像 proof size 很嚴格或 proving time 很嚴格，tuner 是否會偏好不同 stack。還有評估 warm-start 或 transfer，在 Halo2-stack 上學到的先驗，能否讓 ZKTorch 的搜尋更快找到好解。</p>
-
-      <div class="key-point">
-        這樣就算 ZKTorch 在絕對速度上更強，本研究的貢獻仍然成立：做的是「怎麼自動選擇配置與堆疊」，不是要跟 ZKTorch 拼單點速度。
-      </div>
+      <h2 class="section-title">研究心路歷程（穿插在結論之後，收尾之前）</h2>
+      <p class="stage-cue">【可以在講完三個貢獻之後，自然地帶入】</p>
+      <p>最後，我想花幾分鐘分享一下做這個研究的心路歷程——我覺得這些選擇的過程比結果本身更有參考價值。</p>
+      <h3 class="subsection-title">這個題目怎麼來的</h3>
+      <p>一開始其實只有 exp。v3 的時候我只做了 exp(x)-1 一個函數的 ZK 電路，degree 5 的 Minimax，ULP 等於 1。做完之後老師問了一個很關鍵的問題：「這只是 exp，你怎麼知道你的方法不是剛好對 exp 有效？」</p>
+      <p>這個問題讓我開始思考通用性。如果我只做了 exp，那我的貢獻就只是「一個 exp 電路」，不是「一個方法論」。所以 v4 的目標就變成：把同樣的思路推廣到 ln 和 erf，證明這是一個通用的設計方法。</p>
+      <h3 class="subsection-title">選函數：為什麼是 ln 和 erf</h3>
+      <p>選 ln(1+x) 是因為它跟 exp 剛好互補——一個在文獻裡最常被做，一個幾乎沒人做過。而且 ln 的 Method B 分塊查表不適用，所以它能展示我們方法的獨特價值。</p>
+      <p>選 erf 是因為 GELU。GELU 是 Transformer 的標準啟動函數，它的核心就是 erf。如果我們能算 erf，就能算 GELU。而且在文獻裡面，完全沒有人用多項式近似做過 ZK erf 電路。這代表我們可以 claim「first」。</p>
+      <p>GELU 後來也做了，作為第四個 case study，ULP 等於 1。但它是 bonus，不是核心。</p>
+      <h3 class="subsection-title">最關鍵的決策：區間怎麼選</h3>
+      <p>這大概是整個研究裡面最糾結的一步。</p>
+      <p>一開始我用寬區間。ln(1+x) 放在 [0, e-1)，erf(x) 放在 [0, 2)。結果 ln 的 ULP 是 9，erf 是 20。還算可以接受，但離 exp 的 ULP=1 差太遠了。</p>
+      <p>後來我想到：為什麼要堅持寬區間？如果應用層會做 range reduction——例如 exp 的 range reduction 會把輸入映射到 [0, ln2)——那 ln 也可以用 [0, ln2)，因為 ln 的 range reduction 也是基於 ln2 的。</p>
+      <p>試了一下，ln(1+x) 在 [0, ln2) 的 ULP 從 9 降到 1。這是一個巨大的改善，而且 exp 和 ln 共用同一個區間 [0, ln2)，同一個 R_MAX = 45,426，甚至可以共用同一個 range reduction 的基礎設施。</p>
+      <p>erf(x) 也是，從 [0, 2) 換成 [0, 1]，ULP 從 20 降到 3。</p>
+      <p>但這引出了一個問題：窄區間需要 range reduction，而 range reduction 的電路我們沒有做。這該怎麼處理？</p>
+      <h3 class="subsection-title">ORV 的頓悟：不需要 Range Check</h3>
+      <p>這是另一個關鍵的轉折點。一開始我想的是：電路裡面必須有一個 R ≤ R_MAX 的約束，不然不安全。但後來在分析 exp 的 v3 電路時，我注意到一件事：如果多項式是單調的，而且輸出 w 通過了 byte decomposition（w < S），那 R 超出範圍的輸入根本不可能通過驗證——因為多項式在 Fp 裡面的值會 wrap around 成一個隨機大數。</p>
+      <p>這就是 ORV 的核心洞見。它讓我們省掉一個 gate，但更重要的是，它讓 kernel 本身自洽——不需要外部的 range reduction 也能保證安全性。這完全改變了論文的 scope 定義：我們的 kernel 不依賴 range reduction 的正確性。</p>
+      <h3 class="subsection-title">走了的彎路：degree 7 和量化瓶頸</h3>
+      <p>另一個很有意思的經歷是 degree 7 的實驗。</p>
+      <p>我原本以為 degree 7 會大幅改善精度——多兩項，近似誤差應該小很多。exp 和 erf 確實改善了。但 ln 完全沒動。degree 5 的 ULP 是 9，degree 7 還是 9。</p>
+      <p>這讓我很困惑，花了不少時間去分析。最後發現原因是量化瓶頸：在 [0, e-1) 這個寬區間上，R_MAX 大約是 112,604，R/S 大約是 1.72。degree 7 的話，最高次項的誤差放大倍率是 1.72 的 7 次方，大約 41 倍。所以就算 Remez 的真實值誤差非常小，量化之後的整數誤差被放大回來，還是 9。</p>
+      <p>更恐怖的是，我還試了 degree 8——ULP 不但沒降，反而從 9 暴增到 28。degree 越高反而越差。這是因為更多的係數意味著更多的量化誤差，而高次項的放大效應更強。</p>
+      <p>這個發現本身可能成為論文的一個學術貢獻——存在一個由固定點精度決定的 precision floor，在這個 floor 以下，增加多項式的次數不但沒用，還可能有害。</p>
+      <p>但更重要的是，這個發現反過來支持了我們用窄區間的決策。在窄區間 [0, ln2) 上，R/S 大約是 0.69，小於 1，高次項不會放大誤差。所以 degree 5 就能達到 ULP = 1。</p>
+      <h3 class="subsection-title">跨語言交叉驗證的價值</h3>
+      <p>還有一件值得分享的事。我們的實驗是 Python 和 Rust 各做一遍的。Python 做數學分析（Remez、ULP 計算、ORV 驗證），Rust 做實際的 Halo2 電路。</p>
+      <p>有一次，Python 算出 ln 的 per-step ULP 是 3，但 Rust 算出來是 2。查了很久，發現是因為兩邊的 per-step 係數量化方式不同：Python 是先把 Minimax 係數 round 到 S-scale 再乘回去，Rust 是直接把 D_i 除以 S 的某次方再 round。兩種方法都合理，但結果不同。</p>
+      <p>最後我們決定以 Rust 為準，因為 Rust 才是實際跑在 ZK 電路裡的程式碼。但這個不一致本身提醒了我：在量化的世界裡，「數學上等價」不代表「數值上等價」。交叉驗證不是形式主義，它真的能抓到 bug。</p>
+      <h3 class="subsection-title">誠實面對限制</h3>
+      <p>最後一個心路歷程是關於誠實。</p>
+      <p>做完所有實驗之後，我發現 erf 的 489 倍改善其實不太公平，因為 Taylor 的 erf 只用了 3 個非零係數，我們用了 5 個。如果只看 exp 的公平比較，是 12 倍。</p>
+      <p>一開始我很猶豫要不要把 489 倍放在標題裡面。後來決定：把 12 倍當作 headline，把 489 倍的 caveat 寫清楚。寧可少吹一點，也不要被老師抓到不誠實。</p>
+      <p>batch scaling 也是。我們的方法在 N=1000 的時候比 Method B 慢 7.5 倍。這個數字放出來之後，Method G 看起來就沒那麼厲害了。但我覺得，誠實面對自己的弱點，比隱藏它更有說服力。而且我們的核心價值不是「比 B 快」，而是「B 做不到的函數，我們做得到」。</p>
     </div>
-
     <div class="divider">* * *</div>
-
-    <!-- 區塊七：預期結果 -->
-    <div class="section">
-      <h2 class="section-title">七、預期達到怎樣的結果</h2>
-
-      <p>以可驗證的方式定義成功：</p>
-
-      <p>第一，Sample efficiency。在固定 trial budget 下，例如 50 或 100 次，tuner 比 random 或 grid 更快找到滿足 accuracy 門檻的低成本配置。</p>
-
-      <p>第二，Pareto frontier。輸出不同模型的 cost–accuracy 前沿，展示參數交互，像 bit、scale、lookup，如何導致 k 跳階與成本劇變。</p>
-
-      <p>第三，可解釋規則。萃取可泛化的 ZK-friendly tuning rules，哪些參數最敏感、臨界點在哪。</p>
-
-      <p>第四，跨 stack 延伸，這是加分項。展示方法論可以遷移到 ZKTorch，或至少能用 stack selection 跟 warm-start 提升效率。</p>
-    </div>
-
-    <div class="divider">* * *</div>
-
-    <!-- 區塊八：執行路線 -->
-    <div class="section">
-      <h2 class="section-title">八、打算怎麼做</h2>
-
-      <p>採用「先做可用，再做漂亮」的路線：</p>
-
-      <p>Phase 1，把 runner 做到完整，這是最重要的。輸入 θ，輸出 metrics，包括 acc、cost、feasible，加電路統計跟 log。先用小模型，像 MLP 或 tiny CNN，跑通 multi-fidelity pipeline。</p>
-
-      <p>Phase 2，做第一版 tuner，可跑出 Pareto。先用 TPE 或 BO，跑出 Pareto frontier，並做 baseline 對照，包括 default、random、簡單 heuristic。</p>
-
-      <p>Phase 3，擴參數空間，從四個變多層。加入 rounding、clipping、table sharing、piecewise、mixed precision 等，做 sensitivity 跟 rule mining。</p>
-
-      <p>Phase 4，延伸到 ZKTorch，做方法遷移或 stack selection。把 stack 作為 categorical 選項或做 transfer，完成外層 tuner 的更大敘事。</p>
-    </div>
-
-    <div class="divider">* * *</div>
-
-    <!-- 收尾 -->
     <div class="section">
       <h2 class="section-title">收尾</h2>
-
-      <p>最後用一句話總結想做的事：</p>
-
-      <div class="key-point">
-        這個研究不是要重做 ZKML 的 optimizer，而是把它當作內層，往上做一個「端到端 configuration 的 Auto-Tuner」。要解的是：在參數更多、堆疊更多，而且每次 full proving 都昂貴的現實下，怎麼用有限試驗資源自動找到 Pareto 最佳配置，並把這件事從工程試錯變成可重現的方法論與規則。
-      </div>
-
-      <p>以上是目前的想法，想請教授給一些建議。</p>
+      <p>以上就是我的提案報告。總結來說，我們預計提出一套設計方法論，用 Minimax、ORV、Deferred Truncation 三個技術，實現一個只需要 256 筆小表的通用 Horner 電路，可以計算 exp、ln、erf 等超越函數。初步實驗顯示在精度上大幅超越 Taylor，同時預計填補 ln 和 erf 在 ZK 電路文獻中的空白。</p>
+      <p>謝謝大家，有什麼問題嗎？</p>
     </div>
-
+    <div class="divider">* * *</div>
+    <div class="section">
+      <h2 class="section-title">預期 Q&A 準備</h2>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼不直接用查表法？256 筆 vs 65,536 筆差很多嗎？</p>
+        <div class="qa-answer">
+      <p>差非常多。65,536 筆的表格載入就要 1,200 毫秒，而且每個函數需要各自的表。如果你的 pipeline 裡有 exp 加 ln 加 erf，就需要三張大表，總共快 20 萬筆。我們只需要一張 256 筆的 ByteTable，所有函數共用。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: Method B 更快，為什麼不用 Method B？</p>
+        <div class="qa-answer">
+      <p>Method B 只能做 exp，因為它依賴 exp 的代數性質 e^(a+b) = e^a × e^b。ln 和 erf 沒有類似的性質。對 exp 來說，B 確實在 prove time 上更快，我們不迴避這個事實。但我們的目標是通用方法，而且我們在精度 (ULP=1 vs 2) 和表格大小 (256 vs 768) 上更好。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: ORV 的安全性 2^{-143} 怎麼算的？</p>
+        <div class="qa-answer">
+      <p>簡單說，如果輸入超出範圍，多項式在有限域裡面的值會 wrap around mod p。這個結果看起來像一個隨機的大數。我們要求這個值落在 [0, S^6) 這個小範圍內才能通過 ORV，而 S^6 相對於 p 非常小，所以機率極低。具體的 2^{-143} 是透過 exhaustive verification 和 algebraic analysis 算出來的。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼不做 Range Reduction？</p>
+        <div class="qa-answer">
+      <p>Range reduction 是 function-specific 的。exp 的 range reduction 用指數法則，ln 的用乘法分解，erf 的可以用對稱性。它們各自的電路設計完全不同。我們的論文聚焦在通用的 Horner kernel，這個 kernel 加上 ORV 本身就是自洽的——合法輸入得到正確結果，非法輸入被拒絕。Range reduction 是應用層的責任，不影響 kernel 的正確性。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: erf 的 489 倍改善是不是灌水？</p>
+        <div class="qa-answer">
+      <p>某種程度上是的，我們在報告裡有註明。Taylor 的 erf 是奇函數展開，只有 3 個非零係數，而我們用一般的 5 次多項式有 5 個非零係數。所以 489 倍包含了「多用 2 個參數」的優勢。如果你要看公平比較，看 exp 的 12 倍——兩邊都是 5 個非零係數。12 倍已經很顯著了。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: Deferred Truncation 會不會 overflow？</p>
+        <div class="qa-answer">
+      <p>不會。BN254 的域有 254 bits。5 步 Horner 之後，中間值最大大概 96 bits。254 減 96 還有 158 bits 的餘裕。我們距離 overflow 非常遠。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 這個方法能用在其他函數嗎？</p>
+        <div class="qa-answer">
+      <p>能，只要函數滿足幾個條件：在選定區間上是單調的（ORV 需要），可以用低次多項式近似到可接受的精度（Minimax 需要），而且函數值為 0 在 x=0（沒有常數項）。大部分啟動函數都滿足，例如 sigmoid、tanh 都可以透過 exp 組合出來。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 有沒有跟 Lagrange Labs 做直接的數值比較？</p>
+        <div class="qa-answer">
+      <p>他們的論文裡有 erf 的 benchmark，用 GL quadrature 加 Padé 近似，在 16-bit 精度下 erf 的 lookup 要 1,420 毫秒。我們的 Horner kernel 只要 137 毫秒，而且不需要大表。但嚴格來說系統不同（他們用 Noir/Barretenberg，我們用 Halo2/KZG），所以不能直接比 prove time。能比的是表格大小跟近似精度，這方面我們有優勢。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼選 degree 5？degree 7 不是更準嗎？</p>
+        <div class="qa-answer">
+      <p>我們有測過 degree 7。在寬區間上，erf 確實從 ULP=20 降到 4，有明顯改善。但有一個意外的發現：ln 在寬區間 [0, e-1) 上，degree 7 的 ULP 跟 degree 5 完全一樣，都是 9。為什麼？因為 ln 碰到了量化瓶頸——數學上的 Minimax 近似誤差在 degree 7 已經小到可以忽略，但瓶頸變成了浮點數係數量化成整數時的 rounding error。加更多項也改善不了量化誤差。這是我們的一個新發現。</p>
+      <p>我們最終選 degree 5 是因為：第一，窄區間上 degree 5 的精度已經夠好（exp 和 ln 都是 ULP=1）。第二，degree 5 讓所有函數用完全相同的電路結構。如果混用不同 degree，通用性的 claim 就沒那麼乾淨了。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 你說 coefficient 量化成整數會有誤差，這個誤差有多大？</p>
+        <div class="qa-answer">
+      <p>舉個例子。exp 的真實 Minimax 係數 c_1 ≈ 0.999983...，乘上 S^5 = 65536^5 ≈ 1.2 × 10^24 之後取整，得到 D_1 = 1,208,935,047,551,212,961,505,417。量化的相對誤差大約是 1/D_1 ≈ 10^{-24}，極小，對 ULP 的影響是零。但如果你用 Per-step 的方式，把係數量化到 S^1 的 scale，c_1 量化成 round(0.999983 × 65536) = 65535，量化相對誤差就是 10^{-5} 級別的，這就會影響 ULP 了。所以 Deferred Truncation 不只是減少截斷次數，它同時也讓係數的量化精度更高。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: ORV 對非單調函數能用嗎？</p>
+        <div class="qa-answer">
+      <p>不能。ORV 的核心假設就是多項式是單調的。如果多項式不單調，可能存在一個超出範圍的 R'，使得 P(R') 剛好等於某個合法的 w 值，ORV 就會被騙過去。不過大部分啟動函數在合理區間上都是單調的——exp 是遞增的，ln 是遞增的，erf 是遞增的，sigmoid 也是遞增的。如果真的遇到非單調函數，可以退回 explicit range check，多加一個 gate 就好。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼 exp 和 ln 的 R_MAX 一樣，都是 45,426？</p>
+        <div class="qa-answer">
+      <p>這是巧合也是設計。exp(x)-1 和 ln(1+x) 的多項式近似我們都選在 [0, ln2) 這個區間上。ln2 的固定點表示是 round(0.6931 × 65536) = 45,426。所以兩者的 R_MAX 都是 45,426，都用 2-byte R，都是 45,427 個合法輸入。這不是巧合——ln2 是很自然的 range reduction 邊界，exp 用 e^{a+b} = e^a · e^b，ln 用 ln(a·2^k) = ln(a) + k·ln2，兩者的 range reduction 都會把輸入映射到 [0, ln2) 裡面。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼選 Halo2，不用 Groth16 或 Circom？</p>
+        <div class="qa-answer">
+      <p>有幾個原因。第一，Halo2 是 PLONKish arithmetization，支援 custom gate 和 lookup argument——我們的 Horner gate 和 ByteTable lookup 很自然地對應到這些原語。如果用 R1CS（Groth16/Circom），每一步乘法要拆成多個 constraint，lookup 也要用不同的方式模擬，沒那麼乾淨。</p>
+      <p>第二，Halo2 的 lookup argument 讓我們可以用一張 256-entry ByteTable 做所有的 byte range check。在 R1CS 裡做等價的 range check 需要 bit decomposition，每個 byte 要 8 個 R1CS constraints。</p>
+      <p>第三，實際考量：ezkl 和 ZKFixedPointChip 這兩個主要的 ZKML 開源項目都用 Halo2，選同一個平台比較方便做 benchmark 比較，也更容易被整合。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 那這個跟 ZKFixedPointChip 的差別在哪？他們也用 Minimax。</p>
+        <div class="qa-answer">
+      <p>好問題。ZKFixedPointChip 是 2023 年清華大學的一個 hackathon 項目，他們確實用了 lolremez 工具產生 Minimax 係數。但有三個關鍵差異：</p>
+      <p>第一，他們用 per-step truncation——每一步 Horner 都截斷。我們用 deferred truncation，精度提升 2 倍（ULP 從 2 降到 1）。</p>
+      <p>第二，他們沒有 ORV。他們的電路需要外部的 range check 來保證輸入合法。我們的 ORV 讓電路自洽——不需要外部協助。</p>
+      <p>第三，他們用 degree 12-14 追求高精度（63 bits），但沒有做 error analysis。我們用 degree 5 搭配窄區間和 deferred truncation，在 16-bit 精度下達到 ULP=1，而且有完整的 error budget 分析和窮舉驗證。簡單來說，他們是「先鋒探索」，我們是「系統化的方法論」。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: FHE（全同態加密）早就在用 Minimax 了，你們的新意在哪？</p>
+        <div class="qa-answer">
+      <p>這點我們在論文裡有明確 acknowledge。FHE 從 2021 年 Lee et al.（EUROCRYPT）開始就把 Minimax 當標準技術了。但 FHE 和 ZK 的技術需求完全不同：</p>
+      <p>FHE 沒有 prover/verifier 的對抗關係，所以不需要 ORV 這種 soundness 機制。FHE 用 CKKS 的 rescaling 來處理精度，不需要顯式的截斷策略。FHE 的多項式 degree 動輒 12-59（composite polynomial），ZK 需要 degree 5-7 來控制電路成本。FHE 的成本模型是 multiplicative depth，ZK 是 gates + lookups + table entries。</p>
+      <p>所以我們預期的貢獻不是「發明 Minimax 在密碼學的應用」，而是「把 Minimax 正確地引入 ZK 電路，搭配 ORV 和 deferred truncation 這兩個 ZK-specific 的優化」。這是跨領域的 technology transfer，加上 domain-specific 的創新。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: Batch 場景下你們比 Method B 慢 7.5 倍，這不是很大的問題嗎？</p>
+        <div class="qa-answer">
+      <p>是的，這確實是我們的弱點。問題出在每次 function call 的 row 數量：我們用 9 rows，Method B 只用 1 row。在 Halo2 裡，table 和 circuit rows 共用同一個空間。N=1000 的時候，我們需要 9,000 rows，k 要開到 14（16,384 rows 的 circuit），Method B 只需要 1,000 rows，k=11 就夠了。</p>
+      <p>但要看場景。如果你的應用是 ZKML inference，一次推論可能只需要幾十到幾百次 function call，這個差距是 2-4 倍，還在可接受範圍。而且最關鍵的是——Method B 只能做 exp。如果你的模型需要 ln 或 erf，Method B 根本不可用。所以真正的 trade-off 是「用 B 做一個快但受限的 exp 電路」vs「用 G 做一個通用的、可以算任何函數的電路」。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 如果要更高精度，比如 pp=32，你們的方法還能用嗎？</p>
+        <div class="qa-answer">
+      <p>可以，但需要調整。pp=32 的話，S = 2³²，degree-5 的 Horner 結果最大是 S⁶ = 2¹⁹²，BN254 的域是 254 bits，還有 62 bits 的餘裕，deferred truncation 不會 overflow。</p>
+      <p>但有兩個問題：第一，R_MAX 可能超過 65,535，需要 3 bytes（L_R = 3）來做 byte decomposition，lookup 從 12 增加到 13。第二，remainder 的 byte 數從 10 增加到 20（因為 rem < S⁵ = 2¹⁶⁰），lookup 增加到 23。電路變大了，但架構完全一樣。</p>
+      <p>第三個考量是 degree 可能不夠。pp=32 要求更高的近似精度，degree 5 可能不夠好，需要 degree 7 或更高。這會多加 2 個 Horner 步驟。所以 pp=32 是可行的，但電路成本大約是 pp=16 的 2 倍。</p>
+      <p>更廣泛地說，我們的方法在 pp=16 已經是最優方案之一。但更重要的是，當未來 ZK 應用對精度的需求提升時，查表法會完全崩潰——pp=28 就需要 2.68 億筆 table entries——而我們的框架可以直接 scale 到 pp=42（degree 5 在 BN254 下的理論上限），table 不變、電路結構不變、只換係數。這是多項式方法在高精度場景下的根本優勢。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 負數輸入怎麼辦？比如 erf(-x) 或 exp(-x)？</p>
+        <div class="qa-answer">
+      <p>我們的電路只處理 [0, R_MAX] 的正數輸入。負數靠函數的數學性質在電路外面處理：</p>
+      <p>- exp(-x) = 1 / exp(x)：先用我們的電路算 exp(x)-1，加 1 得到 exp(x)，再取倒數。取倒數需要一個額外的除法 gate。</p>
+      <p>- erf(-x) = -erf(x)：直接取反，一個 negation gate。</p>
+      <p>- ln(x) 當 x < 1：用 ln(x) = -ln(1/x)，先取倒數再取反。</p>
+      <p>這些都是 range reduction 的一部分，屬於 function-specific 的外部邏輯，不影響我們的 Horner kernel。論文裡明確把 range reduction 放在 future work。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 你怎麼驗證實驗結果是正確的？</p>
+        <div class="qa-answer">
+      <p>我們用兩層驗證。</p>
+      <p>第一層：Python 和 Rust 的交叉驗證。Python 用 mpmath 做 50 位精度的 Remez 算法，得到係數，再窮舉所有合法輸入算 ULP。Rust 用同樣的係數在 Halo2 電路裡跑，窮舉 45,427（exp/ln）或 65,536（erf）個 R 值，逐一比對。兩邊的 ULP 結果必須一致。</p>
+      <p>我們確實發現過不一致：ln 的 per-step ULP，Python 算出 3，Rust 算出 2。查出原因是 per-step 的係數量化方式不同——兩邊都合理，但數值結果不同。最後以 Rust 為準，因為 Rust 才是實際的 ZK 電路。</p>
+      <p>第二層：Halo2 的 real proof 驗證。不只是跑 MockProver（測試用的 constraint checker），我們還跑了完整的 KZG proof generation + verification。如果電路有任何 constraint 不滿足，proof 會直接失敗。我們的 16 個 test suite、77 個 test case 全部通過。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: GELU 在 x > 1 的時候怎麼辦？你們只做了 [0, 1]。</p>
+        <div class="qa-answer">
+      <p>對，這是一個已知的 coverage gap。GELU(x) 在 x > 1 的時候值會超過 1，不滿足 ORV 的 C3 條件（output 要在 [0, 1) 內）。</p>
+      <p>有兩個解決方向。第一，piecewise：把 [0, 4.5] 分成 [0, 1] 和 [1, 4.5] 兩段，第一段用我們的直接 Minimax（ULP=1），第二段用另一組係數加上 c₀ folding（因為 GELU(1) ≈ 0.841 ≠ 0）。第二，composition：用 erf 電路算 erf(x/√2)，然後在外面做 GELU(x) = 0.5x(1 + erf(x/√2))，需要一個乘法和一個加法。</p>
+      <p>兩種方法都可行，但都需要額外的電路設計。我們在論文裡把這個放在 future work，因為 [0, 1] 的結果已經足以驗證 GELU 的 ORV-compatibility。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 你們的方法能跟 ezkl 這類 ZKML 框架整合嗎？</p>
+        <div class="qa-answer">
+      <p>原則上可以。ezkl 現在用 direct lookup（65K-entry table）來做所有的 non-linear function。我們的 Horner kernel 可以作為 ezkl 的一個替代後端——用 256-entry ByteTable 加 9 rows 來取代一筆 65K 的 table lookup。</p>
+      <p>但實際整合有工程挑戰：ezkl 有自己的 column allocation 和 layout 策略，我們的 9-row block 需要配合它的 row 排程。而且 ezkl 的使用情境是自動化（從 ONNX 模型轉 ZK 電路），所以整合不只是「放進去就好」，還需要自動選擇什麼時候用 lookup、什麼時候用 polynomial。</p>
+      <p>這是一個很好的 future work 方向，但不在碩論的 scope 裡。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼用固定點而不是浮點？ZK 裡面有浮點方案嗎？</p>
+        <div class="qa-answer">
+      <p>ZK 電路的底層是有限域運算（BN254 的 Fp），本質上就是整數 mod p。在這上面模擬浮點需要分別處理 sign、exponent、mantissa，每一步浮點操作的電路成本都很高——光是一次浮點乘法可能就需要幾十個 constraints。</p>
+      <p>固定點就簡單得多：乘法就是整數乘法（一個 gate），加法就是整數加法（也是一個 gate），只需要在適當的時機做 truncation（除以 S）。我們的整個 Horner 評估只用了 5 個 gate 定義和 12 個 lookups。如果用浮點，同樣的 5 步 Horner 可能需要幾百個 constraints。</p>
+      <p>學術界確實有人在探索 ZK 浮點，但目前主流的 ZKML 框架（ezkl、ZKFixedPointChip）全部都用固定點。在 16-bit 精度的場景下，固定點完全夠用。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: Proof size 4,960 bytes 跟其他方法比起來算大還是小？</p>
+        <div class="qa-answer">
+      <p>看跟誰比。跟 Method A（direct lookup）的 736 bytes 比，我們大了 6.7 倍。跟 Method B 的 2,048 bytes 比，大了 2.4 倍。原因是我們的電路有更多的 committed column——5 個 Horner 步驟的中間值、byte decomposition 的值，這些都需要 polynomial commitment。</p>
+      <p>但 4,960 bytes 在絕對值上非常小。一般 Groth16 proof 是 128-256 bytes，PLONK/KZG proof 是 1-10 KB 的範圍。我們在這個範圍內。而且 proof size 對於大部分應用場景不是瓶頸——網路傳輸 5 KB 幾乎是瞬間的。真正的成本在 prove time（136ms）和 table size（256 entries），這兩個我們都有競爭力。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 如果 sigmoid 或 tanh 也想用，要怎麼做？</p>
+        <div class="qa-answer">
+      <p>我們在論文裡做了完整的 candidate function survey，分析了 13 個函數。</p>
+      <p>sigmoid(x) = 1/(1+e^{-x})：最簡單的方式是 composition——先用我們的電路算 exp(-x)，然後在外面做 1/(1+result)。如果想直接做，sigmoid 在 [0, 4] 上滿足所有條件（用 c₀ = 0.5 folding），但 R_MAX = 262,144，需要 3-byte R（L_R = 3，13 個 lookups）。</p>
+      <p>tanh(x)：在 [0, 1] 上直接可用——tanh(0) = 0，tanh(1) ≈ 0.762，完全滿足 ORV 條件，而且 R_MAX = 65,536 剛好是 2-byte 的上限。degree 5 應該能達到很好的精度。或者用 tanh(x) = 2σ(2x) - 1 透過 sigmoid/exp 組合。</p>
+      <p>sin(x)：在 [0, 1.5]（略小於 π/2）上直接可用，但 R_MAX > 65,535 需要 L_R = 3。在 [0, 1] 上則完美適用（L_R = 2），degree 5 應該能達到 ULP ≤ 1。</p>
+      <p>關鍵觀察是：只要滿足我們定義的 6 個條件（C1-C6），任何函數都能用我們的電路。大部分平滑的啟動函數都滿足。</p>
+      </div>
+    </div>
+    </div>
+    <div class="divider">* * *</div>
+    <div class="section">
+      <h2 class="section-title">技術深度 Q&A（報告中省略的細節）</h2>
+      <p>以下是報告裡為了節省時間而簡化的技術細節，整理成 Q&A 形式，可以在被問到時展開。</p>
+      <div class="qa-item">
+        <p class="qa-question">Q: Halo2 的 PLONKish 結構跟一般算術電路有什麼不同？</p>
+        <div class="qa-answer">
+      <p>一般教科書上的算術電路是一個 DAG（有向無環圖），每個節點是一個加法門或乘法門。Halo2 不一樣，它是基於 PLONKish 的結構：電路被組織成一張二維表格。</p>
+      <p>每一列有多個 column，分成三種：advice column 放 witness 值（只有 prover 知道），fixed column 放常數（像我們的 D_i 係數），instance column 放 public input/output。</p>
+      <p>Gate 的定義方式是寫一個 polynomial constraint。比如我們的 Horner gate 就是：acc_next - acc_current × R - D_i = 0。然後用 selector column 控制哪些行要啟動這個 gate——selector 是一個 0/1 的值，只有在需要的行上設成 1。</p>
+      <p>我們的 Horner selector 在第 0 到第 4 行啟動，所以這 5 行都會被 Horner constraint 約束。第 5 行到第 8 行用不同的 selector，啟動截斷和 byte decomposition 的 constraints。</p>
+      <p>Proof system 用 KZG 搭配 SHPLONK，commit 到 BN254 曲線上。KZG 的特性是 proof size 固定，取決於 committed polynomial 的數量（也就是 column 數），不隨電路行數增長。所以不管算 1 次還是 100 次函數，proof size 都是 4,960 bytes。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 9 行電路的具體 layout 是什麼？每一行做什麼？</p>
+        <div class="qa-answer">
+      <p>9 行的分配如下：</p>
+      <p>- 第 0 到第 4 行：5 步 Horner 求值。每一行執行一次 acc_next = acc × R + D_i。acc 從 D_5（最高次項係數）開始，逐步累積。</p>
+      <p>- 第 5 行：截斷。約束是 w × S^5 + remainder = P(R)。把 Horner 結果（約 96 bits 的大數）除以 S^5，得到最終 16-bit 輸出 w。</p>
+      <p>- 第 6 行：R 的 byte decomposition。把輸入 R 拆成 r_lo 和 r_hi 兩個 byte，約束 R = r_lo + r_hi × 256，兩個 byte 都 lookup ByteTable 確認在 [0, 255]。</p>
+      <p>- 第 7 行：w 的 byte decomposition。同樣拆成 w_lo 和 w_hi 兩個 byte。這一步同時完成了 ORV——如果 w 大於等於 65,536，w_hi 就會大於 255，ByteTable lookup 會失敗。所以不需要額外的 range check。</p>
+      <p>- 第 8 行：remainder 的 10-byte decomposition。remainder 最大到 S^5 = 2^80，拆成 10 個 byte（10 × 8 = 80 bits），每個都 lookup ByteTable。</p>
+      <p>12 個 lookup arguments 的分配：R 的 2 個 byte 和 w 的 2 個 byte 共用 2 個 lookup argument（透過 selector 合併），加上 remainder 的 10 個 byte，總共 12 個 lookup arguments，實際驗證 14 個 byte 值。</p>
+      <p>補充：為什麼 R 和 w 的 lookup 可以合併？因為它們用的都是同一張 ByteTable，只是在不同的行上啟動。Halo2 的 lookup argument 支援用 selector 來控制哪些行參與 lookup，所以我們把第 6 行（R bytes）和第 7 行（w bytes）的 lookup 合併成同一個 argument，節省 2 個 lookup。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: Method B 分塊查表具體怎麼運作的？</p>
+        <div class="qa-answer">
+      <p>核心原理是利用 exp 的加法性質：exp(a + b) = exp(a) × exp(b)。</p>
+      <p>把輸入 R 拆成高低位元組：R = r_hi × 256 + r_lo，其中 r_hi 和 r_lo 各是一個 byte（0 到 255）。</p>
+      <p>然後 exp(R/S) ≈ exp(r_hi × 256/S) × exp(r_lo/S)。</p>
+      <p>所以只需要兩張預計算的表：</p>
+      <p>- T_hi：256 筆，存 exp(k × 256/S) 對應 k = 0 到 255</p>
+      <p>- T_lo：256 筆，存 exp(k/S) 對應 k = 0 到 255</p>
+      <p>加上 ByteTable 256 筆用來驗證 r_hi 和 r_lo 是合法的 byte，總共 768 筆。</p>
+      <p>電路只需要：1 次 byte decomposition（拆 R）+ 2 次 lookup（查 T_hi 和 T_lo）+ 1 次乘法 + 1 次截斷 = 1 行電路。所以 Method B 每次函數呼叫只用 1 行，而我們的 Method G 用 9 行。這就是 batch 場景下 B 比我們快的根本原因。</p>
+      <p>但這個方法的根本限制是：它依賴 exp(a+b) = exp(a) × exp(b) 這個代數性質。ln 的對應性質是 ln(a × b) = ln(a) + ln(b)，但這裡拆分的是乘法不是加法——你沒辦法把一個整數 R 拆成「兩個數的乘積」然後分別查表。erf 完全沒有類似的分解性質。所以 Method B 是 exp 的專屬優化，不具通用性。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 係數 D_i 的實際數值有多大？BN254 真的裝得下嗎？</p>
+        <div class="qa-answer">
+      <p>以 exp(x)-1 的 degree-5 Minimax 為例：</p>
+      <p>D_1（一次項係數）= round(c₁ × S⁵)。c₁ ≈ 0.999983，S⁵ = 65536⁵ ≈ 1.2 × 10²⁴。所以 D₁ = 1,208,935,047,551,212,961,505,417，大概 80 bits 的整數。</p>
+      <p>這在 C 或 Java 裡面直接 overflow（64-bit 整數最多到 1.8 × 10¹⁹）。但在 BN254 的有限域裡，元素可以到 254 bits（約 3.6 × 10⁷⁶），80 bits 完全不是問題。</p>
+      <p>Horner 求值過程中，中間值的 bit 數增長過程：</p>
+      <p>- Step 5（初始）：acc = D_5，約 16 bits</p>
+      <p>- Step 4：acc × R + D_4，約 32 + 32 = 32 bits</p>
+      <p>- Step 3：acc × R + D_3，約 48 + 48 = 48 bits</p>
+      <p>- Step 2：acc × R + D_2，約 64 + 64 = 64 bits</p>
+      <p>- Step 1：acc × R + D_1，約 80 + 80 = 80 bits</p>
+      <p>- Final：acc × R（純乘法），約 96 bits</p>
+      <p>最大中間值約 96 bits，254 - 96 = 158 bits 的餘裕。所以 Deferred Truncation 完全安全。</p>
+      <p>這其實是 ZK 電路的一個獨特優勢——有限域的容量遠大於一般程式語言的整數型別，可以被「借用」做高精度的中間計算，最後再一次截斷回正常 scale。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: ORV 在不同函數上的安全性有差異嗎？</p>
+        <div class="qa-answer">
+      <p>有。不同函數的 w_max（最大合法輸出）不同，會產生不同大小的 gap：</p>
+      <p>- exp(x)-1 在 [0, ln2)：w_max = 65,525，gap = 65,535 - 65,525 = 10。幾乎沒有 gap，因為 exp(ln2)-1 ≈ 1.0 接近 S。</p>
+      <p>- ln(1+x) 在 [0, ln2)：w_max = 34,510，gap = 31,025。很大的 gap，因為 ln(1+ln2) ≈ 0.527，遠小於 1.0。</p>
+      <p>- erf(x) 在 [0, 1]：w_max = 55,227，gap = 10,308。erf(1) ≈ 0.843。</p>
+      <p>gap 越大，代表攻擊者要讓偽造的值落在合理範圍的機會更小，安全性更高。但我們沒有把 gap 算進正式的安全性分析，因為基本的 2^{-143}（基於 S/p 的比值）已經遠超 128-bit 安全標準。gap 只是額外的防線。</p>
+      <p>另外，exp 的單調性可以用代數方法證明（所有 Minimax 係數為正），但 ln 和 erf 的係數有正有負，單調性只能靠窮舉驗證。如果未來換了不同的 degree 或區間，需要重新窮舉。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 為什麼用 exp(x)-1 和 ln(1+x)，而不是直接算 exp(x) 和 ln(x)？</p>
+        <div class="qa-answer">
+      <p>因為我們的多項式沒有常數項：p(x) = c₁x + c₂x² + ... + c₅x⁵。</p>
+      <p>這個多項式天生 p(0) = 0，所以它只能逼近「過原點」的函數。exp(x)-1 過原點（exp(0)-1 = 0），ln(1+x) 過原點（ln(1+0) = 0），erf(0) = 0，都符合。</p>
+      <p>但 exp(0) = 1（不是 0），ln(0) = -∞（根本沒定義）。如果要直接算 exp(x)，多項式就需要多一個常數項 c₀ = 1，Horner 最後要多加一步。</p>
+      <p>不加常數項的好處：</p>
+      <p>1. 省一個係數——degree-5 只要存 5 個 D_i，不需要 D₀</p>
+      <p>2. Horner chain 更乾淨——最後一步是純乘法 P(R) = acc × R</p>
+      <p>3. 跟 range reduction 天然銜接——計算 exp(3.7) 時，range reduction 拆成 exp(整數部分) × exp(小數部分)，其中 exp(小數部分) = 1 + [exp(r)-1]，用我們的電路算 exp(r)-1 再加 1 就好</p>
+      <p>ln 也一樣：計算 ln(x) 時，range reduction 拆成 ln(x) = ln(m) + k·ln2，其中 m ∈ [1, 2)，令 t = m-1，電路算 ln(1+t)。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 截斷在有限域裡具體怎麼實現？為什麼不能直接除？</p>
+        <div class="qa-answer">
+      <p>在一般整數算術裡，截斷就是整數除法取商：w = P(R) ÷ S^5（丟掉餘數）。</p>
+      <p>但在有限域 Fp 裡，「除法」是乘以逆元：a / b = a × b^{-1} mod p。這個操作的結果是一個域元素，沒有「商」和「餘數」的概念。所以 65537 / 65536 在有限域裡不是 1 餘 1，而是 65537 × (65536 的模逆元) mod p = 一個很大的域元素。</p>
+      <p>所以截斷在電路裡面是用 witness + constraint 來模擬的：</p>
+      <p>1. Prover 在電路外面用普通整數除法算出 w = P(R) ÷ S^5 和 remainder = P(R) mod S^5</p>
+      <p>2. Prover 把 w 和 remainder 作為 witness 填進電路</p>
+      <p>3. 電路驗證約束：w × S^5 + remainder = P(R)（這在有限域裡就是普通的加法和乘法）</p>
+      <p>4. 電路驗證 remainder < S^5（用 10-byte decomposition + ByteTable lookup）</p>
+      <p>5. 電路驗證 w < S（用 2-byte decomposition + ByteTable lookup，同時完成 ORV）</p>
+      <p>步驟 4 和 5 的範圍驗證非常關鍵。如果不驗證 remainder < S^5，prover 可以填一個「假的」w——比如 w' = w + 1，然後用 remainder' = remainder - S^5（在模運算下等價）。約束等式仍然滿足，但 w 是錯的。byte decomposition 就是用來防止這種作弊。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: Remez 演算法的收斂性和實作細節？</p>
+        <div class="qa-answer">
+      <p>Remez 的核心是利用 Chebyshev equioscillation theorem：degree-d 的最優多項式，其誤差必須在至少 d+2 個點上達到最大值且正負交替。</p>
+      <p>我們的實作步驟：</p>
+      <p>1. 選 d+2 個初始參考點（用 Chebyshev 節點，不用等距點——等距點在 degree 5 以上可能不收斂）</p>
+      <p>2. 在這些點上解一個 (d+2) × (d+2) 的線性方程組，得到多項式係數和等振幅誤差 E</p>
+      <p>3. 在整個區間上搜索 |f(x) - p(x)| 的極大值點</p>
+      <p>4. 用新的極值點替換舊的參考點</p>
+      <p>5. 重複 2-4 直到 E 收斂</p>
+      <p>我們用 Python mpmath 以 50 位有效數字的精度來跑，確保係數的精確性遠超最終量化到整數的需求。通常 20-30 輪疊代就能收斂到機器精度。</p>
+      <p>一個實作上的注意事項：步驟 3 的「搜索極值點」需要在整個區間上做密集的網格搜索（我們用 10,000 個點），然後在每個候選極值附近做高精度的 bisection。如果網格太粗，可能會漏掉一個極值點，導致收斂到次優解。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 量化瓶頸的數學原理是什麼？為什麼寬區間 degree 8 反而更差？</p>
+        <div class="qa-answer">
+      <p>量化瓶頸的核心在於 Horner 求值中，每一步的乘以 R 會放大量化誤差。</p>
+      <p>每個係數的量化誤差是 δ_i = D_i - c_i × S^(d+1-i)，|δ_i| ≤ 0.5。</p>
+      <p>在 Horner 展開中，δ_i 對最終結果的影響正比於 R^i。具體來說，degree-d 的 Horner 多項式的量化誤差大約是：</p>
+      <p>Σ |δ_i| × (R_MAX / S)^(d+1-i)</p>
+      <p>如果 R_MAX / S < 1（窄區間，如 [0, ln2) 的 R_MAX/S = 0.69），每個 R^i 項都在衰減，量化誤差被壓制。</p>
+      <p>如果 R_MAX / S > 1（寬區間，如 [0, e-1) 的 R_MAX/S = 1.72），每個 R^i 項都在放大。degree 8 的最高次項放大倍率是 1.72^8 ≈ 58 倍。所以：</p>
+      <p>- degree 7：量化 ULP = 8.55</p>
+      <p>- degree 8：量化 ULP = 26.53（暴增 3 倍）</p>
+      <p>degree 越高，多出來的高次項放大越厲害，最終量化誤差超過了 Minimax 近似誤差的改善量。這就是為什麼「增加 degree 可以是有害的」。</p>
+      <p>sufficient condition：當 Remez 近似誤差 < 0.5/S 時，近似誤差已經小到不影響 ULP，此時 ULP 完全由量化誤差決定。再增加 degree 只會增加量化誤差，不可能改善 ULP。這個條件在我們測試的所有 function/interval/pp 組合中都被驗證成立。</p>
+      </div>
+    </div>
+      <div class="qa-item">
+        <p class="qa-question">Q: 查表法在高精度場景的具體成本是多少？</p>
+        <div class="qa-answer">
+      <p>查表法的表格大小 = S = 2^pp 筆。隨 pp 指數增長：</p>
+      <p>- pp=16：65,536 筆（我們的實驗設定，prove time ~1,200 ms）</p>
+      <p>- pp=20：1,048,576 筆（約 100 萬）</p>
+      <p>- pp=24：16,777,216 筆（約 1,670 萬）</p>
+      <p>- pp=28：268,435,456 筆（約 2.68 億——已經完全不可行）</p>
+      <p>- pp=32：4,294,967,296 筆（約 43 億）</p>
+      <p>而且每個函數需要各自的表。如果 pipeline 需要 exp + ln + erf，就是 3 × 2^pp 筆。</p>
+      <p>相比之下，我們的 ByteTable 永遠只有 256 筆，不隨 pp 增長，所有函數共用。pp=42（BN254 下 degree 5 的理論上限）我們的 table 還是 256 筆，電路結構不變，只換 5 個係數。</p>
+      <p>這就是多項式方法在高精度場景下的根本優勢——成本跟 pp 的關係是 O(1) table + O(pp) lookups，而查表法是 O(2^pp) table。</p>
+      </div>
+    </div>
+    </div>
     <footer>
-      <p>論文方向想法說明書 - 口頭講稿 | 對應說明書：<a href="thesis-proposal.html">ZKML 端到端配置自動調參研究提案</a></p>
+      <p>碩論提案報告 口頭講稿</p>
+      <p>基於 <a href="thesis-proposal.html">碩論提案報告</a> 整理</p>
     </footer>
   </div>
 </body>
