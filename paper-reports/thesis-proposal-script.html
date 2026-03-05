@@ -194,6 +194,8 @@
       <h3 class="subsection-title">3.3 Deferred Truncation</h3>
       <p class="stage-cue">【滾動到 §3.3】</p>
       <p>第三步，Deferred Truncation。這是對 §2.2 截斷問題的改進。</p>
+      <p>先回顧一下，§3.1 選好的多項式可以改寫成 Horner 的巢狀形式。原本的 D5·R⁵ + D4·R⁴ + ... + D0，變成 ((((D5·R + D4)·R + D3)·R + D2)·R + D1)·R + D0。這樣每一步只做一次乘法加一次加法，而且結構完全相同，天然適合電路裡重複使用同一個 gate。</p>
+      <p>但問題是，每一步乘法之後 scale 會翻倍，需要截斷回來。這就引出了截斷策略的選擇。</p>
       <p>先看傳統的做法，叫 Per-step Truncation。</p>
       <p class="stage-cue">【指向 per-step 虛擬碼】</p>
       <p>在 Horner 求值的每一步，都做一次截斷。Step 1 截斷一次，step 2 截斷一次，一直到 step 5 又截斷一次。總共 5 次截斷。每次截斷都會丟失精度，5 次截斷的誤差就累積起來了。</p>
