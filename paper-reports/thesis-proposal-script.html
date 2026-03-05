@@ -163,7 +163,12 @@
       <p>一個一個來。</p>
       <h3 class="subsection-title">3.1 區間選擇 + ORV</h3>
       <p class="stage-cue">【滾動到 §3.1】</p>
-      <p>先講區間選擇。</p>
+      <p>在講區間選擇之前，先說明一下完整計算流程的架構。要在 ZK 電路裡算一個超越函數，例如 exp(3.7)，完整的流程分成三段：</p>
+      <p>第一段，Range Reduction（範圍歸約）。把任意大小的輸入縮到一個窄區間內。以 exp 為例，利用 exp(x) = 2^k × exp(r)，其中 k 是整數，r ∈ [0, ln2)。這樣不管 x 多大，r 永遠在窄區間裡。</p>
+      <p>第二段，Horner Kernel。在窄區間上用多項式求值算出 exp(r)。這是我們論文的核心。</p>
+      <p>第三段，Reconstruction（結果重組）。把 kernel 的輸出組合回完整答案，例如 exp(r) 乘以 2^k。</p>
+      <p>我們的論文聚焦在第二段——Horner Kernel 加上 ORV。第一段和第三段是 function-specific 的，每個函數的拆法都不一樣，屬於應用層的責任。我們把它留在 future work。但正因為有 range reduction 的存在，我們的多項式只需要覆蓋一個窄區間就夠了。</p>
+      <p>好，現在講區間選擇。</p>
       <p>多項式近似有一個基本的 trade-off：區間越窄，精度越好，但覆蓋的輸入範圍越小。</p>
       <p class="stage-cue">【指向 trade-off 表格】</p>
       <p>大家看數據。ln(1+x) 在窄區間 [0, ln2) 上 ULP 是 1，但如果把區間放寬到 [0, e-1)，ULP 就變成 9，差了 9 倍。erf 也是一樣，窄區間 [0, 1] 的 ULP 是 3，放寬到 [0, 2) 就變成 20，差 6.7 倍。</p>
