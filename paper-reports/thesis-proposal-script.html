@@ -365,6 +365,12 @@
       <p>做完所有實驗之後，我發現 erf 的 489 倍改善其實不太公平，因為 Taylor 的 erf 只用了 3 個非零係數，我們用了 5 個。如果只看 exp 的公平比較，是 12 倍。</p>
       <p>一開始我很猶豫要不要把 489 倍放在標題裡面。後來決定：把 12 倍當作 headline，把 489 倍的 caveat 寫清楚。寧可少吹一點，也不要被老師抓到不誠實。</p>
       <p>batch scaling 也是。我們的方法在 N=1000 的時候比 Method B 慢 7.5 倍。這個數字放出來之後，Method G 看起來就沒那麼厲害了。但我覺得，誠實面對自己的弱點，比隱藏它更有說服力。而且我們的核心價值不是「比 B 快」，而是「B 做不到的函數，我們做得到」。</p>
+      <h3 class="subsection-title">正式定理框架</h3>
+      <p>最後補充一下理論基礎。我們定義了一個叫做「ORV-Compatible Function」的概念，它有六個條件：</p>
+      <p>C1，函數在原點的值是零。C2，函數在區間上嚴格遞增。C3，輸出值不超過 S 減 1，也就是可以用 pp-bit 表示。C4，函數可以用 degree-d 的多項式近似到夠好的精度。C5，多項式係數量化成整數之後不超過有限域的一半。C6，輸入的 R_MAX 可以用 L_R 個 bytes 表示。</p>
+      <p>基於這六個條件，我們證明了 Function Coverage Theorem：只要一個函數滿足 C1 到 C6，它就可以用我們的參數化電路來計算，而且保證正確性、soundness、通用性和固定成本。</p>
+      <p>我們還系統地分析了 10 個候選函數——sigmoid、tanh、GELU、softplus、Gaussian CDF、sqrt、cube root、sin、arctan、以及 log2 和 exp2——全部都可以用我們的框架處理，不是直接適用就是透過函數組合。沒有任何一個被判定為「不可行」。</p>
+      <p>這代表我們的方法不只是 exp、ln、erf 三個案例，而是一個通用的設計框架。</p>
     </div>
     <div class="divider">* * *</div>
     <div class="section">

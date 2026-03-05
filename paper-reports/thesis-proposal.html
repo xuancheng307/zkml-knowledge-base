@@ -227,7 +227,7 @@
   </p>
   <p style="margin-top:32px; color:#4a5568;">
     研究生：高璿程<br>
-    指導教授：[左瑞麟]<br>
+    指導教授：左瑞麟 教授<br>
     日期：2026 年 3 月
   </p>
   <p style="margin-top:24px;">
@@ -861,6 +861,28 @@
   Gate definitions、lookup arguments、table size、proof size 全部不變。
 </div>
 
+<h3>ORV-Compatible Function 的條件</h3>
+<p>
+  具體而言，一個函數 <span class="math">f</span> 若要使用此通用電路，需滿足以下六個條件
+  （在參數 <span class="math">pp, d, L<sub>R</sub></span> 下）：
+</p>
+<table>
+  <tr><th>條件</th><th>名稱</th><th>要求</th><th>作用</th></tr>
+  <tr><td><b>C1</b></td><td>零錨點</td><td><span class="math">g</span>(0) = 0</td><td>消除常數項，啟用 ORV</td></tr>
+  <tr><td><b>C2</b></td><td>嚴格單調</td><td><span class="math">g</span> 在區間上嚴格遞增</td><td>保證輸出反映輸入合法性</td></tr>
+  <tr><td><b>C3</b></td><td>輸出有界</td><td>最大輸出 &le; <span class="math">S</span>&minus;1</td><td>輸出可用 <span class="math">pp</span>-bit 無號整數表示</td></tr>
+  <tr><td><b>C4</b></td><td>多項式可近似</td><td>存在 degree-<span class="math">d</span> 多項式近似</td><td>Horner 求值的前提</td></tr>
+  <tr><td><b>C5</b></td><td>係數量化</td><td>整數係數 |<span class="math">D<sub>i</sub></span>| &lt; <span class="math">p</span>/2</td><td>有限域中不溢位</td></tr>
+  <tr><td><b>C6</b></td><td>輸入分解</td><td><span class="math">R<sub>max</sub></span> &le; 2<sup>8<span class="math">L<sub>R</sub></span></sup> &minus; 1</td><td>byte decomposition 可行</td></tr>
+</table>
+<p>
+  其中 <span class="math">g(x)</span> = <span class="math">f(x+a)</span> &minus; <span class="math">f(a)</span> 是平移後的變換函數。
+  當 <span class="math">f(a)</span> &ne; 0 時，常數 <span class="math">f(a)</span> 在電路外處理（c<sub>0</sub> folding）。
+  滿足 C1&ndash;C6 的函數我們稱為 <b>ORV-compatible function</b>。
+  初步分析顯示，sigmoid、tanh、GELU、softplus、sin、arctan 等常見函數均可滿足。
+  詳見附錄 A.1&ndash;A.2。
+</p>
+
 <p>實測數據（Halo2 PSE v0.3.0, KZG/SHPLONK, BN254, real proof）：</p>
 <table>
   <tr><th>函數</th><th>區間</th><th>Max ULP</th><th>Prove (ms)</th><th>Verify (ms)</th><th>Proof size</th></tr>
@@ -1023,6 +1045,117 @@
   <tr><td>Ch.5 Case Studies: ln, erf</td><td>推廣 + 新發現</td><td class="num">~3</td></tr>
   <tr><td>Ch.6 Related Work</td><td>文獻比較</td><td class="num">~2</td></tr>
   <tr><td>Ch.7 Conclusion</td><td>貢獻、限制、未來工作</td><td class="num">~1</td></tr>
+</table>
+
+<hr>
+
+<!-- ===== 附錄：正式定理 ===== -->
+<h1>附錄：正式定理與證明</h1>
+
+<h2>A.1 ORV-Compatible Function 定義</h2>
+<p>
+  我們定義一個函數 <span class="math">f</span> 在參數 (<span class="math">pp, d, L<sub>R</sub></span>) 下是
+  <b>ORV-compatible</b> 的，若存在一個有界區間 [<span class="math">a, b</span>) 和常數
+  <span class="math">c<sub>0</sub></span> = <span class="math">f(a)</span>，
+  使得變換函數 <span class="math">g(x)</span> = <span class="math">f(x+a)</span> &minus; <span class="math">c<sub>0</sub></span>
+  滿足以下六個條件：
+</p>
+
+<table>
+  <tr><th>條件</th><th>名稱</th><th>內容</th></tr>
+  <tr><td><b>C1</b></td><td>零錨點</td><td><span class="math">g</span>(0) = 0</td></tr>
+  <tr><td><b>C2</b></td><td>嚴格單調</td><td><span class="math">g</span> 在 [0, <span class="math">b&minus;a</span>) 上嚴格遞增</td></tr>
+  <tr><td><b>C3</b></td><td>輸出範圍</td><td><span class="math">g</span>(<span class="math">b&minus;a</span>) &middot; <span class="math">S</span> &le; <span class="math">S</span>&minus;1，即輸出可表示為 <span class="math">pp</span>-bit 無號整數</td></tr>
+  <tr><td><b>C4</b></td><td>多項式可近似</td><td>存在 degree-<span class="math">d</span> 無常數項多項式 <span class="math">p(x)</span> 使得 &Vert;<span class="math">g &minus; p</span>&Vert;<sub>&infin;</sub> &le; &epsilon;<sub>approx</sub></td></tr>
+  <tr><td><b>C5</b></td><td>係數量化</td><td>預縮放整數係數 <span class="math">D<sub>i</sub></span> = round(<span class="math">c<sub>i</sub></span> &middot; <span class="math">S</span><sup><span class="math">d</span>+1&minus;<span class="math">i</span></sup>)，且 |<span class="math">D<sub>i</sub></span>| &lt; <span class="math">p</span>/2</td></tr>
+  <tr><td><b>C6</b></td><td>輸入分解</td><td><span class="math">R<sub>max</sub></span> &le; 2<sup>8<span class="math">L<sub>R</sub></span></sup> &minus; 1（byte decomposition 的容量限制）</td></tr>
+</table>
+
+<p style="font-size:14px; color:#718096; margin-top:8px;">
+  當 <span class="math">f(a)</span> &ne; 0 時，常數 <span class="math">c<sub>0</sub></span>
+  在電路外處理（<b>c<sub>0</sub> folding</b>），不影響電路結構。
+</p>
+
+<h2>A.2 Function Coverage Theorem</h2>
+
+<div class="key-insight">
+  <strong>Theorem（Function Coverage）</strong><br><br>
+  令 <span class="math">f</span> 為滿足 C1&ndash;C6 的 ORV-compatible function。
+  則參數化 Halo2 電路 C(<span class="math">pp, d, L<sub>R</sub></span>) 可計算 <span class="math">f</span>，
+  且具有以下性質：<br><br>
+
+  <b>1. Correctness</b>：對所有合法輸入 <span class="math">R</span> &isin; {0, ..., <span class="math">R<sub>max</sub></span>}，
+  輸出誤差 &le; &epsilon;<sub>total</sub> = &epsilon;<sub>approx</sub> + &epsilon;<sub>quant</sub> + &epsilon;<sub>trunc</sub>（ULP）<br><br>
+
+  <b>2. Soundness (ORV)</b>：作弊 prover 使用非法輸入 <span class="math">R</span> &notin; [0, <span class="math">R<sub>max</sub></span>]
+  通過驗證的機率 &le; <span class="math">S/p</span> &lt; 2<sup><span class="math">pp</span>&minus;254</sup>，密碼學上可忽略<br><br>
+
+  <b>3. Parameterization</b>：切換目標函數只需替換 <span class="math">d</span> 個係數
+  <span class="math">D<sub>1</sub>, ..., D<sub>d</sub></span>
+  及常數 <span class="math">c<sub>0</sub>, R<sub>max</sub></span>。電路拓撲完全不變<br><br>
+
+  <b>4. Constant Cost</b>：電路成本固定 &mdash;
+  對 <span class="math">pp</span>=16, <span class="math">d</span>=5, <span class="math">L<sub>R</sub></span>=2：
+  <b>5 gates, 12 lookups, 9 rows, 256-entry table</b>
+</div>
+
+<h2>A.3 Proof Sketch</h2>
+
+<h3>Horner Chain（用 C4, C5）</h3>
+<p>
+  Degree-<span class="math">d</span> 多項式以 Horner 形式求值：
+  acc<sub><span class="math">i</span>+1</sub> = acc<sub><span class="math">i</span></sub> &middot; <span class="math">R</span> + <span class="math">D<sub>i</sub></span>。
+  每步是一個通用的 multiply-and-add gate，對任意係數值都成立（包括負數，在 F<sub>p</sub> 中表示為 <span class="math">p</span> &minus; |<span class="math">D<sub>i</sub></span>|）。
+  由 C5，|<span class="math">D<sub>i</sub></span>| &lt; <span class="math">p</span>/2，signed interpretation 不會 overflow。
+  Gate 數量恰好為 <span class="math">d</span>，與目標函數無關。
+</p>
+
+<h3>Deferred Truncation（用 C4, C5）</h3>
+<p>
+  Horner 求值後的 <span class="math">P(R)</span> 量級最大為 <span class="math">S</span><sup><span class="math">d</span>+1</sup>。
+  對 <span class="math">pp</span>=16, <span class="math">d</span>=5：<span class="math">S</span><sup>6</sup> = 2<sup>96</sup>，
+  遠小於 BN254 的 2<sup>254</sup>。截斷 gate 驗證
+  <span class="math">P(R)</span> = <span class="math">w</span> &middot; <span class="math">S<sup>d</sup></span> + rem，
+  其中 0 &le; rem &lt; <span class="math">S<sup>d</sup></span>。
+  此 gate 僅依賴 <span class="math">S</span> 的冪次，與目標函數無關。
+</p>
+
+<h3>ORV Soundness（用 C1, C2, C3）</h3>
+<p>
+  <span class="math">w</span>-decomposition gate 驗證 <span class="math">w</span> &isin; {0, ..., <span class="math">S</span>&minus;1}。
+  由 C2（單調性）和 C1（零錨點），<span class="math">g</span> 將 [0, <span class="math">b&minus;a</span>) 雙射到 [0, <span class="math">g(b&minus;a)</span>)。
+  由 C3，最大輸出 <span class="math">w<sub>max</sub></span> &le; <span class="math">S</span>&minus;1，合法輸入自動滿足。
+  非法輸入的 <span class="math">P(R)</span> 在 F<sub>p</sub> 中產生偽隨機域元素，
+  通過 ORV 的機率可忽略。
+</p>
+
+<h3>Input Byte Decomposition（用 C6）</h3>
+<p>
+  <span class="math">R</span>-decomposition gate 將 <span class="math">R</span> 分解為
+  <span class="math">L<sub>R</sub></span> 個 bytes，每個用 ByteTable lookup 驗證。
+  由 C6，所有合法輸入通過。此 gate 僅依賴 <span class="math">L<sub>R</sub></span>，與目標函數無關。
+</p>
+
+<h2>A.4 推論</h2>
+
+<table>
+  <tr><th>推論</th><th>內容</th></tr>
+  <tr>
+    <td><b>Uniform Proof Size</b></td>
+    <td>相同參數 (<span class="math">pp, d, L<sub>R</sub></span>) 下，所有 ORV-compatible 函數的 KZG proof size 相同。
+    實測：exp, ln, erf, GELU 均為 4,960 bytes，prove time 差異 &lt; 1.4%。</td>
+  </tr>
+  <tr>
+    <td><b>Multi-Function</b></td>
+    <td>單一電路可在同一個 proof 中計算 <span class="math">k</span> 個不同函數，
+    成本線性增長：<span class="math">k</span> &times; 9 rows，共用同一張 256-entry ByteTable。</td>
+  </tr>
+  <tr>
+    <td><b>Degree Freedom</b></td>
+    <td>若 degree-<span class="math">d</span> 精度不足，可提升至 <span class="math">d'</span> &gt; <span class="math">d</span>，
+    增加 (<span class="math">d'&minus;d</span>) 個 Horner rows + 對應 byte lookups。
+    ORV 條件 C1&ndash;C3 不受 degree 影響。</td>
+  </tr>
 </table>
 
 </body>
