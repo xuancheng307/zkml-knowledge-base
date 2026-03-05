@@ -122,10 +122,8 @@
       <h3 class="subsection-title">2.4 Horner 求值法</h3>
       <p class="stage-cue">【滾動到 §2.4】</p>
       <p>有了多項式之後，怎麼在電路裡面算？用 Horner's method。</p>
-      <p>Horner 是多項式求值最高效的方式。一個 5 次多項式原本要做很多次乘法和加法，但 Horner 把它改寫成巢狀的形式。</p>
-      <p>大家看這個式子。每一步只需要一次乘法加一次加法。5 次多項式只要 5 步。在 ZK 電路裡面，每一步就是一個 Horner gate，就是一個算術約束：acc_next 等於 acc_current 乘以 R 加上 D_i。R 是輸入，D_i 是預先算好的係數常數。</p>
-      <p>有一個細節值得注意。我們處理的函數——exp(x)-1、ln(1+x)、erf(x)——在 x=0 的時候函數值都是 0。所以多項式沒有常數項，是 c_1·x + c_2·x² + ... + c_5·x⁵ 的形式。Horner 展開的最外層就是乘以 x，不用加常數。這意味著 Horner 的最後一步是一個純乘法：P(R) = acc × R，沒有加法。</p>
-      <p>另外，為什麼用 D_i 不用 c_i？因為在 Deferred Truncation 裡面，我們不是用原始的浮點係數 c_i，而是用「預縮放」過的整數係數 D_i。這個等一下 §3.3 會詳細講。</p>
+      <p>Horner 把多項式改寫成巢狀形式。原本的 D₅R⁵ + D₄R⁴ + ... + D₀，變成 ((((D₅·R + D₄)·R + D₃)·R + D₂)·R + D₁)·R + D₀。每一步只做一次乘法加一次加法，5 次多項式只要 5 步。</p>
+      <p>在電路裡面，每一步就是一個 Horner gate：acc = acc × R + D_i。R 是輸入，D_i 是預先算好的整數係數。5 步用同一個 gate 定義，只是餵不同的 D_i。</p>
       <h3 class="subsection-title">2.5 現有查表方法</h3>
       <p class="stage-cue">【滾動到 §2.5】</p>
       <p>最後介紹兩個現有的查表方法，因為這些是我們的比較基準。</p>
