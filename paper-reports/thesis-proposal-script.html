@@ -449,6 +449,15 @@
       </div>
     </div>
       <div class="qa-item">
+        <p class="qa-question">Q: C1 到 C6 六個條件都是必要的嗎？少一個會怎樣？</p>
+        <div class="qa-answer">
+      <p>六個條件的「硬度」其實不一樣，可以分成三個等級。第一級是硬限制：C3（輸出有界）和 C5（係數不溢位）。C3 不滿足的話，w 超過 pp-bit 表示範圍，byte decomposition 直接失敗，電路不 sound。C5 不滿足的話，係數在有限域裡的 signed interpretation 會出錯，Horner 算出來的結果是錯的。這兩個違反就是壞掉，沒有退路。</p>
+      <p>第二級是可調整的限制：C2（單調性）、C4（多項式可近似）、C6（輸入分解）。C2 不滿足的話 ORV 失效，但只要把區間選窄一點，大部分函數都可以變成單調的，像 sin 在全域不單調，但在 [0, π/2] 上就是單調的。C4 精度不夠就提高 degree，C6 容量不夠就增加 L_R 多用幾個 byte。這些都是增加一點電路成本就能解決的。</p>
+      <p>第三級是可繞過的：C1（零錨點）。g(0) ≠ 0 代表多項式有常數項，但我們可以用 c₀ folding 把常數項搬到電路外面處理，完全不影響電路結構。所以 C1 與其說是「必要條件」，不如說是一種讓分析更乾淨的正規化。</p>
+      <p>總結來說，真正不可違反的只有 C3 和 C5，其他四個都有退路。六個條件合在一起是一組充分條件，保證電路結構完全固定、不需要任何 function-specific 的修改。</p>
+      </div>
+    </div>
+      <div class="qa-item">
         <p class="qa-question">Q: 為什麼 exp 和 ln 的 R_MAX 一樣，都是 45,426？</p>
         <div class="qa-answer">
       <p>這是巧合也是設計。exp(x)-1 和 ln(1+x) 的多項式近似我們都選在 [0, ln2) 這個區間上。ln2 的固定點表示是 round(0.6931 × 65536) = 45,426。所以兩者的 R_MAX 都是 45,426，都用 2-byte R，都是 45,427 個合法輸入。這不是巧合——ln2 是很自然的 range reduction 邊界，exp 用 e^{a+b} = e^a · e^b，ln 用 ln(a·2^k) = ln(a) + k·ln2，兩者的 range reduction 都會把輸入映射到 [0, ln2) 裡面。</p>
