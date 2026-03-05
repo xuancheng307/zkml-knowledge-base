@@ -226,8 +226,8 @@
     Transcendental Functions in Zero-Knowledge Circuits
   </p>
   <p style="margin-top:32px; color:#4a5568;">
-    研究生：[姓名]<br>
-    指導教授：[教授姓名]<br>
+    研究生：高璿程<br>
+    指導教授：[左瑞麟]<br>
     日期：2026 年 3 月
   </p>
   <p style="margin-top:24px;">
@@ -630,6 +630,54 @@
 </table>
 
 <h2>3.1 Step 1: 區間選擇 + Output Range Verification (ORV)</h2>
+
+<h3>三段式計算架構</h3>
+<p>
+  在 ZK 電路中計算超越函數的完整流程分為三段：
+</p>
+<ol>
+  <li><b>Range Reduction（範圍歸約）</b>：把任意大小的輸入縮到窄區間內</li>
+  <li><b>Horner Kernel（多項式求值）</b>：在窄區間上用多項式近似計算函數值 — <em>本論文核心</em></li>
+  <li><b>Reconstruction（結果重組）</b>：把 kernel 的輸出組合回完整答案</li>
+</ol>
+<p>
+  本論文聚焦於第二段。第一段和第三段是 function-specific 的，屬於應用層責任（future work）。
+  以下是三個案例函數的數學分解：
+</p>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin:20px 0;">
+  <div style="background:#f7fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+    <div style="font-weight:600; color:#2b6cb0; margin-bottom:8px;">exp(x)</div>
+    <div style="font-size:0.92rem;">
+      令 <span class="math">k</span> = &lfloor;x / ln2&rfloor;，<span class="math">r</span> = x &minus; k&middot;ln2<br>
+      則 <span class="math">r</span> &isin; [0, ln2)<br><br>
+      exp(x) = <b>2<sup>k</sup></b> &times; <b style="color:#2b6cb0;">exp(r)</b><br>
+      <span style="font-size:0.85rem; color:#718096;">2<sup>k</sup> 為整數位移，kernel 只需算 exp(r)</span>
+    </div>
+  </div>
+  <div style="background:#f7fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+    <div style="font-weight:600; color:#2b6cb0; margin-bottom:8px;">ln(1+x)</div>
+    <div style="font-size:0.92rem;">
+      令 x = m&middot;2<sup>k</sup>，其中 <span class="math">m</span> &isin; [1, 2)，<span class="math">t</span> = m &minus; 1<br>
+      則 <span class="math">t</span> &isin; [0, 1) &sub; [0, ln2)<br><br>
+      ln(x) = <b>k&middot;ln2</b> + <b style="color:#2b6cb0;">ln(1+t)</b><br>
+      <span style="font-size:0.85rem; color:#718096;">k&middot;ln2 為常數項，kernel 只需算 ln(1+t)</span>
+    </div>
+  </div>
+  <div style="background:#f7fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px;">
+    <div style="font-weight:600; color:#2b6cb0; margin-bottom:8px;">erf(x)</div>
+    <div style="font-size:0.92rem;">
+      erf(x) 是奇函數：erf(&minus;x) = &minus;erf(x)<br>
+      且 x &ge; 3 時 erf(x) &approx; 1<br><br>
+      只需覆蓋 <b style="color:#2b6cb0;">erf(x), x &isin; [0, 1]</b><br>
+      <span style="font-size:0.85rem; color:#718096;">負數用對稱性，大數用飽和近似</span>
+    </div>
+  </div>
+</div>
+
+<p>
+  正因為有 range reduction 的存在，我們的多項式只需覆蓋窄區間即可。
+</p>
 
 <h3>區間選擇的 trade-off</h3>
 <p>
