@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>差異比較 — 與現有 ZK 超越函數計算方法的系統化比較</title>
+  <style>
+    :root {
+      --primary: #1a365d;
+      --accent: #2b6cb0;
+      --light-bg: #f7fafc;
+      --border: #e2e8f0;
+      --highlight: #ebf8ff;
+      --warn-bg: #fffaf0;
+      --success-bg: #f0fff4;
+      --code-bg: #edf2f7;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Noto Serif TC", "Times New Roman", Georgia, serif;
+      line-height: 1.8; color: #2d3748; max-width: 960px;
+      margin: 0 auto; padding: 40px 24px; font-size: 17px;
+    }
+    h1 { font-size: 28px; color: var(--primary); border-bottom: 3px solid var(--accent); padding-bottom: 12px; margin: 48px 0 24px 0; }
+    h1:first-of-type { margin-top: 0; }
+    h2 { font-size: 22px; color: var(--primary); margin: 36px 0 16px 0; padding-left: 12px; border-left: 4px solid var(--accent); }
+    h3 { font-size: 18px; color: #4a5568; margin: 24px 0 12px 0; }
+    p { margin: 12px 0; }
+    .subtitle { font-size: 16px; color: #718096; margin-bottom: 32px; }
+    .key-insight { background: var(--highlight); border-left: 4px solid var(--accent); padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .key-insight strong { color: var(--accent); }
+    .problem-box { background: var(--warn-bg); border-left: 4px solid #ed8936; padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    .result-box { background: var(--success-bg); border-left: 4px solid #38a169; padding: 16px 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 15px; }
+    th { background: var(--primary); color: white; padding: 10px 12px; text-align: left; font-weight: 600; }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    tr:nth-child(even) { background: var(--light-bg); }
+    td.num { text-align: center; font-family: monospace; }
+    td.em { font-weight: bold; color: var(--accent); }
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    .compare .col { padding: 16px; border-radius: 8px; }
+    .compare .before { background: #fff5f5; border: 1px solid #feb2b2; }
+    .compare .after { background: #f0fff4; border: 1px solid #9ae6b4; }
+    .compare .col-title { font-weight: bold; margin-bottom: 8px; font-size: 15px; }
+    code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 15px; }
+    .math { font-family: "Times New Roman", serif; font-style: italic; }
+    .section-num { color: var(--accent); margin-right: 8px; }
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+    ul, ol { margin: 12px 0 12px 24px; }
+    li { margin: 6px 0; }
+    /* Highlight our row in tables */
+    tr.ours { background: #ebf8ff !important; font-weight: 600; }
+    tr.ours td { border-bottom: 2px solid var(--accent); }
+    @media print { body { font-size: 12pt; padding: 0; } h1 { page-break-before: always; } }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- Title                                                        -->
+<!-- ============================================================ -->
+<h1>差異比較</h1>
+<p class="subtitle">與現有 ZK 超越函數計算方法的系統化比較</p>
+
+<!-- ============================================================ -->
+<!-- §1 產業與學術全景                                             -->
+<!-- ============================================================ -->
+<h1><span class="section-num">1</span>產業與學術全景</h1>
+
+<h2><span class="section-num">1.1</span>兩大範式</h2>
+
+<p>
+  在零知識證明中計算超越函數（transcendental functions），現有方法可歸納為兩個根本不同的範式：<strong>查表法</strong>（Lookup-based）與<strong>多項式近似</strong>（Polynomial Approximation）。前者將函數值預先計算並存入大型查找表，後者則用低次多項式逼近目標函數。兩者在 table 成本、每次呼叫成本、以及適用範圍上各有取捨。
+</p>
+
+<table>
+  <tr>
+    <th>範式</th>
+    <th>原理</th>
+    <th>Table 成本</th>
+    <th>每次呼叫成本</th>
+    <th>適用函數</th>
+  </tr>
+  <tr>
+    <td>查表法 (Lookup-based)</td>
+    <td>預計算 <span class="math">f(x)</span> 的所有可能值</td>
+    <td class="num">大 (65K+/函數)</td>
+    <td class="num">1 lookup</td>
+    <td>任意</td>
+  </tr>
+  <tr>
+    <td>多項式近似 (Polynomial)</td>
+    <td>degree-<span class="math">d</span> 多項式近似 <span class="math">f(x)</span></td>
+    <td class="num">小 (256 共用)</td>
+    <td class="num"><span class="math">d</span> 次乘法 + 驗證</td>
+    <td>需平滑、單調</td>
+  </tr>
+</table>
+
+<h2><span class="section-num">1.2</span>查表系統</h2>
+
+<h3>ezkl (2022+, production)</h3>
+<p>
+  ezkl 是目前最主流的 ZKML 框架，以 Halo2 為 proof backend，接受 ONNX 格式的模型輸入。對於非線性函數（如 exp、sigmoid、GELU），ezkl 採用 logUP 查表機制，每個函數需要 65K 以上的 table entries。由於其易用性與完整的工具鏈，ezkl 已成為業界的 de facto 標準。然而，大型查找表帶來顯著的記憶體與 proving 開銷，尤其在需要同時支援多個不同函數時。
+</p>
+
+<h3>ZKML Compiler (EuroSys'24)</h3>
+<p>
+  ZKML Compiler 是首個支援真實規模深度學習模型的 ZK 框架，成功驗證了 ResNet-18、VGG-16、以及 DistilGPT-2（8.1M 參數）。其核心貢獻在於 layout optimization——透過精密的電路佈局策略，使大規模模型的驗證成為可能。該系統支援 43 種 ML layer，但非線性函數的處理方式與 ezkl 相同，仍然依賴 lookup table，每個函數約需 16K entries。
+</p>
+
+<h3>RISC Zero (zkVM)</h3>
+<p>
+  RISC Zero 採用完全不同的策略：它是一個通用的 zkVM，能夠執行任意 RISC-V 程式並生成 STARK 證明。開發者可以用 Rust 撰寫標準程式碼，無需手動設計電路。然而，這種通用性的代價是極差的效能——BERT-base 模型大約需要 10<sup>8</sup> cycles，不適合對效能敏感的場景。對於需要精確控制電路結構的超越函數計算，zkVM 的抽象層級過高。
+</p>
+
+<h2><span class="section-num">1.3</span>多項式/代數系統</h2>
+
+<h3>zkTaylor (AAIA'24)</h3>
+<p>
+  zkTaylor 使用 Taylor 展開搭配 Circom/Groth16 proof system 來建構 exp 函數的 ZK 電路。這是一篇僅 5 頁的短文，提出了在零知識證明中使用多項式近似的基本想法，但缺乏精度分析，未討論 Minimax 等更優的多項式選擇策略，也未與查表方法做系統比較。其貢獻主要是概念性的，實用價值有限。
+</p>
+
+<h3>ZKFixedPointChip (Xiao, 2023)</h3>
+<p>
+  ZKFixedPointChip 是與我們最接近的先行工作。它在 Halo2 上使用 lolremez 工具生成 Minimax 最優多項式，支援 exp2、log2、sin 等函數，degree 介於 12-14 之間。然而，ZKFixedPointChip 存在幾個關鍵缺失：(1) 未設計 Output Range Verification (ORV) 機制；(2) 未實作 deferred truncation；(3) 未提供正式誤差分析或誤差分解；(4) 未進行 Minimax 與 Taylor 的對照實驗以量化精度改善。此專案為 hackathon 作品（11 commits），無正式論文發表。
+</p>
+
+<h3>Lagrange Labs (ePrint 2025/2326)</h3>
+<p>
+  Lagrange Labs 提出了基於 Gauss-Legendre quadrature 搭配 Pad&eacute; 有理近似的方法，使用 Noir/Barretenberg 作為 proof backend。該系統支援 sin、cos、tan、sigmoid、GELU、erf 等函數，且具有常數深度（&le; 4）的優勢。然而，Pad&eacute; 有理近似需要除法電路（乘法逆元），在 ZK 電路中引入額外的 constraint 成本。更重要的是，有理近似並非 <span class="math">L</span><sup>&infin;</sup> 最優——Pad&eacute; 近似最小化的是某種加權誤差，而非最大絕對誤差。此外，該工作未涵蓋 ln 函數的 benchmark。
+</p>
+
+<h3>ZIP (CCS'25)</h3>
+<p>
+  ZIP 採用分段多項式（piecewise polynomial）搭配 Caulk multi-lookup 機制，使用 gnark + PlonK proof system。該系統支援 GeLU、SeLU、ELU、exp 等函數，並提出了 "approximation soundness" 的概念——使用 Caulk lookup 驗證近似結果的正確性。ZIP 使用 IEEE-754 雙精度浮點數表示，與我們的定點數方案不同。值得注意的是，ZIP <strong>不覆蓋 ln</strong> 函數，且其 approximation soundness 的驗證機制本質上是查表（lookup），而非利用多項式單調性的代數驗證。
+</p>
+
+<h3>zkLLM (CCS'24)</h3>
+<p>
+  zkLLM 專門針對大型語言模型（7B-13B 參數），其核心貢獻包括 tlookup（tensor-aware lookup）和 zkAttn（專門的 attention 驗證機制）。LLaMA-7B 的 prove time 約 8 分鐘，proof size 小於 200KB。zkLLM 與我們的定位完全不同：它專注於系統層級的最佳化（如何高效驗證完整的 LLM 推論），而我們專注於函數層級的方法論（如何精確計算單一超越函數）。兩者是互補而非競爭的關係。
+</p>
+
+<!-- ============================================================ -->
+<!-- §2 文獻空白分析                                               -->
+<!-- ============================================================ -->
+<h1><span class="section-num">2</span>文獻空白分析</h1>
+
+<h2><span class="section-num">2.1</span>無 Minimax vs Taylor 系統性比較</h2>
+<p>
+  ZKFixedPointChip 使用了 lolremez 工具產生 Minimax 係數，但從未與 Taylor 展開做對照實驗，也未量化精度改善幅度。據我們的文獻回顧，目前沒有任何工作在零知識證明的脈絡下提供 Minimax 與 Taylor 的系統性比較。我們提供了據我們所知首個受控比較（controlled comparison）：在同一電路結構（Horner evaluation, degree 5）、同一查找表（256-entry ByteTable）、同一有限域（BN254）下，僅替換多項式係數，從而公平地量化兩種方法的精度差異。
+</p>
+
+<h2><span class="section-num">2.2</span>無 Output Range Verification (ORV)</h2>
+<p>
+  據我們的文獻回顧，沒有任何現有系統具有 Output Range Verification 或類似的機制。在缺乏 ORV 的情況下，惡意的 prover 可以提交超出合法範圍的輸入，使多項式求值溢出，但仍然通過電路的其他約束。ZIP 的 "approximation soundness" 使用 Caulk lookup 來驗證近似結果——這是一種查表機制，本質上依賴預計算的正確值表。相較之下，ORV 利用多項式在指定區間上的單調性，透過 byte decomposition 驗證輸出落在合法範圍內。兩者的目標和機制完全不同。
+</p>
+
+<h2><span class="section-num">2.3</span>無 Horner context 的 Deferred Truncation</h2>
+<p>
+  zkGPT (USENIX Security'25) 提出了 "constraint fusion" 技術，但其作用在 GKR/sum-check protocol 的上下文中，與 Halo2/Horner 架構無關。Truncation Untangled (PoPETs'25) 討論的是 MPC 截斷方案，屬於 layer boundary 層級的局部延後（defer until ReLU boundary），而非整個多項式鏈的全域延後。據我們的文獻回顧，在 Halo2 的 Horner evaluation 電路中，將多步截斷延後合併為單次截斷的策略，目前尚無先例。BN254 的 254-bit 域元素遠大於我們的 96-bit 中間值表示，提供了充足的 headroom 來安全地延後截斷。
+</p>
+
+<h2><span class="section-num">2.4</span>無正式誤差預算</h2>
+<p>
+  ZKFixedPointChip 直接引用 lolremez 的輸出作為近似誤差，但沒有將誤差分解為各個來源。據我們的文獻回顧，沒有現有的 ZK 超越函數電路提供完整的誤差分解。我們提供了完整的三層誤差預算：<span class="math">&epsilon;</span><sub>total</sub> = <span class="math">&epsilon;</span><sub>approx</sub> + <span class="math">&epsilon;</span><sub>quant</sub> + <span class="math">&epsilon;</span><sub>trunc</sub>，其中 <span class="math">&epsilon;</span><sub>approx</sub> 為多項式近似誤差、<span class="math">&epsilon;</span><sub>quant</sub> 為係數量化誤差、<span class="math">&epsilon;</span><sub>trunc</sub> 為截斷誤差。此外，我們透過窮舉驗證（exhaustive verification）覆蓋了所有 45,427 個（exp/ln）或 65,536 個（erf）合法輸入點。
+</p>
+
+<h2><span class="section-num">2.5</span>ln 和 erf 在小表方案中無先例</h2>
+<p>
+  <strong>ln(1+x)：</strong>Lagrange Labs 未提供 ln 的 benchmark 數據，ZIP 不覆蓋 ln，ZKFixedPointChip 支援的是 log2（以 2 為底的對數，不同的函數，且使用 degree 14 多項式）。據我們所知，我們提供了首個帶有正式精度分析的小表（256 entries）ZK ln 電路。
+</p>
+<p>
+  <strong>erf(x)：</strong>據我們的文獻回顧，沒有先前的工作使用多項式近似建構 ZK erf 電路。Lagrange Labs 支援 erf，但使用的是 Gauss-Legendre quadrature 搭配 Pad&eacute; 有理近似（rational approximation），而非純多項式。我們的 erf 電路使用 degree-5 Minimax 多項式，max ULP = 3，只需 256-entry ByteTable。
+</p>
+
+<!-- ============================================================ -->
+<!-- §3 比較表格                                                   -->
+<!-- ============================================================ -->
+<h1><span class="section-num">3</span>比較表格</h1>
+
+<h2><span class="section-num">3.1</span>表 1：方法特性比較</h2>
+
+<table>
+  <tr>
+    <th>系統</th>
+    <th>年份/會議</th>
+    <th>Proof System</th>
+    <th>Remez?</th>
+    <th>ORV?</th>
+    <th>Deferred?</th>
+    <th>Formal?</th>
+    <th>Table size</th>
+    <th>函數</th>
+  </tr>
+  <tr>
+    <td>ezkl</td>
+    <td>2022+</td>
+    <td>Halo2/KZG</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td class="num">65K+</td>
+    <td>任意</td>
+  </tr>
+  <tr>
+    <td>ZKML Compiler</td>
+    <td>EuroSys'24</td>
+    <td>Halo2</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td class="num">~16K</td>
+    <td>43 layers</td>
+  </tr>
+  <tr>
+    <td>zkTaylor</td>
+    <td>AAIA'24</td>
+    <td>Circom/Groth16</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td class="num">N/A</td>
+    <td>exp</td>
+  </tr>
+  <tr>
+    <td>ZKFixedPointChip</td>
+    <td>2023</td>
+    <td>Halo2/KZG</td>
+    <td class="em">Yes</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td class="num">Large</td>
+    <td>exp2/log2/sin</td>
+  </tr>
+  <tr>
+    <td>Lagrange Labs</td>
+    <td>ePrint'25</td>
+    <td>Noir/BB</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td>Partial</td>
+    <td class="num">N/A</td>
+    <td>sin/cos/erf</td>
+  </tr>
+  <tr>
+    <td>ZIP</td>
+    <td>CCS'25</td>
+    <td>gnark/PlonK</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td>Partial</td>
+    <td class="num">Large</td>
+    <td>GeLU/exp</td>
+  </tr>
+  <tr>
+    <td>zkLLM</td>
+    <td>CCS'24</td>
+    <td>Custom</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td>No</td>
+    <td class="num">tlookup</td>
+    <td>LLM 專用</td>
+  </tr>
+  <tr class="ours">
+    <td><b>Ours</b></td>
+    <td>2026</td>
+    <td>Halo2/KZG</td>
+    <td class="em">Yes</td>
+    <td class="em">Yes</td>
+    <td class="em">Yes</td>
+    <td class="em">Yes</td>
+    <td class="num em">256</td>
+    <td>exp/ln/erf/GELU</td>
+  </tr>
+</table>
+
+<div class="result-box">
+  <strong>我們是據我們所知唯一同時具備 Remez 最優係數、Output Range Verification、Deferred Truncation 和完整正式分析的系統。</strong>
+</div>
+
+<h2><span class="section-num">3.2</span>表 2：函數覆蓋矩陣</h2>
+
+<table>
+  <tr>
+    <th>系統</th>
+    <th>exp</th>
+    <th>ln</th>
+    <th>erf</th>
+    <th>GELU</th>
+    <th>sin</th>
+    <th>sigmoid</th>
+  </tr>
+  <tr>
+    <td>ezkl</td>
+    <td class="num">&check;(65K)</td>
+    <td class="num">&check;(65K)</td>
+    <td class="num">&check;(65K)</td>
+    <td class="num">&check;(65K)</td>
+    <td class="num">&check;(65K)</td>
+    <td class="num">&check;(65K)</td>
+  </tr>
+  <tr>
+    <td>ZKML Compiler</td>
+    <td class="num">&check;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&check;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+  </tr>
+  <tr>
+    <td>zkTaylor</td>
+    <td class="num">&check;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+  </tr>
+  <tr>
+    <td>ZKFixedPointChip</td>
+    <td class="num">&check;(exp2)</td>
+    <td class="num">&check;(log2)</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&check;</td>
+    <td class="num">&mdash;</td>
+  </tr>
+  <tr>
+    <td>Lagrange Labs</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&check;</td>
+    <td class="num">&check;</td>
+    <td class="num">&check;</td>
+    <td class="num">&check;</td>
+  </tr>
+  <tr>
+    <td>ZIP</td>
+    <td class="num">&check;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&check;(via GELU)</td>
+    <td class="num">&check;</td>
+    <td class="num">&mdash;</td>
+    <td class="num">&mdash;</td>
+  </tr>
+  <tr class="ours">
+    <td><b>Ours</b></td>
+    <td class="num em">&check;(256)</td>
+    <td class="num em">&check;(256)</td>
+    <td class="num em">&check;(256)</td>
+    <td class="num em">&check;(256)</td>
+    <td class="num">可行</td>
+    <td class="num">可行</td>
+  </tr>
+</table>
+
+<div class="key-insight">
+  <strong>對 ln 而言，我們是唯一的小表方案。</strong>ezkl 需要 65K entries。ZKFixedPointChip 支援 log2（不同函數）且使用 degree 14。Lagrange Labs 和 ZIP 都不覆蓋 ln。
+</div>
+
+<h2><span class="section-num">3.3</span>表 3：具體數據比較</h2>
+<p>以 <span class="math">exp(x)&minus;1</span> 為基準函數：</p>
+
+<table>
+  <tr>
+    <th>方法</th>
+    <th>Table entries</th>
+    <th>Max ULP (exp)</th>
+    <th>Max ULP (ln)</th>
+    <th>Max ULP (erf)</th>
+    <th>Prove (ms)</th>
+    <th>Verify (ms)</th>
+    <th>Proof (B)</th>
+  </tr>
+  <tr>
+    <td>Method A (Direct)</td>
+    <td class="num">65,536</td>
+    <td class="num">0</td>
+    <td class="num">0</td>
+    <td class="num">0</td>
+    <td class="num">1,244.6</td>
+    <td class="num">2.41</td>
+    <td class="num">736</td>
+  </tr>
+  <tr>
+    <td>Method B (Chunk)</td>
+    <td class="num">768</td>
+    <td class="num">2</td>
+    <td class="num">N/A</td>
+    <td class="num">N/A</td>
+    <td class="num">60.6</td>
+    <td class="num">0.94</td>
+    <td class="num">2,048</td>
+  </tr>
+  <tr>
+    <td>Taylor+Deferred</td>
+    <td class="num">256</td>
+    <td class="num">12</td>
+    <td class="num">762</td>
+    <td class="num">1,467</td>
+    <td class="num">~138</td>
+    <td class="num">~1.8</td>
+    <td class="num">4,960</td>
+  </tr>
+  <tr class="ours">
+    <td><b>Ours (Minimax+Def+ORV)</b></td>
+    <td class="num em">256</td>
+    <td class="num em">1</td>
+    <td class="num em">1</td>
+    <td class="num em">3</td>
+    <td class="num em">137.8</td>
+    <td class="num em">1.75</td>
+    <td class="num em">4,960</td>
+  </tr>
+</table>
+
+<p style="font-size: 14px; color: #718096; margin-top: 8px;">
+  所有數據在同一硬體上測量：AMD Ryzen 9 9950X3D, 64GB DDR5, Rust release mode, Halo2 PSE v0.3.0, KZG/SHPLONK, BN254。
+</p>
+
+<!-- ============================================================ -->
+<!-- §4 逐項貢獻論證                                               -->
+<!-- ============================================================ -->
+<h1><span class="section-num">4</span>逐項貢獻論證</h1>
+
+<h2><span class="section-num">4.1</span>Contribution 1：Minimax 係數選擇</h2>
+
+<p>
+  我們的核心觀察是：在相同的電路結構與計算成本下，Minimax（Remez 演算法）多項式相較於 Taylor 展開，能顯著降低最大逼近誤差。窮舉驗證顯示（156,390 個合法輸入全部覆蓋），在 degree-5 Horner evaluation 電路中，Minimax 係數對 exp 函數的精度改善幅度達 12 倍。
+</p>
+
+<table>
+  <tr>
+    <th>函數</th>
+    <th>Taylor ULP</th>
+    <th>Minimax ULP</th>
+    <th>改善</th>
+    <th>備註</th>
+  </tr>
+  <tr>
+    <td><span class="math">exp(x)&minus;1</span></td>
+    <td class="num">12</td>
+    <td class="num">1</td>
+    <td class="num">12x</td>
+    <td>公平比較 (5 vs 5 非零係數)</td>
+  </tr>
+  <tr>
+    <td><span class="math">ln(1+x)</span></td>
+    <td class="num">762</td>
+    <td class="num">1</td>
+    <td class="num">762x</td>
+    <td>公平比較 (5 vs 5 非零係數)</td>
+  </tr>
+  <tr>
+    <td><span class="math">erf(x)</span></td>
+    <td class="num">1,467</td>
+    <td class="num">3</td>
+    <td class="num">489x</td>
+    <td>不完全公平 (5 vs 3 非零係數)*</td>
+  </tr>
+</table>
+
+<p>
+  *<span class="math">erf(x)</span> 是奇函數，其 Taylor 展開在 5 次多項式中只有 3 個非零係數（<span class="math">x</span>, <span class="math">x</span>&sup3;, <span class="math">x</span>&sup5;），而 Minimax 使用了全部 5 個。公平的 headline 數字應該用 exp 的 12x。
+</p>
+
+<h3>與 ZKFixedPointChip 的差異</h3>
+<p>
+  ZKFixedPointChip 使用了 lolremez 生成 Minimax 係數，但未與 Taylor 做對照實驗、未量化 ULP 改善、未進行窮舉驗證。我們在同一電路、同一查找表、同一有限域下替換係數，提供了據我們所知首個受控比較，使精度改善的幅度可以被嚴謹量化。
+</p>
+
+<h3>與 FHE 的差異</h3>
+<p>
+  Minimax 多項式在全同態加密（FHE）領域自 2021 年 Lee et al. (EUROCRYPT) 起已成為標準技術。然而，FHE 與 ZK 的計算模型存在根本差異：FHE 使用 CKKS rescaling（非顯式截斷），且沒有 prover/verifier 對抗模型。ZK 的有限域整數運算、顯式截斷操作、以及對抗式 prover 的存在，使得 Minimax 的應用需要全新的工程考量——包括係數量化到有限域、截斷策略的選擇、以及 soundness 的保證。
+</p>
+
+<h2><span class="section-num">4.2</span>Contribution 2：Output Range Verification (ORV)</h2>
+
+<p>
+  ORV 利用多項式在指定區間上的嚴格單調性來驗證輸入範圍。其機制如下：對於單調多項式 <span class="math">P</span>，若 <span class="math">w</span> = floor(<span class="math">P</span>(<span class="math">R</span>) / <span class="math">S</span><sup>5</sup>) 且 <span class="math">w</span> &isin; [0, <span class="math">S</span>&minus;1]，則 <span class="math">R</span> 必然在合法範圍 [0, <span class="math">R</span><sub>MAX</sub>] 內。這個驗證透過 byte decomposition 實現——將 <span class="math">w</span> 分解為位元組並查表確認每個位元組落在 [0, 255] 範圍內，成本極低。
+</p>
+
+<div class="key-insight">
+  <strong>ORV 據我們所知是全新的概念</strong>——既不在 ZKFixedPointChip，也不在 Lagrange Labs 或 ZIP 中出現。據我們的文獻回顧，沒有任何現有系統利用多項式單調性來驗證輸入範圍的合法性。
+</div>
+
+<h3>與 ZIP "approximation soundness" 的差異</h3>
+<p>
+  ZIP 的 "approximation soundness" 使用 Caulk lookup 驗證 |<span class="math">y</span> &minus; <span class="math">f</span>(<span class="math">y'</span>)| &le; <span class="math">&delta;</span> &middot; |<span class="math">f</span>(<span class="math">y'</span>)|，本質上是查表機制。ORV 使用 byte decomposition 驗證 <span class="math">w</span> &isin; [0, <span class="math">S</span>&minus;1]，是純代數約束。兩者的機制完全不同：ZIP 依賴預計算的正確值，ORV 利用多項式本身的數學性質。
+</p>
+
+<h3>Ablation 分析</h3>
+<table>
+  <tr>
+    <th>配置</th>
+    <th>Gates</th>
+    <th>Rows</th>
+    <th>Sound?</th>
+    <th>差異</th>
+  </tr>
+  <tr>
+    <td>G + ORV (ours)</td>
+    <td class="num">5</td>
+    <td class="num">9</td>
+    <td class="num">Yes</td>
+    <td>&mdash;</td>
+  </tr>
+  <tr>
+    <td>G + explicit RC</td>
+    <td class="num">6</td>
+    <td class="num">10</td>
+    <td class="num">Yes</td>
+    <td>+1 gate, +1 row</td>
+  </tr>
+  <tr>
+    <td>G &minus; ORV (no check)</td>
+    <td class="num">4</td>
+    <td class="num">8</td>
+    <td class="num"><b>No</b></td>
+    <td>不安全</td>
+  </tr>
+</table>
+
+<h2><span class="section-num">4.3</span>Contribution 3：Deferred Truncation</h2>
+
+<p>
+  在 Horner evaluation 的每一步乘法後，定點數的位寬會增加，通常需要立即截斷以防止溢出。然而，BN254 有限域的 254-bit 容量遠大於我們 96-bit 的中間值表示，提供了充足的 headroom。我們的 deferred truncation 策略將 degree-5 Horner 鏈中的 5 次截斷延後合併為最終的 1 次截斷。實驗顯示（三個函數窮舉驗證），這不僅減少了電路中的 constraint 數量，還一致地改善了精度 2.0 倍——因為避免了 4 次中間截斷的累積誤差。
+</p>
+
+<h3>與 zkGPT "constraint fusion" 的差異</h3>
+<p>
+  zkGPT (USENIX Security'25) 的 "constraint fusion" 作用在 GKR/sum-check protocol 上下文中，是對 sum-check 多項式的約束合併。這與我們在 Halo2 PLONKish 電路中的 Horner evaluation deferred truncation 在架構層級上完全不同——前者是 protocol-level 的最佳化，後者是 arithmetic circuit-level 的截斷策略。
+</p>
+
+<h3>與 Truncation Untangled (PoPETs'25) 的差異</h3>
+<p>
+  Truncation Untangled 討論的是 MPC（secure multi-party computation）情境下的截斷方案，屬於 layer boundary 層級的局部延後——將截斷延後到 ReLU boundary。我們的 deferred truncation 是整個多項式鏈的全域延後：在 degree-5 的 Horner evaluation 中，將所有 5 次截斷合併為 1 次。兩者的作用範圍、計算模型、以及安全模型均不同。
+</p>
+
+<h3>Ablation 分析</h3>
+<table>
+  <tr>
+    <th>函數</th>
+    <th>Deferred ULP</th>
+    <th>Per-step ULP</th>
+    <th>改善</th>
+  </tr>
+  <tr>
+    <td><span class="math">exp(x)&minus;1</span></td>
+    <td class="num">1</td>
+    <td class="num">2</td>
+    <td class="num">2.0x</td>
+  </tr>
+  <tr>
+    <td><span class="math">ln(1+x)</span></td>
+    <td class="num">1</td>
+    <td class="num">2</td>
+    <td class="num">2.0x</td>
+  </tr>
+  <tr>
+    <td><span class="math">erf(x)</span></td>
+    <td class="num">3</td>
+    <td class="num">6</td>
+    <td class="num">2.0x</td>
+  </tr>
+</table>
+
+<h2><span class="section-num">4.4</span>Contribution 4：Universal Kernel</h2>
+
+<div class="result-box">
+  <strong>固定電路結構：5 gates, 12 lookups, 9 rows, 256-entry ByteTable。</strong>切換函數只需替換 5 個係數常數。
+</div>
+
+<p>
+  我們的 kernel 對所有支援的函數使用完全相同的電路拓撲。這意味著切換目標函數時，不需要重新設計電路、不需要修改 constraint 邏輯，只需替換 5 個多項式係數。實測結果（4 函數 real KZG proof, 5-run average）顯示，不同函數間的 prove time 差異小於 1.4%，proof size 完全相同。
+</p>
+
+<table>
+  <tr>
+    <th>函數</th>
+    <th>Prove (ms)</th>
+    <th>Verify (ms)</th>
+    <th>Proof (B)</th>
+    <th>Max ULP</th>
+  </tr>
+  <tr>
+    <td><span class="math">exp(x)&minus;1</span></td>
+    <td class="num">137.8</td>
+    <td class="num">1.75</td>
+    <td class="num">4,960</td>
+    <td class="num">1</td>
+  </tr>
+  <tr>
+    <td><span class="math">ln(1+x)</span></td>
+    <td class="num">135.9</td>
+    <td class="num">1.88</td>
+    <td class="num">4,960</td>
+    <td class="num">1</td>
+  </tr>
+  <tr>
+    <td><span class="math">erf(x)</span></td>
+    <td class="num">137.0</td>
+    <td class="num">1.83</td>
+    <td class="num">4,960</td>
+    <td class="num">3</td>
+  </tr>
+  <tr>
+    <td><span class="math">GELU(x)</span></td>
+    <td class="num">137.5</td>
+    <td class="num">1.76</td>
+    <td class="num">4,960</td>
+    <td class="num">1</td>
+  </tr>
+</table>
+
+<p>
+  Prove time 差異 &lt; 1.4%，proof size 完全相同。據我們的文獻回顧，無其他系統達到此結構通用性——ZKFixedPointChip 的不同函數使用不同 degree（12-14），ezkl 的不同函數使用不同大小的查找表，Lagrange Labs 的不同函數需要不同的 Pad&eacute; 參數化。
+</p>
+
+<h2><span class="section-num">4.5</span>Contribution 5：Function Coverage Theorem (C1-C6)</h2>
+
+<p>
+  我們提出了一組充分條件 C1-C6，用以判定一個超越函數是否可被我們的 universal kernel 處理。滿足 C1-C6 的函數可以直接套用我們的電路結構，只需計算對應的 Minimax 係數。
+</p>
+
+<table>
+  <tr>
+    <th>條件</th>
+    <th>名稱</th>
+    <th>作用</th>
+  </tr>
+  <tr>
+    <td>C1</td>
+    <td>零錨點</td>
+    <td>消除常數項，啟用 ORV</td>
+  </tr>
+  <tr>
+    <td>C2</td>
+    <td>嚴格單調</td>
+    <td>保證 ORV soundness</td>
+  </tr>
+  <tr>
+    <td>C3</td>
+    <td>輸出有界</td>
+    <td>輸出可用 <span class="math">pp</span>-bit 表示</td>
+  </tr>
+  <tr>
+    <td>C4</td>
+    <td>多項式可近似</td>
+    <td>Horner 求值的前提</td>
+  </tr>
+  <tr>
+    <td>C5</td>
+    <td>係數量化</td>
+    <td>有限域中不溢位</td>
+  </tr>
+  <tr>
+    <td>C6</td>
+    <td>輸入分解</td>
+    <td>byte decomposition 可行</td>
+  </tr>
+</table>
+
+<p>
+  初步分析顯示，10 個以上常見函數（sigmoid、tanh、GELU、softplus、sin、arctan、erfc、expm1、log1p、softmax 中的 exp 等）均可滿足 C1-C6，代表這是一個可擴展的通用框架。Coverage theorem 將我們的系統從「支援 4 個函數的實作」提升為「可覆蓋任意滿足條件之函數的方法論」。
+</p>
+
+<!-- ============================================================ -->
+<!-- §5 誠實的限制                                                 -->
+<!-- ============================================================ -->
+<h1><span class="section-num">5</span>誠實的限制</h1>
+
+<div class="problem-box">
+  <strong>1. ULP 範圍限制：</strong>max ULP claims 僅限於 Horner evaluation kernel 本身。End-to-end 精度取決於 range reduction 的實作品質——例如 exp 需要先將輸入分解為整數部分與小數部分。Range reduction 的精度損失不在本論文範圍內。
+</div>
+
+<div class="problem-box">
+  <strong>2. Batch 場景：</strong>N=1,000 時，我們的 prove time 為 1,011ms，而 Method B（Chunk lookup）僅需 135ms（7.5x 劣勢）。每次求值需要 9 rows，而查表法只需 1 row。在大量批次計算中，查表法的效率優勢明顯。
+</div>
+
+<div class="problem-box">
+  <strong>3. Proof size：</strong>4,960B vs Method A（Direct lookup）的 736B，大了 6.7x。雖然在絕對值上仍然可接受（不到 5KB），但並非最小。
+</div>
+
+<div class="problem-box">
+  <strong>4. GELU 覆蓋：</strong>目前的 GELU 實作只覆蓋 [0, 1] 區間。<span class="math">x</span> &gt; 1 時需要分段擴展（piecewise extension），這是未來工作的一部分。
+</div>
+
+<div class="problem-box">
+  <strong>5. erf 489x caveat：</strong>erf 的 489x 精度改善數字來自 5 vs 3 非零係數的不完全公平比較（Taylor 展開只有 3 個非零項，而 Minimax 使用全部 5 個）。公平的 headline 數字應該用 exp 的 12x。
+</div>
+
+<!-- ============================================================ -->
+<!-- §6 結語——定位總結                                              -->
+<!-- ============================================================ -->
+<h1><span class="section-num">6</span>結語——定位總結</h1>
+
+<div class="result-box">
+  <p>
+    我們提出了一套結合四個設計決策的方法論：Minimax 係數選擇、Output Range Verification、Deferred Truncation、以及 Universal Kernel 設計。不同於 ZKFixedPointChip (2023) 使用 Minimax 但缺乏正式分析，我們提供了缺失的方法論——區間選擇、截斷策略比較、ORV 設計、以及正式誤差預算和窮舉驗證。不同於查表方法（ezkl 65K+, ZKML Compiler 16K+），我們的電路只使用 256-entry ByteTable。不同於 Lagrange Labs 的 GL quadrature + Pad&eacute; 有理近似，我們使用純多項式並具有可證明的 <span class="math">L</span><sup>&infin;</sup> 最優性。
+  </p>
+  <p>
+    我們的定位並非取代查表法——在 batch 場景和需要零精度損失的情境下，查表法仍有其優勢。我們的貢獻在於：當 table size 受限、需要多函數支援、且可接受微小精度損失（max ULP &le; 3）時，提供了一個有系統理論支撐的替代方案。
+  </p>
+</div>
+
+</body>
+</html>
